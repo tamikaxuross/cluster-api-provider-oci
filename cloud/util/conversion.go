@@ -18,6 +18,7 @@ package util
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -30,14 +31,42 @@ func ConvertClusterV1Beta2ToV1Beta1(cluster *clusterv1beta2.Cluster) (*clusterv1
 		return nil, nil
 	}
 
+	fmt.Printf("Converting cluster: %s/%s\n", cluster.Namespace, cluster.Name)
+
+	// Save and nil out failureDomains to avoid unmarshal error
+	originalFailureDomains := cluster.Status.FailureDomains
+	cluster.Status.FailureDomains = nil
+
 	clusterV1Beta1 := &clusterv1.Cluster{}
 	data, err := json.Marshal(cluster)
 	if err != nil {
+		cluster.Status.FailureDomains = originalFailureDomains
 		return nil, errors.Wrap(err, "failed to marshal v1beta2 cluster")
 	}
 
 	if err := json.Unmarshal(data, clusterV1Beta1); err != nil {
+		cluster.Status.FailureDomains = originalFailureDomains
 		return nil, errors.Wrap(err, "failed to unmarshal to v1beta1 cluster")
+	}
+
+	// Restore original
+	cluster.Status.FailureDomains = originalFailureDomains
+
+	// Convert failureDomains from array to map
+	if len(originalFailureDomains) > 0 {
+		clusterV1Beta1.Status.FailureDomains = make(clusterv1.FailureDomains)
+		for _, fd := range originalFailureDomains {
+			// Handle pointer to bool conversion
+			controlPlane := false
+			if fd.ControlPlane != nil {
+				controlPlane = *fd.ControlPlane
+			}
+			clusterV1Beta1.Status.FailureDomains[fd.Name] = clusterv1.FailureDomainSpec{
+				ControlPlane: controlPlane,
+				Attributes:   fd.Attributes,
+			}
+		}
+		fmt.Printf("Converted %d failure domains to map\n", len(originalFailureDomains))
 	}
 
 	return clusterV1Beta1, nil
