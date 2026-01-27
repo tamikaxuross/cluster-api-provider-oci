@@ -44,7 +44,8 @@ tilt-settings.json
 # git worktrees
 worktrees/
 
-
+testtwo.kubeconfig
+cluster-api-provider-oci/testtwo.kubeconfig
 
 infrastructure-oci/v1.11.0/infrastructure-components.yaml
 infrastructure-oci/v1.11.0/metadata.yaml
