@@ -712,7 +712,7 @@ func verifyMultipleNsgSubnet(ctx context.Context, namespace string, clusterName 
 			requiredIndex = 1
 		}
 		for _, machine := range machineList.Items {
-			instanceOcid := strings.Split(*machine.Spec.ProviderID, "//")[1]
+			instanceOcid := strings.Split(machine.Spec.ProviderID, "//")[1]
 			Log(fmt.Sprintf("Instance OCID is %s", instanceOcid))
 
 			exists := false
@@ -1035,11 +1035,11 @@ func validateFailureDomainSpread(nameSpace string, clusterName string) {
 	ociFailureDomain := map[string]int{}
 	// Count all control plane machine failure domains.
 	for _, machine := range machineList.Items {
-		if machine.Spec.FailureDomain == nil {
+		if machine.Spec.FailureDomain == "" {
 			continue
 		}
 		failureDomainCounts[*machine.Spec.FailureDomain]++
-		instanceOcid := strings.Split(*machine.Spec.ProviderID, "//")[1]
+		instanceOcid := strings.Split(machine.Spec.ProviderID, "//")[1]
 		Log(fmt.Sprintf("Instance OCID is %s", instanceOcid))
 
 		resp, err := computeClient.GetInstance(context.Background(), core.GetInstanceRequest{
