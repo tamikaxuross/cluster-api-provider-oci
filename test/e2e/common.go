@@ -38,7 +38,7 @@ func Byf(format string, a ...interface{}) {
 
 func setupSpecNamespace(ctx context.Context, namespaceName string, clusterProxy framework.ClusterProxy, artifactFolder string) (*corev1.Namespace, context.CancelFunc, error) {
 	Byf("Creating namespace %q for hosting the cluster", namespaceName)
-	framework.Logf("starting to create namespace for hosting the %q test spec", namespaceName)
+	Byf("starting to create namespace for hosting the %q test spec", namespaceName)
 	logPath := filepath.Join(artifactFolder, "clusters", clusterProxy.GetName())
 	opts := metav1.GetOptions{}
 	namespace, err := clusterProxy.GetClientSet().CoreV1().Namespaces().Get(ctx, namespaceName, opts)

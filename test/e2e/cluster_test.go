@@ -846,7 +846,7 @@ func validateVnicNSG(ctx context.Context, clusterName string, nameSpace string, 
 	Log(fmt.Sprintf("NSG id is %s", *nsgId))
 	exists := false
 	for _, machine := range machineList.Items {
-		instanceOcid := strings.Split(*machine.Spec.ProviderID, "//")[1]
+		instanceOcid := strings.Split(machine.Spec.ProviderID, "//")[1]
 		Log(fmt.Sprintf("Instance OCID is %s", instanceOcid))
 
 		resp, err := computeClient.ListVnicAttachments(ctx, core.ListVnicAttachmentsRequest{
@@ -1038,7 +1038,7 @@ func validateFailureDomainSpread(nameSpace string, clusterName string) {
 		if machine.Spec.FailureDomain == "" {
 			continue
 		}
-		failureDomainCounts[*machine.Spec.FailureDomain]++
+		failureDomainCounts[machine.Spec.FailureDomain]++
 		instanceOcid := strings.Split(machine.Spec.ProviderID, "//")[1]
 		Log(fmt.Sprintf("Instance OCID is %s", instanceOcid))
 
@@ -1069,7 +1069,7 @@ func validateOLImage(nameSpace string, clusterName string) {
 
 	Expect(len(machineList.Items)).To(Equal(2))
 	for _, machine := range machineList.Items {
-		instanceOcid := strings.Split(*machine.Spec.ProviderID, "//")[1]
+		instanceOcid := strings.Split(machine.Spec.ProviderID, "//")[1]
 		Log(fmt.Sprintf("Instance OCID is %s", instanceOcid))
 		resp, err := computeClient.GetInstance(context.Background(), core.GetInstanceRequest{
 			InstanceId: common.String(instanceOcid),
@@ -1095,7 +1095,7 @@ func validateWindowsImage(nameSpace string, clusterName string) {
 	Expect(len(machineList.Items)).To(Equal(2))
 	for _, machine := range machineList.Items {
 		if machine.Labels["os"] == "windows" {
-			instanceOcid := strings.Split(*machine.Spec.ProviderID, "//")[1]
+			instanceOcid := strings.Split(machine.Spec.ProviderID, "//")[1]
 			Log(fmt.Sprintf("Instance OCID is %s", instanceOcid))
 			resp, err := computeClient.GetInstance(context.Background(), core.GetInstanceRequest{
 				InstanceId: common.String(instanceOcid),

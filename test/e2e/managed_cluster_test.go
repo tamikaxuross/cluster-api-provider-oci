@@ -40,7 +40,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	expv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -107,16 +107,16 @@ var _ = Describe("Managed Workload cluster creation", func() {
 		}
 
 		cleanInput := cleanupInput{
-			SpecName:          specName,
-			Cluster:           result.Cluster,
-			ClusterProxy:      bootstrapClusterProxy,
-			Namespace:         namespace,
+			SpecName:             specName,
+			Cluster:              result.Cluster,
+			ClusterProxy:         bootstrapClusterProxy,
+			Namespace:            namespace,
 			ClusterctlConfigPath: clusterctlConfigPath,
-			CancelWatches:     cancelWatches,
-			IntervalsGetter:   e2eConfig.GetIntervals,
-			SkipCleanup:       skipCleanup,
-			AdditionalCleanup: additionalCleanup,
-			ArtifactFolder:    artifactFolder,
+			CancelWatches:        cancelWatches,
+			IntervalsGetter:      e2eConfig.GetIntervals,
+			SkipCleanup:          skipCleanup,
+			AdditionalCleanup:    additionalCleanup,
+			ArtifactFolder:       artifactFolder,
 		}
 		dumpSpecResourcesAndCleanup(ctx, cleanInput)
 	})
