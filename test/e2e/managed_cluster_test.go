@@ -406,7 +406,7 @@ func upgradeControlPlaneVersionSpec(ctx context.Context, lister client.Client, c
 	Expect(e2eConfig.Variables).To(HaveKey(ManagedKubernetesUpgradeVersion), "Missing %s variable in the config", ManagedKubernetesUpgradeVersion)
 	managedKubernetesUpgradeVersion := e2eConfig.MustGetVariable(ManagedKubernetesUpgradeVersion)
 	Log(fmt.Sprintf("Upgrade test is starting, upgrade version is %s", managedKubernetesUpgradeVersion))
-	controlPlane.Spec.Version = managedKubernetesUpgradeVersion
+	controlPlane.Spec.Version = &managedKubernetesUpgradeVersion
 	Expect(patchHelper.Patch(ctx, controlPlane)).To(Succeed())
 	Log("Upgrade test is starting")
 
@@ -446,7 +446,7 @@ func updateMachinePoolVersion(ctx context.Context, cluster *clusterv1.Cluster, c
 	patchHelper, err = patch.NewHelper(ociMachinePool, lister)
 	// to update a node pool, set the version and set the current image to nil so that CAPOCI will
 	// automatically lookup a new version
-	ociMachinePool.Spec.Version = managedKubernetesUpgradeVersion
+	ociMachinePool.Spec.Version = &managedKubernetesUpgradeVersion
 	ociMachinePool.Spec.NodeSourceViaImage.ImageId = nil
 	Expect(err).ToNot(HaveOccurred())
 	Expect(patchHelper.Patch(ctx, ociMachinePool)).To(Succeed())
