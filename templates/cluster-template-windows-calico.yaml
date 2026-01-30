@@ -1,4 +1,4 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   labels:
@@ -23,7 +23,7 @@ spec:
     name: "${CLUSTER_NAME}"
     namespace: "${NAMESPACE}"
   controlPlaneRef:
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta2
     kind: KubeadmControlPlane
     name: "${CLUSTER_NAME}-control-plane"
     namespace: "${NAMESPACE}"
@@ -325,7 +325,7 @@ spec:
           type: private
 ---
 kind: KubeadmControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
   namespace: "${NAMESPACE}"
@@ -398,7 +398,7 @@ spec:
         ssh_authorized_keys: "${OCI_SSH_KEY}"
       isPvEncryptionInTransitEnabled: ${OCI_NODE_PV_TRANSIT_ENCRYPTION=true}
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: "${CLUSTER_NAME}-md-win"
@@ -419,7 +419,7 @@ spec:
         - powershell C:\Windows\Setup\Scripts\enable_second_nic.ps1
         - powershell C:\Users\opc\attach_secondary_vnic.ps1 > C:\Users\opc\attach_secondary_vnic_log.txt
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineDeployment
 metadata:
   name: "${CLUSTER_NAME}-md-win"
@@ -435,7 +435,7 @@ spec:
       bootstrap:
         configRef:
           name: "${CLUSTER_NAME}-md-win"
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: "${CLUSTER_NAME}-md-win"

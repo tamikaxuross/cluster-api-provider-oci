@@ -1,4 +1,4 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   labels:
@@ -20,7 +20,7 @@ spec:
     name: "${CLUSTER_NAME}"
     namespace: "${NAMESPACE}"
   controlPlaneRef:
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta2
     kind: KubeadmControlPlane
     name: "${CLUSTER_NAME}-control-plane"
     namespace: "${NAMESPACE}"
@@ -35,7 +35,7 @@ spec:
   compartmentId: "${OCI_COMPARTMENT_ID}"
 ---
 kind: KubeadmControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
   namespace: "${NAMESPACE}"
@@ -87,7 +87,7 @@ spec:
         ssh_authorized_keys: "${OCI_SSH_KEY}"
       isPvEncryptionInTransitEnabled: ${OCI_CONTROL_PLANE_PV_TRANSIT_ENCRYPTION=true}
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachinePool
 metadata:
   name: ${CLUSTER_NAME}-mp-0
@@ -99,7 +99,7 @@ spec:
     spec:
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
           kind: KubeadmConfig
           name: ${CLUSTER_NAME}-mp-0
       clusterName: ${CLUSTER_NAME}
@@ -130,7 +130,7 @@ spec:
 #  placementDetails:
 #      - availabilityDomain: 1
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfig
 metadata:
   name: "${CLUSTER_NAME}-mp-0"

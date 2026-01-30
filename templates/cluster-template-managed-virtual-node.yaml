@@ -1,4 +1,4 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   labels:
@@ -7,12 +7,12 @@ metadata:
   namespace: "${NAMESPACE}"
 spec:
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: OCIManagedCluster
     name: "${CLUSTER_NAME}"
     namespace: "${NAMESPACE}"
   controlPlaneRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: OCIManagedControlPlane
     name: "${CLUSTER_NAME}"
     namespace: "${NAMESPACE}"
@@ -35,7 +35,7 @@ spec:
   version: "${KUBERNETES_VERSION}"
   clusterType: "ENHANCED_CLUSTER"
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachinePool
 metadata:
   name: ${CLUSTER_NAME}-mp-0

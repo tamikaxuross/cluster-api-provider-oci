@@ -16,7 +16,7 @@ spec:
           nicIndex: 1 # second nic must be used for hyper-v
       isPvEncryptionInTransitEnabled: ${OCI_NODE_PV_TRANSIT_ENCRYPTION=false}
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: "${CLUSTER_NAME}-md-0"
@@ -36,7 +36,7 @@ spec:
         - powershell C:\Windows\Setup\Scripts\enable_second_nic.ps1
         - powershell C:\Users\opc\attach_secondary_vnic.ps1 > C:\Users\opc\attach_secondary_vnic_log.txt
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineDeployment
 metadata:
   name: "${CLUSTER_NAME}-md-0"
