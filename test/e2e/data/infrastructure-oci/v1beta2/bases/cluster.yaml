@@ -1,4 +1,4 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   labels:
@@ -16,12 +16,12 @@ spec:
       cidrBlocks:
         - ${SERVICE_CIDR:="10.128.0.0/12"}
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: OCICluster
     name: "${CLUSTER_NAME}"
     namespace: "${NAMESPACE}"
   controlPlaneRef:
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta2
     kind: KubeadmControlPlane
     name: "${CLUSTER_NAME}-control-plane"
     namespace: "${NAMESPACE}"
@@ -36,7 +36,7 @@ spec:
   compartmentId: "${OCI_COMPARTMENT_ID}"
 ---
 kind: KubeadmControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
   namespace: default
@@ -46,7 +46,7 @@ spec:
   machineTemplate:
     infrastructureRef:
       kind: OCIMachineTemplate
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       name: "${CLUSTER_NAME}-control-plane"
       namespace: "${NAMESPACE}"
   kubeadmConfigSpec:
