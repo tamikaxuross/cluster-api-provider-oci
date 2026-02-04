@@ -236,6 +236,11 @@ spec:
           - name: KIND_CGROUP_DRIVER
             value: "cgroupfs"
 
+          - name: ARTIFACTS
+            value: "/workspace/_artifacts"
+          - name: PWD
+            value: "/workspace"
+
         command: ["bash", "-ec"]
         args:
           - |

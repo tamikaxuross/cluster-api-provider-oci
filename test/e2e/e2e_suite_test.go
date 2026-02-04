@@ -25,6 +25,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -162,6 +163,19 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	e2eConfig = loadE2EConfig(configPath)
 
 	By(fmt.Sprintf("Creating a clusterctl local repository into %q", artifactFolder))
+
+	// Clone CAPI repo for core/kubeadm providers (OCI uses current repo root)
+	capiPath := filepath.Join(artifactFolder, "repository", "cluster-api")
+	Expect(os.RemoveAll(capiPath)).To(Succeed())
+	By("Cloning CAPI v1.11.0 repo")
+	cmd := exec.Command("git", "clone", "--depth=1", "--branch=v1.11.0", "https://github.com/kubernetes-sigs/cluster-api.git", capiPath)
+	output, err := cmd.CombinedOutput()
+	Expect(err).To(Succeed(), "Clone failed: %v\n%s", err, output)
+
+	// Set variables for config paths
+	e2eConfig.Variables["ARTIFACTS"] = artifactFolder
+	e2eConfig.Variables["PWD"] = artifactFolder // Use artifactFolder as proxy for PWD in local tests; in Argo it's /workspace
+
 	clusterctlConfigPath = createClusterctlLocalRepository(e2eConfig, filepath.Join(artifactFolder, "repository"))
 
 	By("Setting up the bootstrap cluster")

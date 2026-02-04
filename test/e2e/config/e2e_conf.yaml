@@ -22,8 +22,8 @@ providers:
     type: BootstrapProvider
     versions:
       - name: v1.11.0
-        value: https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.0/bootstrap-components.yaml
-        type: url
+        value: ${ARTIFACTS}/repository/cluster-api
+        type: git
         files:
           - sourcePath: "../data/shared/v1beta2/metadata.yaml"
         replacements:
@@ -35,8 +35,8 @@ providers:
     type: ControlPlaneProvider
     versions:
       - name: v1.11.0
-        value: https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.0/control-plane-components.yaml
-        type: url
+        value: ${ARTIFACTS}/repository/cluster-api
+        type: git
         files:
           - sourcePath: "../data/shared/v1beta2/metadata.yaml"
         replacements:
@@ -45,11 +45,12 @@ providers:
           - old: "--leader-elect"
             new: "--leader-elect=false"
   - name: oci
-    # Use manifest from source files
+    # Use Git repo root for local discovery
     type: InfrastructureProvider
     versions:
       - name: v1.0.0
-        value: ../../../config/default
+        value: ${PWD}
+        type: git
         contract: v1beta2
         files:
           - sourcePath: "../data/infrastructure-oci/v1beta2/cluster-template.yaml"
@@ -111,7 +112,8 @@ variables:
   EXTERNAL_VCN_CPE_SUBNET: "${EXTERNAL_VCN_CPE_SUBNET}"
   EXTERNAL_VCN_WORKER_SUBNET: "${EXTERNAL_VCN_WORKER_SUBNET}"
   EXTERNAL_VCN_CP_SUBNET: "${EXTERNAL_VCN_CP_SUBNET}"
-  
+  ARTIFACTS: "${ARTIFACTS}"
+  PWD: "${PWD}"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]
