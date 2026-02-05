@@ -303,6 +303,7 @@ spec:
 
             # Clone repository and checkout ref
             git clone --depth 1 --branch "{{workflow.parameters.git_ref}}" "{{workflow.parameters.git_repo}}" /workspace
+            git fetch --tags
 
             # Optional Ginkgo focus override
             if [ -n "${GINKGO_FOCUS_PARAM:-}" ]; then
