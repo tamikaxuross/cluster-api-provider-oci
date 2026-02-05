@@ -172,9 +172,39 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	output, err := cmd.CombinedOutput()
 	Expect(err).To(Succeed(), "Clone failed: %v\n%s", err, output)
 
+	// Copy components YAML to local repo structure for file type override (framework will use local if path exists)
+	By("Copying CAPI components to local bundle")
+	// Core
+	coreYAML := filepath.Join(capiPath, "config", "core", "core-components.yaml")
+	localCore := filepath.Join(artifactFolder, "repository", "providers", "cluster-api", "v1.11.0", "core-components.yaml")
+	if _, err := os.Stat(coreYAML); err == nil {
+		os.MkdirAll(filepath.Dir(localCore), 0755)
+		data, err := os.ReadFile(coreYAML)
+		Expect(err).To(Succeed())
+		Expect(os.WriteFile(localCore, data, 0644)).To(Succeed())
+	}
+	// Bootstrap
+	bootstrapYAML := filepath.Join(capiPath, "config", "bootstrap", "kubeadm", "bootstrap-components.yaml")
+	localBootstrap := filepath.Join(artifactFolder, "repository", "providers", "kubeadm", "v1.11.0", "bootstrap-components.yaml")
+	if _, err := os.Stat(bootstrapYAML); err == nil {
+		os.MkdirAll(filepath.Dir(localBootstrap), 0755)
+		data, err := os.ReadFile(bootstrapYAML)
+		Expect(err).To(Succeed())
+		Expect(os.WriteFile(localBootstrap, data, 0644)).To(Succeed())
+	}
+	// Control-plane
+	controlYAML := filepath.Join(capiPath, "config", "controlplane", "kubeadm", "control-plane-components.yaml")
+	localControl := filepath.Join(artifactFolder, "repository", "providers", "kubeadm", "v1.11.0", "control-plane-components.yaml")
+	if _, err := os.Stat(controlYAML); err == nil {
+		os.MkdirAll(filepath.Dir(localControl), 0755)
+		data, err := os.ReadFile(controlYAML)
+		Expect(err).To(Succeed())
+		Expect(os.WriteFile(localControl, data, 0644)).To(Succeed())
+	}
+
 	// Set variables for config paths
 	e2eConfig.Variables["ARTIFACTS"] = artifactFolder
-	e2eConfig.Variables["PWD"] = artifactFolder // Use artifactFolder as proxy for PWD in local tests; in Argo it's /workspace
+	e2eConfig.Variables["PWD"] = os.Getenv("PWD") // Use env PWD
 
 	clusterctlConfigPath = createClusterctlLocalRepository(e2eConfig, filepath.Join(artifactFolder, "repository"))
 
