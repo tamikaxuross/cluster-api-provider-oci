@@ -49,7 +49,7 @@ providers:
     type: InfrastructureProvider
     versions:
       - name: v1.0.0
-        value: ${PWD}
+        value: config/default
         contract: v1beta2
         files:
           - sourcePath: "../data/infrastructure-oci/v1beta2/cluster-template.yaml"
