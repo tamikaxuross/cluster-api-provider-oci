@@ -893,9 +893,9 @@ github.com/oracle/cluster-api-provider-oci/cloud/services/workrequests/mock_work
 github.com/oracle/cluster-api-provider-oci/cloud/services/workrequests/mock_workrequests/client_mock.go:48:		ListWorkRequests									0.0%
 github.com/oracle/cluster-api-provider-oci/cloud/services/workrequests/mock_workrequests/client_mock.go:54:		ListWorkRequestErrors									0.0%
 github.com/oracle/cluster-api-provider-oci/cloud/services/workrequests/mock_workrequests/client_mock.go:63:		ListWorkRequestErrors									0.0%
-github.com/oracle/cluster-api-provider-oci/cloud/util/conversion.go:28:							ConvertClusterV1Beta2ToV1Beta1								0.0%
-github.com/oracle/cluster-api-provider-oci/cloud/util/conversion.go:47:							ConvertMachineV1Beta2ToV1Beta1								0.0%
-github.com/oracle/cluster-api-provider-oci/cloud/util/conversion.go:66:							ConvertMachinePoolV1Beta2ToV1Beta1							0.0%
+github.com/oracle/cluster-api-provider-oci/cloud/util/conversion.go:29:							ConvertClusterV1Beta2ToV1Beta1								0.0%
+github.com/oracle/cluster-api-provider-oci/cloud/util/conversion.go:76:							ConvertMachineV1Beta2ToV1Beta1								0.0%
+github.com/oracle/cluster-api-provider-oci/cloud/util/conversion.go:95:							ConvertMachinePoolV1Beta2ToV1Beta1							0.0%
 github.com/oracle/cluster-api-provider-oci/cloud/util/util.go:62:							GetClusterIdentityFromRef								80.0%
 github.com/oracle/cluster-api-provider-oci/cloud/util/util.go:79:							getOCIClientCertFromSecret								90.9%
 github.com/oracle/cluster-api-provider-oci/cloud/util/util.go:96:							getOCIClientCertPool									91.7%
@@ -1015,4 +1015,4 @@ github.com/oracle/cluster-api-provider-oci/exp/controllers/ocivirtual_machinepoo
 github.com/oracle/cluster-api-provider-oci/feature/feature.go:32:							init											0.0%
 github.com/oracle/cluster-api-provider-oci/main.go:67:									init											0.0%
 github.com/oracle/cluster-api-provider-oci/main.go:79:									main											0.0%
-total:															(statements)										57.8%
+total:															(statements)										57.7%
