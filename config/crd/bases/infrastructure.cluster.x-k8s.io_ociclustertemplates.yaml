@@ -155,11 +155,15 @@ spec:
                                           backend as soon as current backend becomes
                                           unhealthy.
                                         properties:
-                                          urlPath:
+                                          port:
+                                            type: integer
+                                          protocol:
                                             description: |-
                                               The path against which to run the health check.
                                               Example: `/healthcheck`
                                               Default value is `/healthz`
+                                            type: string
+                                          urlPath:
                                             type: string
                                         type: object
                                       isFailOpen:
@@ -1261,11 +1265,15 @@ spec:
                                           backend as soon as current backend becomes
                                           unhealthy.
                                         properties:
-                                          urlPath:
+                                          port:
+                                            type: integer
+                                          protocol:
                                             description: |-
                                               The path against which to run the health check.
                                               Example: `/healthcheck`
                                               Default value is `/healthz`
+                                            type: string
+                                          urlPath:
                                             type: string
                                         type: object
                                       isFailOpen:

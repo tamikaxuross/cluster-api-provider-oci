@@ -1024,12 +1024,14 @@ type BackendSetDetails struct {
 // HealthChecker The health check policy configuration.
 // For more information, see Editing Health Check Policies (https://docs.cloud.oracle.com/Content/NetworkLoadBalancer/HealthCheckPolicies/health-check-policy-management.htm).
 type HealthChecker struct {
-
+	UrlPath *string `json:"urlPath,omitempty"`
 	// The path against which to run the health check.
 	// Example: `/healthcheck`
 	// Default value is `/healthz`
-	UrlPath *string `json:"urlPath,omitempty"`
+	Protocol string `json:"protocol,omitempty"`
+	Port     *int   `json:"port,omitempty"`
 }
+
 
 // NetworkSpec specifies what the OCI networking resources should look like.
 type NetworkSpec struct {

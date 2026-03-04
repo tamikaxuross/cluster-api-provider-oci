@@ -33,6 +33,14 @@ metadata:
   name: "${CLUSTER_NAME}"
 spec:
   compartmentId: "${OCI_COMPARTMENT_ID}"
+  networkSpec: 
+    apiServerLoadBalancer: 
+      loadBalancerType: "NLB"
+      nlbSpec:
+          backendSetDetails:
+            healthChecker:
+              protocol: "${HEALTH_CHECKER_PROTOCOL:=HTTPS}"
+              port: ${HEALTH_CHECKER_PORT:=6443}
 ---
 kind: KubeadmControlPlane
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
