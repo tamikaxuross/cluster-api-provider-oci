@@ -33,14 +33,16 @@ metadata:
   name: "${CLUSTER_NAME}"
 spec:
   compartmentId: "${OCI_COMPARTMENT_ID}"
-  networkSpec: 
-    apiServerLoadBalancer: 
-      loadBalancerType: "NLB"
+  networkSpec:
+    apiServerLoadBalancer:
+      # Optional: set HEALTH_CHECKER_PROTOCOL (HTTP, HTTPS, TCP, etc.) and
+      # HEALTH_CHECKER_PORT to override the default API server health checker.
+      # Both variables must be provided or omitted together when generating the cluster.
       nlbSpec:
-          backendSetDetails:
-            healthChecker:
-              protocol: "${HEALTH_CHECKER_PROTOCOL:=HTTPS}"
-              port: ${HEALTH_CHECKER_PORT:=6443}
+        backendSetDetails:
+          healthChecker:
+            protocol: "${HEALTH_CHECKER_PROTOCOL}"
+            port: ${HEALTH_CHECKER_PORT}
 ---
 kind: KubeadmControlPlane
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
