@@ -1034,14 +1034,40 @@ type BackendSetDetails struct {
 // HealthChecker The health check policy configuration.
 // For more information, see Editing Health Check Policies (https://docs.cloud.oracle.com/Content/NetworkLoadBalancer/HealthCheckPolicies/health-check-policy-management.htm).
 type HealthChecker struct {
-	UrlPath *string `json:"urlPath,omitempty"`
+	// Protocol is the protocol used for health checks.
+	// Valid values: TCP, HTTP, HTTPS, UDP
+	// Default value is `HTTPS`
+	Protocol string `json:"protocol,omitempty"`
+
+	// Port is the backend server port against which to run the health check.
+	Port *int `json:"port,omitempty"`
+
+	// The maximum time to wait for a response to a health check, in milliseconds. The default value is 3000 (3 seconds)
+	TimeoutinMillis *int `json:"timeoutinMillis,omitempty"`
+
+	// The interval between health checks, in milliseconds. The default value is 30000 (30 seconds).
+	IntervalinMillis *int `json:"intervalinMillis,omitempty"`
+
+	//The number of retries to attempt before a backend server is considered "unhealthy".
+	Retries *int `json:"retries,omitempty"`
+
 	// The path against which to run the health check.
 	// Example: `/healthcheck`
 	// Default value is `/healthz`
-	Protocol string `json:"protocol,omitempty"`
-	Port     *int   `json:"port,omitempty"`
-}
+	UrlPath *string `json:"urlPath,omitempty"`
 
+	// The status code a healthy backend server should return.
+	ReturnCode *int `json:"returnCode,omitempty"`
+
+	// A regular expression for parsing the response body from the backend server.
+	ResponseBodyRegex *string `json:"responseBodyRegex,omitempty"`
+
+	// Base64 encoded pattern to be sent as UDP or TCP health check probe.
+	RequestData *string `json:"requestData,omitempty"`
+
+	// Base64 encoded pattern to be sent as UDP or TCP health check probe.
+	ResponseData *string `json:"responseData,omitempty"`
+}
 
 // NetworkSpec specifies what the OCI networking resources should look like.
 type NetworkSpec struct {

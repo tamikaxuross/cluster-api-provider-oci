@@ -318,44 +318,78 @@ func (s *ClusterScope) GetNetworkLoadBalancers(ctx context.Context) (*networkloa
 }
 
 func (s *ClusterScope) buildHealthChecker(userConfig *infrastructurev1beta2.HealthChecker) *networkloadbalancer.HealthChecker {
+	//Default protocol and port, only required when not set by user since OCI requires these fields to create the NLB
 	protocolStr := "HTTPS"
 	port := int(s.APIServerPort())
-	urlPath := "/healthz"
-	returnCode := 200
-
-	if userConfig != nil {
-		if userConfig.Protocol != "" {
-			protocolStr = strings.ToUpper(userConfig.Protocol)
-		}
-		if userConfig.Port != nil {
-			port = int(*userConfig.Port)
-		}
-		if userConfig.UrlPath != nil && protocolStr != "TCP" {
-			urlPath = *userConfig.UrlPath
-		}
-	}
-
+	// returnCode := 200
+	// intervalInMillis := 100000
+	// timeoutInMillis := 3000
+	// retries := 3
+	//guard pattern: immediately return default health checker if userConfig is nil
 	if userConfig == nil {
-		return nil
+		return &networkloadbalancer.HealthChecker{
+			Protocol:   networkloadbalancer.HealthCheckProtocolsHttps,
+			Port:       common.Int(port),
+			UrlPath:    common.String("/healthz"),
+			ReturnCode: common.Int(200),
+		}
+	}
+	//if userConfig is not set, the values will revert back to default
+	if userConfig.Protocol != "" {
+		//TODO : VALIDATE ENUM VALUE
+		protocolStr = strings.ToUpper(userConfig.Protocol)
+	}
+	if userConfig.Port != nil {
+		port = int(*userConfig.Port)
+	}
+	// if userConfig.ReturnCode != nil {
+	// 	returnCode = int(*userConfig.ReturnCode)
+	// }
+	// if userConfig.IntervalinMillis != nil {
+	// 	intervalInMillis = int(*userConfig.IntervalinMillis)
+	// }
+	// if userConfig.TimeoutinMillis != nil {
+	// 	timeoutInMillis = int(*userConfig.TimeoutinMillis)
+	// }
+	// if userConfig.Retries != nil {
+	// 	retries = int(*userConfig.Retries)
+	// }
+	//Protocol Mapping
+	protocolMap := map[string]networkloadbalancer.HealthCheckProtocolsEnum{
+		"TCP":   networkloadbalancer.HealthCheckProtocolsTcp,
+		"HTTP":  networkloadbalancer.HealthCheckProtocolsHttp,
+		"HTTPS": networkloadbalancer.HealthCheckProtocolsHttps,
+		"UDP":   networkloadbalancer.HealthCheckProtocolsUdp,
 	}
 
-	var protocol networkloadbalancer.HealthCheckProtocolsEnum
-	switch protocolStr {
-	case "TCP":
-		protocol = networkloadbalancer.HealthCheckProtocolsTcp
-	default:
+	protocol, exists := protocolMap[protocolStr]
+	if !exists {
+		// Invalid protocol - default to HTTPS
+		//Edge case: Unknown protocol- default to HTTPS and log a warning
 		protocol = networkloadbalancer.HealthCheckProtocolsHttps
+		s.Logger.Info("Unknown protocol, defaulting to HTTPS", "protocol", protocolStr)
 	}
 
+	// Build health checker- start with required fields only
 	hc := &networkloadbalancer.HealthChecker{
 		Protocol: protocol,
 		Port:     common.Int(port),
 	}
 
-	if protocolStr != "TCP" {
-		hc.UrlPath = common.String(urlPath)
-		hc.ReturnCode = common.Int(returnCode)
+	// Only set HTTP/HTTPS specific fields for those protocols
+	// TCP and UDP don't use UrlPath or ReturnCode
+	if protocolStr == "HTTP" || protocolStr == "HTTPS" {
+		//Set UrlPath: use user value or default
+		if userConfig.UrlPath != nil {
+			hc.UrlPath = common.String(*userConfig.UrlPath)
+		} else {
+			hc.UrlPath = common.String("/healthz")
+		}
 	}
 
+	// TODO: Remove this debug logging after feature is verified
+	s.Logger.Info("Health checker configuration", "healthChecker", fmt.Sprintf("%+v", hc))
+
 	return hc
+
 }
