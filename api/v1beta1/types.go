@@ -1030,6 +1030,12 @@ type HealthChecker struct {
 	// Default value is `/healthz`
 	Protocol string `json:"protocol,omitempty"`
 	Port     *int   `json:"port,omitempty"`
+	// IntervalInMillis defines how often to perform health checks.
+	IntervalInMillis *int `json:"intervalInMillis,omitempty"`
+	// TimeoutInMillis defines the time to wait before marking the check as failed.
+	TimeoutInMillis *int `json:"timeoutInMillis,omitempty"`
+	// Retries defines the consecutive failed checks before marking a backend unhealthy.
+	Retries *int `json:"retries,omitempty"`
 }
 
 

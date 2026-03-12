@@ -155,6 +155,10 @@ spec:
                                           backend as soon as current backend becomes
                                           unhealthy.
                                         properties:
+                                          intervalInMillis:
+                                            description: IntervalInMillis defines
+                                              how often to perform health checks.
+                                            type: integer
                                           port:
                                             type: integer
                                           protocol:
@@ -163,6 +167,16 @@ spec:
                                               Example: `/healthcheck`
                                               Default value is `/healthz`
                                             type: string
+                                          retries:
+                                            description: Retries defines the consecutive
+                                              failed checks before marking a backend
+                                              unhealthy.
+                                            type: integer
+                                          timeoutInMillis:
+                                            description: TimeoutInMillis defines the
+                                              time to wait before marking the check
+                                              as failed.
+                                            type: integer
                                           urlPath:
                                             type: string
                                         type: object
@@ -1265,6 +1279,10 @@ spec:
                                           backend as soon as current backend becomes
                                           unhealthy.
                                         properties:
+                                          intervalInMillis:
+                                            description: IntervalInMillis defines
+                                              how often to perform health checks.
+                                            type: integer
                                           port:
                                             type: integer
                                           protocol:
@@ -1273,6 +1291,16 @@ spec:
                                               Example: `/healthcheck`
                                               Default value is `/healthz`
                                             type: string
+                                          retries:
+                                            description: Retries defines the consecutive
+                                              failed checks before marking a backend
+                                              unhealthy.
+                                            type: integer
+                                          timeoutInMillis:
+                                            description: TimeoutInMillis defines the
+                                              time to wait before marking the check
+                                              as failed.
+                                            type: integer
                                           urlPath:
                                             type: string
                                         type: object

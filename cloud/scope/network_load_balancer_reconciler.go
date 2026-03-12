@@ -318,10 +318,12 @@ func (s *ClusterScope) GetNetworkLoadBalancers(ctx context.Context) (*networkloa
 }
 
 func (s *ClusterScope) buildHealthChecker(userConfig *infrastructurev1beta2.HealthChecker) *networkloadbalancer.HealthChecker {
-	protocolStr := "HTTPS"
+	protocolStr := strings.ToUpper(HealthCheckerDefaultProtocol)
 	port := int(s.APIServerPort())
-	urlPath := "/healthz"
-	returnCode := 200
+	urlPath := HealthCheckerDefaultURLPath
+	intervalInMillis := HealthCheckerDefaultIntervalInMillis
+	timeoutInMillis := HealthCheckerDefaultTimeoutInMillis
+	retries := HealthCheckerDefaultRetries
 
 	if userConfig != nil {
 		if userConfig.Protocol != "" {
@@ -333,28 +335,40 @@ func (s *ClusterScope) buildHealthChecker(userConfig *infrastructurev1beta2.Heal
 		if userConfig.UrlPath != nil && protocolStr != "TCP" {
 			urlPath = *userConfig.UrlPath
 		}
-	}
-
-	if userConfig == nil {
-		return nil
+		if userConfig.IntervalInMillis != nil && *userConfig.IntervalInMillis > 0 {
+			intervalInMillis = *userConfig.IntervalInMillis
+		}
+		if userConfig.TimeoutInMillis != nil && *userConfig.TimeoutInMillis > 0 {
+			timeoutInMillis = *userConfig.TimeoutInMillis
+		}
+		if userConfig.Retries != nil && *userConfig.Retries > 0 {
+			retries = *userConfig.Retries
+		}
 	}
 
 	var protocol networkloadbalancer.HealthCheckProtocolsEnum
 	switch protocolStr {
 	case "TCP":
 		protocol = networkloadbalancer.HealthCheckProtocolsTcp
+	case "HTTP":
+		protocol = networkloadbalancer.HealthCheckProtocolsHttp
 	default:
+		// default to HTTPS for any unsupported protocol
+		protocolStr = HealthCheckerDefaultProtocol
 		protocol = networkloadbalancer.HealthCheckProtocolsHttps
 	}
 
 	hc := &networkloadbalancer.HealthChecker{
-		Protocol: protocol,
-		Port:     common.Int(port),
+		Protocol:        protocol,
+		Port:            common.Int(port),
+		IntervalInMillis: common.Int(intervalInMillis),
+		TimeoutInMillis:  common.Int(timeoutInMillis),
+		Retries:          common.Int(retries),
 	}
 
-	if protocolStr != "TCP" {
+	if protocol != networkloadbalancer.HealthCheckProtocolsTcp {
 		hc.UrlPath = common.String(urlPath)
-		hc.ReturnCode = common.Int(returnCode)
+		hc.ReturnCode = common.Int(HealthCheckerDefaultReturnCode)
 	}
 
 	return hc

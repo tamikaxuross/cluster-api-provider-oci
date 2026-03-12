@@ -1318,6 +1318,9 @@ func autoConvert_v1beta1_HealthChecker_To_v1beta2_HealthChecker(in *HealthChecke
 	out.UrlPath = (*string)(unsafe.Pointer(in.UrlPath))
 	out.Protocol = in.Protocol
 	out.Port = (*int)(unsafe.Pointer(in.Port))
+	out.IntervalInMillis = (*int)(unsafe.Pointer(in.IntervalInMillis))
+	out.TimeoutInMillis = (*int)(unsafe.Pointer(in.TimeoutInMillis))
+	out.Retries = (*int)(unsafe.Pointer(in.Retries))
 	return nil
 }
 
@@ -1330,6 +1333,9 @@ func autoConvert_v1beta2_HealthChecker_To_v1beta1_HealthChecker(in *v1beta2.Heal
 	out.UrlPath = (*string)(unsafe.Pointer(in.UrlPath))
 	out.Protocol = in.Protocol
 	out.Port = (*int)(unsafe.Pointer(in.Port))
+	out.IntervalInMillis = (*int)(unsafe.Pointer(in.IntervalInMillis))
+	out.TimeoutInMillis = (*int)(unsafe.Pointer(in.TimeoutInMillis))
+	out.Retries = (*int)(unsafe.Pointer(in.Retries))
 	return nil
 }
 
