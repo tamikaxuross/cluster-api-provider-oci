@@ -33,6 +33,22 @@ metadata:
   name: "${CLUSTER_NAME}"
 spec:
   compartmentId: "${OCI_COMPARTMENT_ID}"
+  networkSpec:
+    apiServerLoadBalancer:
+      loadBalancerType: "NLB"
+      nlbSpec:
+        backendSetDetails:
+          healthChecker:
+            protocol: ${OCI_HEALTHCHECK_PROTOCOL:="HTTPS"}
+            port: ${OCI_HEALTHCHECK_PORT:=6443}
+            intervalInMillis: ${OCI_HEALTHCHECK_INTERVAL:=10000}
+            timeoutInMillis: ${OCI_HEALTHCHECK_TIMEOUT:=3000}
+            retries: ${OCI_HEALTHCHECK_RETRIES:=3}
+            urlPath: ${OCI_HEALTHCHECK_URL_PATH:="/readyz"}
+            returnCode: ${OCI_HEALTHCHECK_RETURN_CODE:=200}
+            responseBodyRegex: ${OCI_HEALTHCHECK_RESPONSE_REGEX:=".*"}
+            # requestData: ${OCI_HEALTHCHECK_REQUEST_DATA_BASE64}   # Enable for TCP/UDP probes (base64 string)
+            # responseData: ${OCI_HEALTHCHECK_RESPONSE_DATA_BASE64} # Requires protocol TCP or UDP and matching base64 payload
 ---
 kind: KubeadmControlPlane
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1

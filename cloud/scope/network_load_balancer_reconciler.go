@@ -18,6 +18,7 @@ package scope
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -159,8 +160,10 @@ func (s *ClusterScope) CreateNLB(ctx context.Context, lb infrastructurev1beta2.L
 
 	backendSetDetails := make(map[string]networkloadbalancer.BackendSetDetails)
 
-	healthChecker := s.buildHealthChecker(&lb.NLBSpec.BackendSetDetails.HealthChecker)
-	s.Logger.Info(fmt.Sprintf("%+v", healthChecker), "healthchecker struct")
+	healthChecker, err := s.buildNLBHealthChecker(lb.NLBSpec.BackendSetDetails.HealthChecker)
+	if err != nil {
+		return nil, nil, err
+	}
 	backendSetDetails[APIServerLBBackendSetName] = networkloadbalancer.BackendSetDetails{
 		Policy:                   LoadBalancerPolicy,
 		IsPreserveSource:         isPreserverSourceIp,
@@ -317,59 +320,96 @@ func (s *ClusterScope) GetNetworkLoadBalancers(ctx context.Context) (*networkloa
 	return nil, nil
 }
 
-func (s *ClusterScope) buildHealthChecker(userConfig *infrastructurev1beta2.HealthChecker) *networkloadbalancer.HealthChecker {
-	protocolStr := strings.ToUpper(HealthCheckerDefaultProtocol)
+func (s *ClusterScope) buildNLBHealthChecker(spec infrastructurev1beta2.HealthChecker) (*networkloadbalancer.HealthChecker, error) {
+	protocol := networkloadbalancer.HealthCheckProtocolsHttps
+	if spec.Protocol != nil && strings.TrimSpace(*spec.Protocol) != "" {
+		value := strings.ToUpper(strings.TrimSpace(*spec.Protocol))
+		if enum, ok := networkloadbalancer.GetMappingHealthCheckProtocolsEnum(value); ok {
+			protocol = enum
+		} else {
+			return nil, errors.Errorf("unsupported health checker protocol %q", value)
+		}
+	}
+
 	port := int(s.APIServerPort())
-	urlPath := HealthCheckerDefaultURLPath
-	intervalInMillis := HealthCheckerDefaultIntervalInMillis
-	timeoutInMillis := HealthCheckerDefaultTimeoutInMillis
+	if spec.Port != nil {
+		port = *spec.Port
+	}
+
+	interval := HealthCheckerDefaultIntervalInMillis
+	if spec.IntervalInMillis != nil {
+		interval = *spec.IntervalInMillis
+	}
+
+	timeout := HealthCheckerDefaultTimeoutInMillis
+	if spec.TimeoutInMillis != nil {
+		timeout = *spec.TimeoutInMillis
+	}
+
 	retries := HealthCheckerDefaultRetries
-
-	if userConfig != nil {
-		if userConfig.Protocol != "" {
-			protocolStr = strings.ToUpper(userConfig.Protocol)
-		}
-		if userConfig.Port != nil {
-			port = int(*userConfig.Port)
-		}
-		if userConfig.UrlPath != nil && protocolStr != "TCP" {
-			urlPath = *userConfig.UrlPath
-		}
-		if userConfig.IntervalInMillis != nil && *userConfig.IntervalInMillis > 0 {
-			intervalInMillis = *userConfig.IntervalInMillis
-		}
-		if userConfig.TimeoutInMillis != nil && *userConfig.TimeoutInMillis > 0 {
-			timeoutInMillis = *userConfig.TimeoutInMillis
-		}
-		if userConfig.Retries != nil && *userConfig.Retries > 0 {
-			retries = *userConfig.Retries
-		}
+	if spec.Retries != nil {
+		retries = *spec.Retries
 	}
 
-	var protocol networkloadbalancer.HealthCheckProtocolsEnum
-	switch protocolStr {
-	case "TCP":
-		protocol = networkloadbalancer.HealthCheckProtocolsTcp
-	case "HTTP":
-		protocol = networkloadbalancer.HealthCheckProtocolsHttp
-	default:
-		// default to HTTPS for any unsupported protocol
-		protocolStr = HealthCheckerDefaultProtocol
-		protocol = networkloadbalancer.HealthCheckProtocolsHttps
-	}
-
-	hc := &networkloadbalancer.HealthChecker{
-		Protocol:        protocol,
-		Port:            common.Int(port),
-		IntervalInMillis: common.Int(intervalInMillis),
-		TimeoutInMillis:  common.Int(timeoutInMillis),
+	healthChecker := &networkloadbalancer.HealthChecker{
+		Protocol:         protocol,
+		Port:             common.Int(port),
+		IntervalInMillis: common.Int(interval),
+		TimeoutInMillis:  common.Int(timeout),
 		Retries:          common.Int(retries),
 	}
 
-	if protocol != networkloadbalancer.HealthCheckProtocolsTcp {
-		hc.UrlPath = common.String(urlPath)
-		hc.ReturnCode = common.Int(HealthCheckerDefaultReturnCode)
+	switch protocol {
+	case networkloadbalancer.HealthCheckProtocolsHttp, networkloadbalancer.HealthCheckProtocolsHttps:
+		if spec.RequestData != nil || spec.ResponseData != nil {
+			return nil, errors.New("requestData and responseData are not supported for HTTP/HTTPS health checks")
+		}
+
+		url := "/healthz"
+		if spec.UrlPath != nil && strings.TrimSpace(*spec.UrlPath) != "" {
+			url = strings.TrimSpace(*spec.UrlPath)
+		}
+		healthChecker.UrlPath = common.String(url)
+
+		returnCode := 200
+		if spec.ReturnCode != nil {
+			returnCode = *spec.ReturnCode
+		}
+		healthChecker.ReturnCode = common.Int(returnCode)
+
+		if spec.ResponseBodyRegex != nil && strings.TrimSpace(*spec.ResponseBodyRegex) != "" {
+			regex := strings.TrimSpace(*spec.ResponseBodyRegex)
+			healthChecker.ResponseBodyRegex = common.String(regex)
+		}
+	default:
+		if spec.UrlPath != nil || spec.ReturnCode != nil || spec.ResponseBodyRegex != nil {
+			return nil, errors.New("urlPath, returnCode, and responseBodyRegex are only supported for HTTP/HTTPS health checks")
+		}
+
+		if decoded, err := decodeHealthCheckerPayload("requestData", spec.RequestData); err != nil {
+			return nil, err
+		} else if decoded != nil {
+			healthChecker.RequestData = decoded
+		}
+		if decoded, err := decodeHealthCheckerPayload("responseData", spec.ResponseData); err != nil {
+			return nil, err
+		} else if decoded != nil {
+			healthChecker.ResponseData = decoded
+		}
 	}
 
-	return hc
+	return healthChecker, nil
+}
+
+func decodeHealthCheckerPayload(fieldName string, value *string) ([]byte, error) {
+	if value == nil {
+		return nil, nil
+	}
+
+	trimmed := strings.TrimSpace(*value)
+	data, err := base64.StdEncoding.DecodeString(trimmed)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("failed to decode health checker %s", fieldName))
+	}
+	return data, nil
 }
