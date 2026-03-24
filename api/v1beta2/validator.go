@@ -84,6 +84,17 @@ func validateHealthChecker(healthChecker HealthChecker, fldPath *field.Path) fie
 		))
 	}
 
+	if healthChecker.Port != nil {
+		port := *healthChecker.Port
+		if port < 1 || port > 65535 {
+			allErrs = append(allErrs, field.Invalid(
+				fldPath.Child("port"),
+				port,
+				"port must be between 1 and 65535",
+			))
+		}
+	}
+
 	if healthChecker.TimeoutInMillis != nil && *healthChecker.TimeoutInMillis <= 0 {
 		allErrs = append(allErrs, field.Invalid(
 			fldPath.Child("timeoutInMillis"),
