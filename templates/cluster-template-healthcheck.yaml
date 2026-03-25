@@ -35,32 +35,26 @@ spec:
   compartmentId: "${OCI_COMPARTMENT_ID}"
   networkSpec:
     apiServerLoadBalancer:
-    # Optional: Customize API server NLB health checks using environment variables:
-      # - HEALTH_CHECKER_PROTOCOL: HTTP, HTTPS, TCP, or UDP (default: HTTPS)
-      # - HEALTH_CHECKER_PORT: Health check port (default: 6443)
-      # - HEALTH_CHECKER_INTERVAL_IN_MILLIS: Check interval in ms (default: 10000)
-      # - HEALTH_CHECKER_TIMEOUT_IN_MILLIS: Check timeout in ms (default: 3000)
-      # - HEALTH_CHECKER_RETRIES: Number of retries (default: 3)
-      # For HTTP/HTTPS protocols:
-      # - HEALTH_CHECKER_URL_PATH: URL path to check (default: /healthz)
-      # - HEALTH_CHECKER_RETURN_CODE: Expected HTTP status code (default: 200)
-      # For TCP/UDP protocols:
-      # - HEALTH_CHECKER_REQUEST_DATA_BASE64: Base64-encoded request payload
-      # - HEALTH_CHECKER_RESPONSE_DATA_BASE64: Base64-encoded expected response
+      # Customize NLB health checks via environment variables.
+      # The five fields below apply to ALL protocols (HTTP, HTTPS, TCP, UDP).
+      # Uncomment the protocol-specific section that matches your chosen protocol.
       loadBalancerType: "NLB"
       nlbSpec:
         backendSetDetails:
           healthChecker:
+            # --- Universal fields (all protocols) ---
             protocol: "${HEALTH_CHECKER_PROTOCOL:=HTTPS}"
             port: ${HEALTH_CHECKER_PORT:=6443}
-            intervalInMillis: ${HEALTH_CHECKER_INTERVAL_IN_MILLIS:=10000}
-            timeoutInMillis: ${HEALTH_CHECKER_TIMEOUT_IN_MILLIS:=3000}
+            intervalInMillis: ${HEALTH_CHECKER_INTERVAL_IN_MILLIS:=30000}
+            timeoutInMillis: ${HEALTH_CHECKER_TIMEOUT_IN_MILLIS:=10000}
             retries: ${HEALTH_CHECKER_RETRIES:=3}
-            urlPath: "${HEALTH_CHECKER_URL_PATH:=/healthz}"
-            returnCode: ${HEALTH_CHECKER_RETURN_CODE:=200}
-            responseBodyRegex: ${HEALTH_CHECKER_RESPONSE_REGEX:=""}
-            # requestData: <base64 payload>   # Enable for TCP/UDP probes (set via HEALTH_CHECKER_REQUEST_DATA_BASE64)
-            # responseData: <base64 payload>  # Requires protocol TCP or UDP and matching base64 payload
+            # --- HTTP/HTTPS only — uncomment to override CAPOCI defaults (/healthz, 200) ---
+            # urlPath: "${HEALTH_CHECKER_URL_PATH:=/healthz}"
+            # returnCode: ${HEALTH_CHECKER_RETURN_CODE:=200}
+            # responseBodyRegex: "${HEALTH_CHECKER_RESPONSE_REGEX}"
+            # --- TCP/UDP only — uncomment if your probe requires a payload ---
+            # requestData: "${HEALTH_CHECKER_REQUEST_DATA_BASE64}"
+            # responseData: "${HEALTH_CHECKER_RESPONSE_DATA_BASE64}"
 ---
 kind: KubeadmControlPlane
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
@@ -71,9 +65,6 @@ spec:
   version: "${KUBERNETES_VERSION}"
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   machineTemplate:
-    metadata:
-      labels:
-        controlplane.remediation: ""
     infrastructureRef:
       kind: OCIMachineTemplate
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
@@ -106,14 +97,12 @@ kind: OCIMachineTemplate
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
-#  labels:
-#    controlplane.remediation: ""
 spec:
   template:
     spec:
       imageId: "${OCI_IMAGE_ID}"
       compartmentId: "${OCI_COMPARTMENT_ID}"
-      shape: "${OCI_CONTROL_PLANE_MACHINE_TYPE=VM.Standard.E4.Flex}"
+      shape: "${OCI_CONTROL_PLANE_MACHINE_TYPE=VM.Standard.E5.Flex}"
       shapeConfig:
         ocpus: "${OCI_CONTROL_PLANE_MACHINE_TYPE_OCPUS=1}"
       metadata:
@@ -124,8 +113,6 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: OCIMachineTemplate
 metadata:
   name: "${CLUSTER_NAME}-md-0"
-#  labels:
-#    machine.remediation: ""
 spec:
   template:
     spec:
@@ -155,17 +142,16 @@ apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
 metadata:
   name: "${CLUSTER_NAME}-md-0"
-#  labels:
-#    machine.remediation: ""
 spec:
   clusterName: "${CLUSTER_NAME}"
   replicas: ${NODE_MACHINE_COUNT}
   selector:
     matchLabels:
+      cluster.x-k8s.io/cluster-name: "${CLUSTER_NAME}"
   template:
     metadata:
       labels:
-        machine.remediation: ""
+        cluster.x-k8s.io/cluster-name: "${CLUSTER_NAME}"
     spec:
       clusterName: "${CLUSTER_NAME}"
       version: "${KUBERNETES_VERSION}"
@@ -178,4 +164,3 @@ spec:
         name: "${CLUSTER_NAME}-md-0"
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: OCIMachineTemplate
----

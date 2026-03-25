@@ -12,6 +12,8 @@ bin
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 cover.html
+coverage.html
+coverage.txt
 testbin/
 out/
 
@@ -37,12 +39,9 @@ test/e2e/config/e2e_conf-envsubst.yaml
 test/e2e/data/infrastructure-oci/v1beta*/cluster-template*.yaml
 
 
-
 # tilt
 tilt-settings.json
 
 
 # git worktrees
 worktrees/
-
-infrastructure-oci/v0.22.0

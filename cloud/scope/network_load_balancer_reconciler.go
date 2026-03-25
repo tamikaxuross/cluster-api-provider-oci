@@ -172,7 +172,6 @@ func (s *ClusterScope) CreateNLB(ctx context.Context, lb infrastructurev1beta2.L
 		HealthChecker:            healthChecker,
 		Backends:                 []networkloadbalancer.Backend{},
 	}
-	//s.Logger.Info(healchecker, "healthchecker struct")
 	var controlPlaneEndpointSubnets []string
 	for _, subnet := range ptr.ToSubnetSlice(s.OCIClusterAccessor.GetNetworkSpec().Vcn.Subnets) {
 		if subnet.Role == infrastructurev1beta2.ControlPlaneEndpointRole {
