@@ -164,3 +164,6 @@ spec:
         name: "${CLUSTER_NAME}-md-0"
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: OCIMachineTemplate
+
+
+#health check configuration for NLB is included in the OCICluster resource above. Adjust the environment variables at the top of that resource to customize the health checks as needed.
