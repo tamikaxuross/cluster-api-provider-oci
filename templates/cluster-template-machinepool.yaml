@@ -118,7 +118,6 @@ metadata:
   namespace: default
 spec:
   instanceDisplayNameFormatter: "${CLUSTER_NAME}-mp-$${launchCount}"
-  instanceHostnameFormatter: "${CLUSTER_NAME}-mp-$${launchCount}"
   instanceConfiguration:
     instanceOptions:
       areLegacyImdsEndpointsDisabled: true
