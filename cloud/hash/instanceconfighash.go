@@ -182,11 +182,11 @@ func projectLaunchDetails(in, mask *core.InstanceConfigurationLaunchInstanceDeta
 		DefinedTags:                    normalizeDefinedTags(in.DefinedTags),
 		Metadata:                       normalizeMetadata(pickMetadata(in.Metadata, mask.Metadata)),
 		ExtendedMetadata:               pickExtendedMetadata(in.ExtendedMetadata, mask.ExtendedMetadata),
-		IpxeScript:                     pickString(in.IpxeScript, mask.IpxeScript),
-		LaunchMode:                     pickEnum(string(in.LaunchMode), string(mask.LaunchMode)),
+		IpxeScript:                     pickStringDetectRemoval(in.IpxeScript, mask.IpxeScript),
+		LaunchMode:                     pickEnumDetectRemoval(string(in.LaunchMode), string(mask.LaunchMode), string(core.InstanceConfigurationLaunchInstanceDetailsLaunchModeNative)),
 		LicensingConfigs:               projectLicensingConfigs(in.LicensingConfigs, mask.LicensingConfigs),
-		PreferredMaintenanceAction:     pickEnum(string(in.PreferredMaintenanceAction), string(mask.PreferredMaintenanceAction)),
-		SecurityAttributes:             pickNestedInterfaceMap(in.SecurityAttributes, mask.SecurityAttributes),
+		PreferredMaintenanceAction:     pickEnumDetectRemoval(string(in.PreferredMaintenanceAction), string(mask.PreferredMaintenanceAction), string(core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionLiveMigrate)),
+		SecurityAttributes:             pickNestedInterfaceMapDetectRemoval(in.SecurityAttributes, mask.SecurityAttributes),
 		Shape:                          pickString(in.Shape, mask.Shape),
 		ShapeConfig:                    projectShapeConfig(in.ShapeConfig, mask.ShapeConfig),
 		PlatformConfig:                 projectPlatformConfig(in.PlatformConfig, mask.PlatformConfig),
@@ -383,8 +383,19 @@ func projectIPv6AddressCIDRPairs(in, mask []core.InstanceConfigurationIpv6Addres
 }
 
 func projectLicensingConfigs(in, mask []core.LaunchInstanceLicensingConfig) []comparableLicensingConfig {
-	if len(in) == 0 || len(mask) == 0 {
+	if len(in) == 0 {
 		return nil
+	}
+	if len(mask) == 0 {
+		configs := make([]comparableLicensingConfig, 0, len(in))
+		for _, config := range in {
+			configType, licenseType := licensingConfigValues(config)
+			configs = append(configs, comparableLicensingConfig{
+				Type:        configType,
+				LicenseType: licenseType,
+			})
+		}
+		return configs
 	}
 	configs := make([]comparableLicensingConfig, 0, len(in))
 	for i, config := range in {
@@ -748,6 +759,21 @@ func pickNestedInterfaceMap(actual, mask map[string]map[string]interface{}) map[
 	return result
 }
 
+func pickNestedInterfaceMapDetectRemoval(actual, mask map[string]map[string]interface{}) map[string]map[string]interface{} {
+	if len(actual) == 0 {
+		return nil
+	}
+	result := make(map[string]map[string]interface{}, len(actual))
+	for namespace, attrs := range actual {
+		resultAttrs := make(map[string]interface{}, len(attrs))
+		for key, value := range attrs {
+			resultAttrs[key] = value
+		}
+		result[namespace] = resultAttrs
+	}
+	return result
+}
+
 func pickStrings(actual, mask []string) []string {
 	if len(mask) == 0 {
 		return nil
@@ -780,6 +806,13 @@ func pickStringMap(actual, mask map[string]string) map[string]string {
 
 func pickString(actual, mask *string) *string {
 	if mask == nil {
+		return nil
+	}
+	return actual
+}
+
+func pickStringDetectRemoval(actual, mask *string) *string {
+	if mask == nil && actual == nil {
 		return nil
 	}
 	return actual
@@ -825,6 +858,16 @@ func pickInt64(actual, mask *int64) *int64 {
 
 func pickEnum(actual, mask string) string {
 	if mask == "" {
+		return ""
+	}
+	return actual
+}
+
+func pickEnumDetectRemoval(actual, mask, defaultValue string) string {
+	if mask != "" {
+		return actual
+	}
+	if actual == "" || actual == defaultValue {
 		return ""
 	}
 	return actual
