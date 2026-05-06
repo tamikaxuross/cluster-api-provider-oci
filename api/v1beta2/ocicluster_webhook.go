@@ -59,6 +59,10 @@ func (*OCIClusterWebhook) Default(_ context.Context, obj runtime.Object) error {
 		c.Spec.NetworkSpec.Vcn.NetworkSecurityGroup.List = c.NSGSpec()
 	}
 
+	if c.Spec.NetworkSpec.APIServerLB.NetworkVisibility == "" {
+		c.Spec.NetworkSpec.APIServerLB.NetworkVisibility = LBNetworkVisibilityPrivate
+	}
+
 	return nil
 }
 

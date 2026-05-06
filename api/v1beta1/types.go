@@ -1005,7 +1005,7 @@ type LoadBalancer struct {
 	// from the control-plane-endpoint subnet type. Defaults to Inherited, which preserves
 	// backwards compatibility. Setting Public when the control-plane-endpoint subnet is
 	// Private is rejected by the webhook.
-	// +kubebuilder:default=Inherited
+	// Default value is `Inherited`
 	// +optional
 	NetworkVisibility LBNetworkVisibility `json:"networkVisibility,omitempty"`
 }

@@ -2040,6 +2040,29 @@ func TestOCICluster_ValidateCreate(t *testing.T) {
 	}
 }
 
+func TestOCICluster_Default_NetworkVisibility(t *testing.T) {
+	g := gomega.NewWithT(t)
+	webhook := &OCIClusterWebhook{}
+
+	cluster := &OCICluster{}
+	err := webhook.Default(context.Background(), cluster)
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(cluster.Spec.NetworkSpec.APIServerLB.NetworkVisibility).To(gomega.Equal(LBNetworkVisibilityPrivate))
+
+	clusterWithVisibility := &OCICluster{
+		Spec: OCIClusterSpec{
+			NetworkSpec: NetworkSpec{
+				APIServerLB: LoadBalancer{
+					NetworkVisibility: LBNetworkVisibilityPublic,
+				},
+			},
+		},
+	}
+	err = webhook.Default(context.Background(), clusterWithVisibility)
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(clusterWithVisibility.Spec.NetworkSpec.APIServerLB.NetworkVisibility).To(gomega.Equal(LBNetworkVisibilityPublic))
+}
+
 func TestOCIClusterWebhook_ValidateDelete(t *testing.T) {
 	tests := []struct {
 		name    string

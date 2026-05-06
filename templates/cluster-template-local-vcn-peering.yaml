@@ -34,6 +34,8 @@ metadata:
 spec:
   compartmentId: "${OCI_COMPARTMENT_ID}"
   networkSpec:
+    apiServerLoadBalancer:
+      networkVisibility: Private
     vcnPeering:
       drg:
         id: "${DRG_ID}"
@@ -199,7 +201,6 @@ spec:
                   destinationType: CIDR_BLOCK
                   isStateless: false
                   protocol: all
-                id: C2F829
             ingressRules:
               - ingressRule:
                   description: Inbound SSH traffic to worker node

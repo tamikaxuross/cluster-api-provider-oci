@@ -9,11 +9,13 @@ CAPOCI exposes an explicit `spec.networkSpec.apiServerLoadBalancer.networkVisibi
 
 | Value      | Description |
 |------------|-------------|
-| `Private`  | Forces creation of a private load balancer reachable only within the VCN or peered VCNs. |
-| `Public`   | Forces creation of a public load balancer with a public IP address. |
+| `Private`  | Creates a private load balancer reachable only within the VCN or peered VCNs. |
+| `Public`   | Creates a public load balancer with a public IP address. |
 | `Inherited` (default) | Matches the control-plane-endpoint subnet type, maintaining backwards compatibility. |
 
-The webhook rejects `networkVisibility: Public` when any control-plane-endpoint subnet is marked `type: private`, because OCI does not allow attaching a public load balancer to a private subnet.
+> NOTE: The webhook rejects `networkVisibility: Public` when any control-plane-endpoint subnet is marked `type: private`, because OCI does not allow attaching a public load balancer to a private subnet.
+>
+> OCI does not support changing an existing API server load balancer between private and public visibility. Choose the desired visibility before creating the cluster.
 
 ```yaml
 spec:
@@ -23,7 +25,7 @@ spec:
       networkVisibility: Private
 ```
 
-A ready-to-use example is provided in `templates/cluster-template-private.yaml`, which is a copy of the default template with the field set to `Private`.
+The `templates/cluster-template-local-vcn-peering.yaml` asset already includes this setting and can be used as a starting point.
 
 ## Using subnet type (legacy approach)
 
