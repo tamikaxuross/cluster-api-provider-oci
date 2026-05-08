@@ -60,7 +60,7 @@ func (*OCIClusterWebhook) Default(_ context.Context, obj runtime.Object) error {
 	}
 
 	if c.Spec.NetworkSpec.APIServerLB.NetworkVisibility == "" {
-		c.Spec.NetworkSpec.APIServerLB.NetworkVisibility = LBNetworkVisibilityPrivate
+		c.Spec.NetworkSpec.APIServerLB.NetworkVisibility = LBNetworkVisibilityInherited
 	}
 
 	return nil

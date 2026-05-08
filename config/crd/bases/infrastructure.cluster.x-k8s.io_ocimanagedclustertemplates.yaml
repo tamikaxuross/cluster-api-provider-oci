@@ -145,7 +145,6 @@ spec:
                                 description: LoadBalancer Name.
                                 type: string
                               networkVisibility:
-                                default: Inherited
                                 description: |-
                                   NetworkVisibility controls whether the API server LB is Public, Private, or Inherited
                                   from the control-plane-endpoint subnet type. Defaults to Inherited, which preserves
@@ -1315,7 +1314,6 @@ spec:
                                 description: LoadBalancer Name.
                                 type: string
                               networkVisibility:
-                                default: Inherited
                                 description: |-
                                   NetworkVisibility controls whether the API server LB is Public, Private, or Inherited
                                   from the control-plane-endpoint subnet type. Defaults to Inherited, which preserves
