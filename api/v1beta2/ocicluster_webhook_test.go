@@ -2047,7 +2047,7 @@ func TestOCICluster_Default_NetworkVisibility(t *testing.T) {
 	cluster := &OCICluster{}
 	err := webhook.Default(context.Background(), cluster)
 	g.Expect(err).NotTo(gomega.HaveOccurred())
-	g.Expect(cluster.Spec.NetworkSpec.APIServerLB.NetworkVisibility).To(gomega.Equal(LBNetworkVisibilityPrivate))
+	g.Expect(cluster.Spec.NetworkSpec.APIServerLB.NetworkVisibility).To(gomega.Equal(LBNetworkVisibilityInherited))
 
 	clusterWithVisibility := &OCICluster{
 		Spec: OCIClusterSpec{

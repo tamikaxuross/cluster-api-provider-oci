@@ -26,8 +26,6 @@ metadata:
 spec:
   compartmentId: "${OCI_COMPARTMENT_ID}"
   networkSpec:
-    apiServerLoadBalancer:
-      name: ""
     vcn:
       cidr: 10.0.0.0/16
       networkSecurityGroup:
