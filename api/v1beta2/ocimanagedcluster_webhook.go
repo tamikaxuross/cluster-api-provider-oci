@@ -230,11 +230,17 @@ func (c *OCIManagedCluster) validate(old *OCIManagedCluster) field.ErrorList {
 			field.Invalid(field.NewPath("spec", "region"), c.Spec.Region, "field is invalid. See https://docs.oracle.com/en-us/iaas/Content/General/Concepts/regions.htm"))
 	}
 
-	visibility := c.Spec.NetworkSpec.APIServerLB.NetworkVisibility
-	if visibility == LBNetworkVisibilityPublic || visibility == LBNetworkVisibilityPrivate {
+	if isAPIServerLoadBalancerConfigured(c.Spec.NetworkSpec.APIServerLB) {
 		allErrs = append(
 			allErrs,
-			field.Invalid(field.NewPath("spec", "networkSpec", "apiServerLoadBalancer", "networkVisibility"), visibility, "networkVisibility is not supported for managed clusters; the API server endpoint is managed by OCI"))
+			field.Invalid(field.NewPath("spec", "networkSpec", "apiServerLoadBalancer"), c.Spec.NetworkSpec.APIServerLB, "loadbalancer cannot be configured for managed clusters; the API server endpoint is managed by OCI"))
+	} else {
+		visibility := c.Spec.NetworkSpec.APIServerLB.NetworkVisibility
+		if visibility == LBNetworkVisibilityPublic || visibility == LBNetworkVisibilityPrivate {
+			allErrs = append(
+				allErrs,
+				field.Invalid(field.NewPath("spec", "networkSpec", "apiServerLoadBalancer", "networkVisibility"), visibility, "networkVisibility is not supported for managed clusters; the API server endpoint is managed by OCI"))
+		}
 	}
 
 	if len(allErrs) == 0 {
@@ -242,6 +248,28 @@ func (c *OCIManagedCluster) validate(old *OCIManagedCluster) field.ErrorList {
 	}
 
 	return allErrs
+}
+
+func isAPIServerLoadBalancerConfigured(lb LoadBalancer) bool {
+	if lb.Name != "" {
+		return true
+	}
+	if lb.LoadBalancerId != nil {
+		return true
+	}
+	if lb.LoadBalancerType != "" {
+		return true
+	}
+	if lb.NetworkVisibility != "" {
+		return true
+	}
+	if len(lb.NLBSpec.ReservedIpIds) > 0 {
+		return true
+	}
+	if lb.NLBSpec.BackendSetDetails != (BackendSetDetails{}) {
+		return true
+	}
+	return false
 }
 
 func (c *OCIManagedCluster) GetControlPlaneEndpointDefaultIngressRules() []IngressSecurityRuleForNSG {
