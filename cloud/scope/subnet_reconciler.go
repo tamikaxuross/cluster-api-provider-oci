@@ -318,6 +318,8 @@ func (s *ClusterScope) IsSubnetsEqual(actual *core.Subnet, desired infrastructur
 	return true
 }
 
+// isControlPlaneEndpointSubnetPrivate is the legacy fallback used by isAPIServerLBPrivate when
+// networkVisibility is empty or Inherited.
 func (s *ClusterScope) isControlPlaneEndpointSubnetPrivate() bool {
 	for _, subnet := range ptr.ToSubnetSlice(s.OCIClusterAccessor.GetNetworkSpec().Vcn.Subnets) {
 		if subnet.Role == infrastructurev1beta2.ControlPlaneEndpointRole && subnet.Type == infrastructurev1beta2.Private {

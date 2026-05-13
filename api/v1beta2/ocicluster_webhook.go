@@ -215,6 +215,11 @@ func (*OCIClusterWebhook) ValidateUpdate(_ context.Context, oldRaw, newObj runti
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "compartmentId"), c.Spec.CompartmentId, "field is immutable"))
 	}
 
+	if c.Spec.NetworkSpec.APIServerLB.NetworkVisibility != oldCluster.Spec.NetworkSpec.APIServerLB.NetworkVisibility {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "networkSpec", "apiServerLoadBalancer", "networkVisibility"),
+			c.Spec.NetworkSpec.APIServerLB.NetworkVisibility, "field is immutable"))
+	}
+
 	// If Skip field is true, ID field of VCN should be specified
 	if c.Spec.NetworkSpec.Vcn.Skip == *common.Bool(true) {
 		if c.Spec.NetworkSpec.Vcn.ID == common.String("") || c.Spec.NetworkSpec.Vcn.ID == nil {
