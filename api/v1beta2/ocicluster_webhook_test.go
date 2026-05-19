@@ -2183,6 +2183,32 @@ func TestOCICluster_ValidateUpdate(t *testing.T) {
 			expectErr:             true,
 		},
 		{
+			name: "should allow legacy empty networkVisibility to default to inherited",
+			c: &OCICluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "cluster-test"},
+				Spec: OCIClusterSpec{
+					CompartmentId:         "ocid",
+					Region:                "old-region",
+					OCIResourceIdentifier: "uuid",
+					NetworkSpec: NetworkSpec{
+						APIServerLB: LoadBalancer{NetworkVisibility: LBNetworkVisibilityInherited},
+					},
+				},
+			},
+			old: &OCICluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "cluster-test"},
+				Spec: OCIClusterSpec{
+					CompartmentId:         "ocid",
+					Region:                "old-region",
+					OCIResourceIdentifier: "uuid",
+					NetworkSpec: NetworkSpec{
+						APIServerLB: LoadBalancer{NetworkVisibility: ""},
+					},
+				},
+			},
+			expectErr: false,
+		},
+		{
 			name: "shouldn't allow networkVisibility change",
 			c: &OCICluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "cluster-test"},

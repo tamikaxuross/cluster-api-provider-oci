@@ -176,6 +176,13 @@ func (*OCIClusterWebhook) ValidateCreate(_ context.Context, obj runtime.Object) 
 	return nil, apierrors.NewInvalid(c.GroupVersionKind().GroupKind(), c.Name, allErrs)
 }
 
+func effectiveLBNetworkVisibility(visibility LBNetworkVisibility) LBNetworkVisibility {
+	if visibility == "" {
+		return LBNetworkVisibilityInherited
+	}
+	return visibility
+}
+
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (*OCIClusterWebhook) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	c, ok := obj.(*OCICluster)
@@ -215,7 +222,10 @@ func (*OCIClusterWebhook) ValidateUpdate(_ context.Context, oldRaw, newObj runti
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "compartmentId"), c.Spec.CompartmentId, "field is immutable"))
 	}
 
-	if c.Spec.NetworkSpec.APIServerLB.NetworkVisibility != oldCluster.Spec.NetworkSpec.APIServerLB.NetworkVisibility {
+	oldVisibility := effectiveLBNetworkVisibility(oldCluster.Spec.NetworkSpec.APIServerLB.NetworkVisibility)
+	newVisibility := effectiveLBNetworkVisibility(c.Spec.NetworkSpec.APIServerLB.NetworkVisibility)
+
+	if newVisibility != oldVisibility {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "networkSpec", "apiServerLoadBalancer", "networkVisibility"),
 			c.Spec.NetworkSpec.APIServerLB.NetworkVisibility, "field is immutable"))
 	}

@@ -234,13 +234,13 @@ func (c *OCIManagedCluster) validate(old *OCIManagedCluster) field.ErrorList {
 		allErrs = append(
 			allErrs,
 			field.Invalid(field.NewPath("spec", "networkSpec", "apiServerLoadBalancer"), c.Spec.NetworkSpec.APIServerLB, "loadbalancer cannot be configured for managed clusters; the API server endpoint is managed by OCI"))
-	} else {
-		visibility := c.Spec.NetworkSpec.APIServerLB.NetworkVisibility
-		if visibility == LBNetworkVisibilityPublic || visibility == LBNetworkVisibilityPrivate {
-			allErrs = append(
-				allErrs,
-				field.Invalid(field.NewPath("spec", "networkSpec", "apiServerLoadBalancer", "networkVisibility"), visibility, "networkVisibility is not supported for managed clusters; the API server endpoint is managed by OCI"))
-		}
+	}
+
+	visibility := c.Spec.NetworkSpec.APIServerLB.NetworkVisibility
+	if visibility == LBNetworkVisibilityPublic || visibility == LBNetworkVisibilityPrivate {
+		allErrs = append(
+			allErrs,
+			field.Invalid(field.NewPath("spec", "networkSpec", "apiServerLoadBalancer", "networkVisibility"), visibility, "networkVisibility is not supported for managed clusters; the API server endpoint is managed by OCI"))
 	}
 
 	if len(allErrs) == 0 {
