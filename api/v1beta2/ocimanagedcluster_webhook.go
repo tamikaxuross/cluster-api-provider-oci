@@ -260,9 +260,6 @@ func isAPIServerLoadBalancerConfigured(lb LoadBalancer) bool {
 	if lb.LoadBalancerType != "" {
 		return true
 	}
-	if lb.NetworkVisibility != "" {
-		return true
-	}
 	if len(lb.NLBSpec.ReservedIpIds) > 0 {
 		return true
 	}

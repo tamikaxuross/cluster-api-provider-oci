@@ -2209,7 +2209,61 @@ func TestOCICluster_ValidateUpdate(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name: "shouldn't allow networkVisibility change",
+			name: "shouldn't allow networkVisibility change from Inherited to Private",
+			c: &OCICluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "cluster-test"},
+				Spec: OCIClusterSpec{
+					CompartmentId:         "ocid",
+					Region:                "old-region",
+					OCIResourceIdentifier: "uuid",
+					NetworkSpec: NetworkSpec{
+						APIServerLB: LoadBalancer{NetworkVisibility: LBNetworkVisibilityPrivate},
+					},
+				},
+			},
+			old: &OCICluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "cluster-test"},
+				Spec: OCIClusterSpec{
+					CompartmentId:         "ocid",
+					Region:                "old-region",
+					OCIResourceIdentifier: "uuid",
+					NetworkSpec: NetworkSpec{
+						APIServerLB: LoadBalancer{NetworkVisibility: LBNetworkVisibilityInherited},
+					},
+				},
+			},
+			errorMgsShouldContain: "networkVisibility",
+			expectErr:             true,
+		},
+		{
+			name: "shouldn't allow networkVisibility change from empty to Private",
+			c: &OCICluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "cluster-test"},
+				Spec: OCIClusterSpec{
+					CompartmentId:         "ocid",
+					Region:                "old-region",
+					OCIResourceIdentifier: "uuid",
+					NetworkSpec: NetworkSpec{
+						APIServerLB: LoadBalancer{NetworkVisibility: LBNetworkVisibilityPrivate},
+					},
+				},
+			},
+			old: &OCICluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "cluster-test"},
+				Spec: OCIClusterSpec{
+					CompartmentId:         "ocid",
+					Region:                "old-region",
+					OCIResourceIdentifier: "uuid",
+					NetworkSpec: NetworkSpec{
+						APIServerLB: LoadBalancer{NetworkVisibility: ""},
+					},
+				},
+			},
+			errorMgsShouldContain: "networkVisibility",
+			expectErr:             true,
+		},
+		{
+			name: "shouldn't allow networkVisibility change from Public to Private",
 			c: &OCICluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "cluster-test"},
 				Spec: OCIClusterSpec{
@@ -2234,6 +2288,32 @@ func TestOCICluster_ValidateUpdate(t *testing.T) {
 			},
 			errorMgsShouldContain: "networkVisibility",
 			expectErr:             true,
+		},
+		{
+			name: "should allow unchanged networkVisibility Private to Private",
+			c: &OCICluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "cluster-test"},
+				Spec: OCIClusterSpec{
+					CompartmentId:         "ocid",
+					Region:                "old-region",
+					OCIResourceIdentifier: "uuid",
+					NetworkSpec: NetworkSpec{
+						APIServerLB: LoadBalancer{NetworkVisibility: LBNetworkVisibilityPrivate},
+					},
+				},
+			},
+			old: &OCICluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "cluster-test"},
+				Spec: OCIClusterSpec{
+					CompartmentId:         "ocid",
+					Region:                "old-region",
+					OCIResourceIdentifier: "uuid",
+					NetworkSpec: NetworkSpec{
+						APIServerLB: LoadBalancer{NetworkVisibility: LBNetworkVisibilityPrivate},
+					},
+				},
+			},
+			expectErr: false,
 		},
 		{
 			name: "should succeed",

@@ -1002,10 +1002,9 @@ type LoadBalancer struct {
 	NLBSpec NLBSpec `json:"nlbSpec,omitempty"`
 
 	// NetworkVisibility controls whether the API server LB is Public, Private, or Inherited
-	// from the control-plane-endpoint subnet type. Defaults to Inherited, which preserves
-	// backwards compatibility. Setting Public when the control-plane-endpoint subnet is
-	// Private is rejected by the webhook.
-	// Default value is `Inherited`
+	// from the control-plane-endpoint subnet type. The OCICluster mutating webhook applies
+	// the default for self-managed clusters when this field is left empty. Setting Public
+	// when the control-plane-endpoint subnet is Private is rejected by the webhook.
 	// +optional
 	NetworkVisibility LBNetworkVisibility `json:"networkVisibility,omitempty"`
 }
