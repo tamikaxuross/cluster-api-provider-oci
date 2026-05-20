@@ -176,10 +176,10 @@ func (*OCIClusterWebhook) ValidateCreate(_ context.Context, obj runtime.Object) 
 	return nil, apierrors.NewInvalid(c.GroupVersionKind().GroupKind(), c.Name, allErrs)
 }
 
-// effectiveLBNetworkVisibility normalizes an empty string to Inherited so that
-// clusters created before this field existed (stored as "") compare equal to
-// clusters where the defaulting webhook has since set the field to Inherited.
-// This prevents ValidateUpdate from blocking upgrades of pre-existing clusters.
+// effectiveLBNetworkVisibility normalizes an empty string to Inherited so that clusters
+// created before this field existed (stored as "") compare equal to clusters where the
+// defaulting webhook has since set the field to Inherited. Without this, ValidateUpdate
+// would block updates on pre-existing clusters that were never assigned a networkVisibility value.
 func effectiveLBNetworkVisibility(visibility LBNetworkVisibility) LBNetworkVisibility {
 	if visibility == "" {
 		return LBNetworkVisibilityInherited

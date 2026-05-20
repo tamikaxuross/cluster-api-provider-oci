@@ -1005,6 +1005,7 @@ type LoadBalancer struct {
 	// from the control-plane-endpoint subnet type. The OCICluster mutating webhook applies
 	// the default for self-managed clusters when this field is left empty. Setting Public
 	// when the control-plane-endpoint subnet is Private is rejected by the webhook.
+	// Default value is `Inherited`.
 	// +optional
 	NetworkVisibility LBNetworkVisibility `json:"networkVisibility,omitempty"`
 }
