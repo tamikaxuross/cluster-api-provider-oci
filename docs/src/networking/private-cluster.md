@@ -3,15 +3,17 @@
 > Note: This section has to be used only if the CAPOCI manages the workload cluster VCN. If externally managed VCN is
 > used, this section is not applicable.
 
-## Using networkVisibility (recommended)
+## Example Spec for private cluster
 
-CAPOCI exposes an explicit `spec.networkSpec.apiServerLoadBalancer.networkVisibility` switch that controls whether the API server load balancer is public or private. The field defaults to `Inherited`, which preserves the historical behaviour of deriving visibility from the control-plane-endpoint subnet.
+### Using networkVisibility (recommended)
+
+CAPOCI v0.25.0+ exposes `spec.networkSpec.apiServerLoadBalancer.networkVisibility` to control API server load balancer visibility (public or private). The default `Inherited` value preserves the legacy behavior of inferring visibility from the control plane endpoint subnet.
 
 | Value      | Description |
 |------------|-------------|
+| `Inherited` (default) | Matches the control-plane-endpoint subnet type, maintaining backwards compatibility. |
 | `Private`  | Creates a private load balancer reachable only within the VCN or peered VCNs. |
 | `Public`   | Creates a public load balancer with a public IP address. |
-| `Inherited` (default) | Matches the control-plane-endpoint subnet type, maintaining backwards compatibility. |
 
 > NOTE: The webhook rejects `networkVisibility: Public` when any control-plane-endpoint subnet is marked `type: private`, because OCI does not allow attaching a public load balancer to a private subnet.
 >
@@ -27,7 +29,7 @@ spec:
 
 The `templates/cluster-template-local-vcn-peering.yaml` asset already includes this setting and can be used as a starting point.
 
-## Using subnet type (legacy approach)
+### Using subnet type (legacy approach)
 
 Before `networkVisibility` existed, CAPOCI inferred the API server exposure from the control-plane-endpoint subnet type. This workflow remains supported for backwards compatibility and is functionally equivalent to setting `networkVisibility: Inherited`.
 
@@ -63,7 +65,7 @@ spec:
           type: private
 ```
 
-When using the legacy approach, ensure the control-plane-endpoint subnet is marked `type: private` so the API server address stays internal.
+When using the legacy approach (or `networkVisibility: Inherited`), the API server endpoint visibility is derived from the control-plane-endpoint subnet type — ensure it is marked `type: private` to keep the API server address internal.
 
 ## Example spec for VCN Peering using Dynamic Routing Gateway (Local)
 

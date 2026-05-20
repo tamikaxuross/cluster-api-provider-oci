@@ -176,6 +176,10 @@ func (*OCIClusterWebhook) ValidateCreate(_ context.Context, obj runtime.Object) 
 	return nil, apierrors.NewInvalid(c.GroupVersionKind().GroupKind(), c.Name, allErrs)
 }
 
+// effectiveLBNetworkVisibility normalizes an empty string to Inherited so that
+// clusters created before this field existed (stored as "") compare equal to
+// clusters where the defaulting webhook has since set the field to Inherited.
+// This prevents ValidateUpdate from blocking upgrades of pre-existing clusters.
 func effectiveLBNetworkVisibility(visibility LBNetworkVisibility) LBNetworkVisibility {
 	if visibility == "" {
 		return LBNetworkVisibilityInherited
@@ -225,6 +229,8 @@ func (*OCIClusterWebhook) ValidateUpdate(_ context.Context, oldRaw, newObj runti
 	oldVisibility := effectiveLBNetworkVisibility(oldCluster.Spec.NetworkSpec.APIServerLB.NetworkVisibility)
 	newVisibility := effectiveLBNetworkVisibility(c.Spec.NetworkSpec.APIServerLB.NetworkVisibility)
 
+	// networkVisibility is immutable after creation — OCI does not support converting
+	// an existing load balancer between public and private visibility.
 	if newVisibility != oldVisibility {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "networkSpec", "apiServerLoadBalancer", "networkVisibility"),
 			c.Spec.NetworkSpec.APIServerLB.NetworkVisibility, "field is immutable"))
