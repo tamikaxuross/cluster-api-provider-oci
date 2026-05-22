@@ -38,3 +38,7 @@ test/e2e/config/e2e_conf-envsubst.yaml
 
 # tilt
 tilt-settings.json
+
+
+# git worktrees
+worktrees/
