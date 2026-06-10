@@ -2273,6 +2273,47 @@ func TestGetLaunchInstanceDetailsAppliesEffectiveInstanceTagsToLaunchAndVnic(t *
 	g.Expect(launchDetails.CreateVnicDetails.DefinedTags).To(Equal(expectedDefinedTags))
 }
 
+func TestGetLaunchInstanceDetailsMapsDeprecatedNSGIdFallback(t *testing.T) {
+	tests := []struct {
+		name     string
+		config   infrav2exp.MachinePoolNetworkDetails
+		expected []string
+	}{
+		{
+			name: "uses deprecated nsgId when nsgIds is empty",
+			config: infrav2exp.MachinePoolNetworkDetails{
+				NSGId: common.String("legacy-nsg-id"),
+			},
+			expected: []string{"legacy-nsg-id"},
+		},
+		{
+			name: "prefers nsgIds over deprecated nsgId",
+			config: infrav2exp.MachinePoolNetworkDetails{
+				NSGId:  common.String("legacy-nsg-id"),
+				NSGIds: []string{"preferred-nsg-id"},
+			},
+			expected: []string{"preferred-nsg-id"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ms, _ := newInstanceConfigurationOrderingScope(t, "test")
+			spec := infrav2exp.InstanceConfiguration{
+				Shape:                     common.String("test-shape"),
+				InstanceVnicConfiguration: &tt.config,
+			}
+			ms.OCIMachinePool.Spec.InstanceConfiguration = spec
+
+			launchDetails, err := ms.getLaunchInstanceDetails(spec, nil, nil)
+			g.Expect(err).To(BeNil())
+			g.Expect(launchDetails.CreateVnicDetails).ToNot(BeNil())
+			g.Expect(launchDetails.CreateVnicDetails.NsgIds).To(Equal(tt.expected))
+		})
+	}
+}
+
 func TestGetLaunchInstanceDetailsSupportsAcceleratedPVLaunchMode(t *testing.T) {
 	g := NewWithT(t)
 	ms, _ := newInstanceConfigurationOrderingScope(t, "test")
@@ -2789,6 +2830,41 @@ func TestInstancePoolCreate(t *testing.T) {
 						FreeformTags:                 tags,
 						InstanceDisplayNameFormatter: common.String("worker-${launchCount}"),
 						InstanceHostnameFormatter:    common.String("worker-${launchCount}"),
+					},
+				})).
+					Return(core.CreateInstancePoolResponse{
+						InstancePool: core.InstancePool{
+							Id: common.String("id"),
+						},
+					}, nil)
+			},
+		},
+		{
+			name:          "instance pool primary VNIC subnet defaults to worker subnet",
+			errorExpected: false,
+			testSpecificSetup: func(ms *MachinePoolScope) {
+				ms.OCIMachinePool.Spec.PlacementDetails = []infrav2exp.PlacementDetails{{
+					AvailabilityDomain: 1,
+					PrimaryVnicSubnets: &infrav2exp.InstancePoolPlacementPrimarySubnet{
+						IsAssignIpv6Ip: common.Bool(false),
+					},
+				}}
+				ms.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId = common.String("config_id")
+				computeManagementClient.EXPECT().CreateInstancePool(gomock.Any(), gomock.Eq(core.CreateInstancePoolRequest{
+					CreateInstancePoolDetails: core.CreateInstancePoolDetails{
+						CompartmentId:           common.String("test-compartment"),
+						InstanceConfigurationId: common.String("config_id"),
+						Size:                    common.Int(3),
+						DisplayName:             common.String("test"),
+						PlacementConfigurations: []core.CreateInstancePoolPlacementConfigurationDetails{{
+							AvailabilityDomain: common.String("ad-1"),
+							FaultDomains:       []string{"fd-5", "fd-6"},
+							PrimaryVnicSubnets: &core.InstancePoolPlacementPrimarySubnet{
+								SubnetId:       common.String("subnet-id"),
+								IsAssignIpv6Ip: common.Bool(false),
+							},
+						}},
+						FreeformTags: tags,
 					},
 				})).
 					Return(core.CreateInstancePoolResponse{

@@ -714,6 +714,70 @@ var _ = Describe("Workload cluster creation", func() {
 		assertMachinePoolInstancePoolID(ctx, bootstrapClusterProxy, result.MachinePools[0], specName, initialInstancePoolID)
 	})
 
+	It("Machine Pool - Platform Config Hash Stability [DailyTests]", func() {
+		clusterName = getClusterName(clusterNamePrefix, "mp-platform-config")
+		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+			ClusterProxy: bootstrapClusterProxy,
+			ConfigCluster: clusterctl.ConfigClusterInput{
+				LogFolder:                filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
+				ClusterctlConfigPath:     clusterctlConfigPath,
+				KubeconfigPath:           bootstrapClusterProxy.GetKubeconfigPath(),
+				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+				Flavor:                   "machine-pool",
+				Namespace:                namespace.Name,
+				ClusterName:              clusterName,
+				KubernetesVersion:        e2eConfig.MustGetVariable(capi_e2e.KubernetesVersion),
+				ControlPlaneMachineCount: pointer.Int64(1),
+				WorkerMachineCount:       pointer.Int64(1),
+			},
+			CNIManifestPath:              e2eConfig.MustGetVariable(capi_e2e.CNIPath),
+			WaitForClusterIntervals:      e2eConfig.GetIntervals(specName, "wait-cluster"),
+			WaitForControlPlaneIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
+			WaitForMachinePools:          e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+			WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
+		}, result)
+
+		By("Patching the machine pool with AMD VM platform config")
+		mpKey := client.ObjectKey{Name: result.MachinePools[0].Name, Namespace: namespace.Name}
+		initialOMP := &infrav2exp.OCIMachinePool{}
+		Expect(bootstrapClusterProxy.GetClient().Get(ctx, mpKey, initialOMP)).To(Succeed())
+		Expect(initialOMP.Spec.InstanceConfiguration.InstanceConfigurationId).ToNot(BeNil())
+		initialICID := *initialOMP.Spec.InstanceConfiguration.InstanceConfigurationId
+
+		patchHelper, err := v1beta1patch.NewHelper(initialOMP, bootstrapClusterProxy.GetClient())
+		Expect(err).ToNot(HaveOccurred())
+		initialOMP.Spec.InstanceConfiguration.PlatformConfig = &infrav2exp.PlatformConfig{
+			PlatformConfigType: infrav2exp.PlatformConfigTypeAmdvm,
+			AmdVmPlatformConfig: infrav2exp.AmdVmPlatformConfig{
+				IsSymmetricMultiThreadingEnabled: common.Bool(true),
+			},
+		}
+		Expect(patchHelper.Patch(ctx, initialOMP)).To(Succeed())
+
+		var desiredICID string
+		By("Waiting for the machine pool to point at the platform-config instance configuration")
+		Eventually(func(g Gomega) {
+			updatedOMP := &infrav2exp.OCIMachinePool{}
+			g.Expect(bootstrapClusterProxy.GetClient().Get(ctx, mpKey, updatedOMP)).To(Succeed())
+			g.Expect(updatedOMP.Spec.InstanceConfiguration.PlatformConfig).ToNot(BeNil())
+			g.Expect(updatedOMP.Spec.InstanceConfiguration.PlatformConfig.PlatformConfigType).To(Equal(infrav2exp.PlatformConfigTypeAmdvm))
+			g.Expect(updatedOMP.Spec.InstanceConfiguration.PlatformConfig.AmdVmPlatformConfig.IsSymmetricMultiThreadingEnabled).ToNot(BeNil())
+			g.Expect(*updatedOMP.Spec.InstanceConfiguration.PlatformConfig.AmdVmPlatformConfig.IsSymmetricMultiThreadingEnabled).To(BeTrue())
+			g.Expect(updatedOMP.Spec.InstanceConfiguration.InstanceConfigurationId).ToNot(BeNil())
+			g.Expect(*updatedOMP.Spec.InstanceConfiguration.InstanceConfigurationId).ToNot(Equal(initialICID))
+			desiredICID = *updatedOMP.Spec.InstanceConfiguration.InstanceConfigurationId
+		}, e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes")...).Should(Succeed())
+
+		By("Verifying the actual OCI InstancePool switches to the platform-config instance configuration")
+		assertMachinePoolActualInstancePoolSwitch(ctx, bootstrapClusterProxy, result.Cluster, result.MachinePools[0], desiredICID, specName)
+
+		By("Verifying the actual OCI InstanceConfiguration has the AMD VM SMT setting")
+		assertMachinePoolInstanceConfigurationAmdVMSMT(ctx, desiredICID, true, specName)
+
+		By("Verifying the platform-config instance configuration does not churn")
+		assertMachinePoolInstanceConfigurationStable(ctx, bootstrapClusterProxy, result.Cluster, result.MachinePools[0], specName, "45s", "5s")
+	})
+
 	It("Machine Pool - Safe Instance Configuration Update [DailyTests]", func() {
 		clusterName = getClusterName(clusterNamePrefix, "mp-safe-update")
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -1236,6 +1300,34 @@ func assertMachinePoolInstanceConfigurationIpxeScript(ctx context.Context, insta
 		g.Expect(instanceDetails.LaunchDetails.IpxeScript).ToNot(BeNil())
 		g.Expect(*instanceDetails.LaunchDetails.IpxeScript).To(Equal(*expected))
 	}, e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes")...).Should(Succeed(), "Timed out waiting for actual OCI InstanceConfiguration ipxeScript state")
+}
+
+func assertMachinePoolInstanceConfigurationAmdVMSMT(ctx context.Context, instanceConfigurationID string, expected bool, specName string) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for machine pool platform config field check")
+	Expect(instanceConfigurationID).ToNot(BeEmpty(), "instance configuration ID is required for machine pool platform config field check")
+
+	computeManagementClient := newE2EComputeManagementClient()
+	Eventually(func(g Gomega) {
+		resp, err := computeManagementClient.GetInstanceConfiguration(ctx, core.GetInstanceConfigurationRequest{
+			InstanceConfigurationId: common.String(instanceConfigurationID),
+		})
+		g.Expect(err).NotTo(HaveOccurred())
+		instanceDetails, ok := resp.InstanceConfiguration.InstanceDetails.(core.ComputeInstanceDetails)
+		g.Expect(ok).To(BeTrue(), "Expected compute instance details in MachinePool instance configuration")
+		g.Expect(instanceDetails.LaunchDetails).ToNot(BeNil())
+
+		var actualSMT *bool
+		switch platformConfig := instanceDetails.LaunchDetails.PlatformConfig.(type) {
+		case core.InstanceConfigurationAmdVmLaunchInstancePlatformConfig:
+			actualSMT = platformConfig.IsSymmetricMultiThreadingEnabled
+		case core.AmdVmPlatformConfig:
+			actualSMT = platformConfig.IsSymmetricMultiThreadingEnabled
+		default:
+			g.Expect(platformConfig).To(BeAssignableToTypeOf(core.InstanceConfigurationAmdVmLaunchInstancePlatformConfig{}))
+		}
+		g.Expect(actualSMT).ToNot(BeNil())
+		g.Expect(*actualSMT).To(Equal(expected))
+	}, e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes")...).Should(Succeed(), "Timed out waiting for actual OCI InstanceConfiguration AMD VM SMT platform config")
 }
 
 func newE2EComputeManagementClient() computemanagement.Client {

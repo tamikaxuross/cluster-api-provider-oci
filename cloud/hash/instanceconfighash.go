@@ -453,122 +453,207 @@ func projectPlatformConfig(in, mask core.InstanceConfigurationLaunchInstancePlat
 		return nil
 	}
 
-	switch desired := mask.(type) {
+	actual := platformConfigForHash(in)
+	desired := platformConfigForHash(mask)
+	if desired == nil {
+		return nil
+	}
+	if actual == nil || actual.Type != desired.Type {
+		return &comparablePlatformConfig{Type: fmt.Sprintf("%T", in)}
+	}
+	return &comparablePlatformConfig{
+		Type:                                     desired.Type,
+		IsSecureBootEnabled:                      pickDefaultFalseBool(actual.IsSecureBootEnabled, desired.IsSecureBootEnabled),
+		IsTrustedPlatformModuleEnabled:           pickDefaultFalseBool(actual.IsTrustedPlatformModuleEnabled, desired.IsTrustedPlatformModuleEnabled),
+		IsMeasuredBootEnabled:                    pickDefaultFalseBool(actual.IsMeasuredBootEnabled, desired.IsMeasuredBootEnabled),
+		IsMemoryEncryptionEnabled:                pickDefaultFalseBool(actual.IsMemoryEncryptionEnabled, desired.IsMemoryEncryptionEnabled),
+		IsSymmetricMultiThreadingEnabled:         pickDefaultFalseBool(actual.IsSymmetricMultiThreadingEnabled, desired.IsSymmetricMultiThreadingEnabled),
+		IsAccessControlServiceEnabled:            pickDefaultFalseBool(actual.IsAccessControlServiceEnabled, desired.IsAccessControlServiceEnabled),
+		AreVirtualInstructionsEnabled:            pickDefaultFalseBool(actual.AreVirtualInstructionsEnabled, desired.AreVirtualInstructionsEnabled),
+		IsInputOutputMemoryManagementUnitEnabled: pickDefaultFalseBool(actual.IsInputOutputMemoryManagementUnitEnabled, desired.IsInputOutputMemoryManagementUnitEnabled),
+		PercentageOfCoresEnabled:                 pickInt(actual.PercentageOfCoresEnabled, desired.PercentageOfCoresEnabled),
+		ConfigMap:                                pickStringMap(actual.ConfigMap, desired.ConfigMap),
+		NumaNodesPerSocket:                       pickEnum(actual.NumaNodesPerSocket, desired.NumaNodesPerSocket),
+	}
+}
+
+func platformConfigForHash(config core.InstanceConfigurationLaunchInstancePlatformConfig) *comparablePlatformConfig {
+	switch platformConfig := config.(type) {
 	case core.AmdRomeBmGpuPlatformConfig:
-		actual, ok := in.(core.AmdRomeBmGpuPlatformConfig)
-		if !ok {
-			return &comparablePlatformConfig{Type: fmt.Sprintf("%T", in)}
-		}
 		return &comparablePlatformConfig{
 			Type:                                     "AmdRomeBmGpuPlatformConfig",
-			IsSecureBootEnabled:                      pickDefaultFalseBool(actual.IsSecureBootEnabled, desired.IsSecureBootEnabled),
-			IsTrustedPlatformModuleEnabled:           pickDefaultFalseBool(actual.IsTrustedPlatformModuleEnabled, desired.IsTrustedPlatformModuleEnabled),
-			IsMeasuredBootEnabled:                    pickDefaultFalseBool(actual.IsMeasuredBootEnabled, desired.IsMeasuredBootEnabled),
-			IsMemoryEncryptionEnabled:                pickDefaultFalseBool(actual.IsMemoryEncryptionEnabled, desired.IsMemoryEncryptionEnabled),
-			IsSymmetricMultiThreadingEnabled:         pickDefaultFalseBool(actual.IsSymmetricMultiThreadingEnabled, desired.IsSymmetricMultiThreadingEnabled),
-			IsAccessControlServiceEnabled:            pickDefaultFalseBool(actual.IsAccessControlServiceEnabled, desired.IsAccessControlServiceEnabled),
-			AreVirtualInstructionsEnabled:            pickDefaultFalseBool(actual.AreVirtualInstructionsEnabled, desired.AreVirtualInstructionsEnabled),
-			IsInputOutputMemoryManagementUnitEnabled: pickDefaultFalseBool(actual.IsInputOutputMemoryManagementUnitEnabled, desired.IsInputOutputMemoryManagementUnitEnabled),
-			ConfigMap:                                pickStringMap(actual.ConfigMap, desired.ConfigMap),
-			NumaNodesPerSocket:                       pickEnum(string(actual.NumaNodesPerSocket), string(desired.NumaNodesPerSocket)),
+			IsSecureBootEnabled:                      platformConfig.IsSecureBootEnabled,
+			IsTrustedPlatformModuleEnabled:           platformConfig.IsTrustedPlatformModuleEnabled,
+			IsMeasuredBootEnabled:                    platformConfig.IsMeasuredBootEnabled,
+			IsMemoryEncryptionEnabled:                platformConfig.IsMemoryEncryptionEnabled,
+			IsSymmetricMultiThreadingEnabled:         platformConfig.IsSymmetricMultiThreadingEnabled,
+			IsAccessControlServiceEnabled:            platformConfig.IsAccessControlServiceEnabled,
+			AreVirtualInstructionsEnabled:            platformConfig.AreVirtualInstructionsEnabled,
+			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
+			ConfigMap:                                platformConfig.ConfigMap,
+			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
+		}
+	case core.InstanceConfigurationAmdRomeBmGpuLaunchInstancePlatformConfig:
+		return &comparablePlatformConfig{
+			Type:                                     "AmdRomeBmGpuPlatformConfig",
+			IsSecureBootEnabled:                      platformConfig.IsSecureBootEnabled,
+			IsTrustedPlatformModuleEnabled:           platformConfig.IsTrustedPlatformModuleEnabled,
+			IsMeasuredBootEnabled:                    platformConfig.IsMeasuredBootEnabled,
+			IsMemoryEncryptionEnabled:                platformConfig.IsMemoryEncryptionEnabled,
+			IsSymmetricMultiThreadingEnabled:         platformConfig.IsSymmetricMultiThreadingEnabled,
+			IsAccessControlServiceEnabled:            platformConfig.IsAccessControlServiceEnabled,
+			AreVirtualInstructionsEnabled:            platformConfig.AreVirtualInstructionsEnabled,
+			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
+			ConfigMap:                                platformConfig.ConfigMap,
+			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
 		}
 	case core.AmdRomeBmPlatformConfig:
-		actual, ok := in.(core.AmdRomeBmPlatformConfig)
-		if !ok {
-			return &comparablePlatformConfig{Type: fmt.Sprintf("%T", in)}
-		}
 		return &comparablePlatformConfig{
 			Type:                                     "AmdRomeBmPlatformConfig",
-			IsSecureBootEnabled:                      pickDefaultFalseBool(actual.IsSecureBootEnabled, desired.IsSecureBootEnabled),
-			IsTrustedPlatformModuleEnabled:           pickDefaultFalseBool(actual.IsTrustedPlatformModuleEnabled, desired.IsTrustedPlatformModuleEnabled),
-			IsMeasuredBootEnabled:                    pickDefaultFalseBool(actual.IsMeasuredBootEnabled, desired.IsMeasuredBootEnabled),
-			IsMemoryEncryptionEnabled:                pickDefaultFalseBool(actual.IsMemoryEncryptionEnabled, desired.IsMemoryEncryptionEnabled),
-			IsSymmetricMultiThreadingEnabled:         pickDefaultFalseBool(actual.IsSymmetricMultiThreadingEnabled, desired.IsSymmetricMultiThreadingEnabled),
-			IsAccessControlServiceEnabled:            pickDefaultFalseBool(actual.IsAccessControlServiceEnabled, desired.IsAccessControlServiceEnabled),
-			AreVirtualInstructionsEnabled:            pickDefaultFalseBool(actual.AreVirtualInstructionsEnabled, desired.AreVirtualInstructionsEnabled),
-			IsInputOutputMemoryManagementUnitEnabled: pickDefaultFalseBool(actual.IsInputOutputMemoryManagementUnitEnabled, desired.IsInputOutputMemoryManagementUnitEnabled),
-			PercentageOfCoresEnabled:                 pickInt(actual.PercentageOfCoresEnabled, desired.PercentageOfCoresEnabled),
-			ConfigMap:                                pickStringMap(actual.ConfigMap, desired.ConfigMap),
-			NumaNodesPerSocket:                       pickEnum(string(actual.NumaNodesPerSocket), string(desired.NumaNodesPerSocket)),
+			IsSecureBootEnabled:                      platformConfig.IsSecureBootEnabled,
+			IsTrustedPlatformModuleEnabled:           platformConfig.IsTrustedPlatformModuleEnabled,
+			IsMeasuredBootEnabled:                    platformConfig.IsMeasuredBootEnabled,
+			IsMemoryEncryptionEnabled:                platformConfig.IsMemoryEncryptionEnabled,
+			IsSymmetricMultiThreadingEnabled:         platformConfig.IsSymmetricMultiThreadingEnabled,
+			IsAccessControlServiceEnabled:            platformConfig.IsAccessControlServiceEnabled,
+			AreVirtualInstructionsEnabled:            platformConfig.AreVirtualInstructionsEnabled,
+			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
+			PercentageOfCoresEnabled:                 platformConfig.PercentageOfCoresEnabled,
+			ConfigMap:                                platformConfig.ConfigMap,
+			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
+		}
+	case core.InstanceConfigurationAmdRomeBmLaunchInstancePlatformConfig:
+		return &comparablePlatformConfig{
+			Type:                                     "AmdRomeBmPlatformConfig",
+			IsSecureBootEnabled:                      platformConfig.IsSecureBootEnabled,
+			IsTrustedPlatformModuleEnabled:           platformConfig.IsTrustedPlatformModuleEnabled,
+			IsMeasuredBootEnabled:                    platformConfig.IsMeasuredBootEnabled,
+			IsMemoryEncryptionEnabled:                platformConfig.IsMemoryEncryptionEnabled,
+			IsSymmetricMultiThreadingEnabled:         platformConfig.IsSymmetricMultiThreadingEnabled,
+			IsAccessControlServiceEnabled:            platformConfig.IsAccessControlServiceEnabled,
+			AreVirtualInstructionsEnabled:            platformConfig.AreVirtualInstructionsEnabled,
+			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
+			PercentageOfCoresEnabled:                 platformConfig.PercentageOfCoresEnabled,
+			ConfigMap:                                platformConfig.ConfigMap,
+			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
 		}
 	case core.IntelIcelakeBmPlatformConfig:
-		actual, ok := in.(core.IntelIcelakeBmPlatformConfig)
-		if !ok {
-			return &comparablePlatformConfig{Type: fmt.Sprintf("%T", in)}
-		}
 		return &comparablePlatformConfig{
 			Type:                                     "IntelIcelakeBmPlatformConfig",
-			IsSecureBootEnabled:                      pickDefaultFalseBool(actual.IsSecureBootEnabled, desired.IsSecureBootEnabled),
-			IsTrustedPlatformModuleEnabled:           pickDefaultFalseBool(actual.IsTrustedPlatformModuleEnabled, desired.IsTrustedPlatformModuleEnabled),
-			IsMeasuredBootEnabled:                    pickDefaultFalseBool(actual.IsMeasuredBootEnabled, desired.IsMeasuredBootEnabled),
-			IsMemoryEncryptionEnabled:                pickDefaultFalseBool(actual.IsMemoryEncryptionEnabled, desired.IsMemoryEncryptionEnabled),
-			IsSymmetricMultiThreadingEnabled:         pickDefaultFalseBool(actual.IsSymmetricMultiThreadingEnabled, desired.IsSymmetricMultiThreadingEnabled),
-			IsInputOutputMemoryManagementUnitEnabled: pickDefaultFalseBool(actual.IsInputOutputMemoryManagementUnitEnabled, desired.IsInputOutputMemoryManagementUnitEnabled),
-			PercentageOfCoresEnabled:                 pickInt(actual.PercentageOfCoresEnabled, desired.PercentageOfCoresEnabled),
-			ConfigMap:                                pickStringMap(actual.ConfigMap, desired.ConfigMap),
-			NumaNodesPerSocket:                       pickEnum(string(actual.NumaNodesPerSocket), string(desired.NumaNodesPerSocket)),
+			IsSecureBootEnabled:                      platformConfig.IsSecureBootEnabled,
+			IsTrustedPlatformModuleEnabled:           platformConfig.IsTrustedPlatformModuleEnabled,
+			IsMeasuredBootEnabled:                    platformConfig.IsMeasuredBootEnabled,
+			IsMemoryEncryptionEnabled:                platformConfig.IsMemoryEncryptionEnabled,
+			IsSymmetricMultiThreadingEnabled:         platformConfig.IsSymmetricMultiThreadingEnabled,
+			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
+			PercentageOfCoresEnabled:                 platformConfig.PercentageOfCoresEnabled,
+			ConfigMap:                                platformConfig.ConfigMap,
+			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
+		}
+	case core.InstanceConfigurationIntelIcelakeBmLaunchInstancePlatformConfig:
+		return &comparablePlatformConfig{
+			Type:                                     "IntelIcelakeBmPlatformConfig",
+			IsSecureBootEnabled:                      platformConfig.IsSecureBootEnabled,
+			IsTrustedPlatformModuleEnabled:           platformConfig.IsTrustedPlatformModuleEnabled,
+			IsMeasuredBootEnabled:                    platformConfig.IsMeasuredBootEnabled,
+			IsMemoryEncryptionEnabled:                platformConfig.IsMemoryEncryptionEnabled,
+			IsSymmetricMultiThreadingEnabled:         platformConfig.IsSymmetricMultiThreadingEnabled,
+			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
+			PercentageOfCoresEnabled:                 platformConfig.PercentageOfCoresEnabled,
+			ConfigMap:                                platformConfig.ConfigMap,
+			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
 		}
 	case core.AmdVmPlatformConfig:
-		actual, ok := in.(core.AmdVmPlatformConfig)
-		if !ok {
-			return &comparablePlatformConfig{Type: fmt.Sprintf("%T", in)}
-		}
 		return &comparablePlatformConfig{
 			Type:                             "AmdVmPlatformConfig",
-			IsSecureBootEnabled:              pickDefaultFalseBool(actual.IsSecureBootEnabled, desired.IsSecureBootEnabled),
-			IsTrustedPlatformModuleEnabled:   pickDefaultFalseBool(actual.IsTrustedPlatformModuleEnabled, desired.IsTrustedPlatformModuleEnabled),
-			IsMeasuredBootEnabled:            pickDefaultFalseBool(actual.IsMeasuredBootEnabled, desired.IsMeasuredBootEnabled),
-			IsMemoryEncryptionEnabled:        pickDefaultFalseBool(actual.IsMemoryEncryptionEnabled, desired.IsMemoryEncryptionEnabled),
-			IsSymmetricMultiThreadingEnabled: pickDefaultFalseBool(actual.IsSymmetricMultiThreadingEnabled, desired.IsSymmetricMultiThreadingEnabled),
+			IsSecureBootEnabled:              platformConfig.IsSecureBootEnabled,
+			IsTrustedPlatformModuleEnabled:   platformConfig.IsTrustedPlatformModuleEnabled,
+			IsMeasuredBootEnabled:            platformConfig.IsMeasuredBootEnabled,
+			IsMemoryEncryptionEnabled:        platformConfig.IsMemoryEncryptionEnabled,
+			IsSymmetricMultiThreadingEnabled: platformConfig.IsSymmetricMultiThreadingEnabled,
+		}
+	case core.InstanceConfigurationAmdVmLaunchInstancePlatformConfig:
+		return &comparablePlatformConfig{
+			Type:                             "AmdVmPlatformConfig",
+			IsSecureBootEnabled:              platformConfig.IsSecureBootEnabled,
+			IsTrustedPlatformModuleEnabled:   platformConfig.IsTrustedPlatformModuleEnabled,
+			IsMeasuredBootEnabled:            platformConfig.IsMeasuredBootEnabled,
+			IsMemoryEncryptionEnabled:        platformConfig.IsMemoryEncryptionEnabled,
+			IsSymmetricMultiThreadingEnabled: platformConfig.IsSymmetricMultiThreadingEnabled,
 		}
 	case core.IntelVmPlatformConfig:
-		actual, ok := in.(core.IntelVmPlatformConfig)
-		if !ok {
-			return &comparablePlatformConfig{Type: fmt.Sprintf("%T", in)}
-		}
 		return &comparablePlatformConfig{
 			Type:                             "IntelVmPlatformConfig",
-			IsSecureBootEnabled:              pickDefaultFalseBool(actual.IsSecureBootEnabled, desired.IsSecureBootEnabled),
-			IsTrustedPlatformModuleEnabled:   pickDefaultFalseBool(actual.IsTrustedPlatformModuleEnabled, desired.IsTrustedPlatformModuleEnabled),
-			IsMeasuredBootEnabled:            pickDefaultFalseBool(actual.IsMeasuredBootEnabled, desired.IsMeasuredBootEnabled),
-			IsMemoryEncryptionEnabled:        pickDefaultFalseBool(actual.IsMemoryEncryptionEnabled, desired.IsMemoryEncryptionEnabled),
-			IsSymmetricMultiThreadingEnabled: pickDefaultFalseBool(actual.IsSymmetricMultiThreadingEnabled, desired.IsSymmetricMultiThreadingEnabled),
+			IsSecureBootEnabled:              platformConfig.IsSecureBootEnabled,
+			IsTrustedPlatformModuleEnabled:   platformConfig.IsTrustedPlatformModuleEnabled,
+			IsMeasuredBootEnabled:            platformConfig.IsMeasuredBootEnabled,
+			IsMemoryEncryptionEnabled:        platformConfig.IsMemoryEncryptionEnabled,
+			IsSymmetricMultiThreadingEnabled: platformConfig.IsSymmetricMultiThreadingEnabled,
+		}
+	case core.InstanceConfigurationIntelVmLaunchInstancePlatformConfig:
+		return &comparablePlatformConfig{
+			Type:                             "IntelVmPlatformConfig",
+			IsSecureBootEnabled:              platformConfig.IsSecureBootEnabled,
+			IsTrustedPlatformModuleEnabled:   platformConfig.IsTrustedPlatformModuleEnabled,
+			IsMeasuredBootEnabled:            platformConfig.IsMeasuredBootEnabled,
+			IsMemoryEncryptionEnabled:        platformConfig.IsMemoryEncryptionEnabled,
+			IsSymmetricMultiThreadingEnabled: platformConfig.IsSymmetricMultiThreadingEnabled,
 		}
 	case core.IntelSkylakeBmPlatformConfig:
-		actual, ok := in.(core.IntelSkylakeBmPlatformConfig)
-		if !ok {
-			return &comparablePlatformConfig{Type: fmt.Sprintf("%T", in)}
-		}
 		return &comparablePlatformConfig{
 			Type:                                     "IntelSkylakeBmPlatformConfig",
-			IsSecureBootEnabled:                      pickDefaultFalseBool(actual.IsSecureBootEnabled, desired.IsSecureBootEnabled),
-			IsTrustedPlatformModuleEnabled:           pickDefaultFalseBool(actual.IsTrustedPlatformModuleEnabled, desired.IsTrustedPlatformModuleEnabled),
-			IsMeasuredBootEnabled:                    pickDefaultFalseBool(actual.IsMeasuredBootEnabled, desired.IsMeasuredBootEnabled),
-			IsMemoryEncryptionEnabled:                pickDefaultFalseBool(actual.IsMemoryEncryptionEnabled, desired.IsMemoryEncryptionEnabled),
-			IsSymmetricMultiThreadingEnabled:         pickDefaultFalseBool(actual.IsSymmetricMultiThreadingEnabled, desired.IsSymmetricMultiThreadingEnabled),
-			IsInputOutputMemoryManagementUnitEnabled: pickDefaultFalseBool(actual.IsInputOutputMemoryManagementUnitEnabled, desired.IsInputOutputMemoryManagementUnitEnabled),
-			PercentageOfCoresEnabled:                 pickInt(actual.PercentageOfCoresEnabled, desired.PercentageOfCoresEnabled),
-			ConfigMap:                                pickStringMap(actual.ConfigMap, desired.ConfigMap),
-			NumaNodesPerSocket:                       pickEnum(string(actual.NumaNodesPerSocket), string(desired.NumaNodesPerSocket)),
+			IsSecureBootEnabled:                      platformConfig.IsSecureBootEnabled,
+			IsTrustedPlatformModuleEnabled:           platformConfig.IsTrustedPlatformModuleEnabled,
+			IsMeasuredBootEnabled:                    platformConfig.IsMeasuredBootEnabled,
+			IsMemoryEncryptionEnabled:                platformConfig.IsMemoryEncryptionEnabled,
+			IsSymmetricMultiThreadingEnabled:         platformConfig.IsSymmetricMultiThreadingEnabled,
+			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
+			PercentageOfCoresEnabled:                 platformConfig.PercentageOfCoresEnabled,
+			ConfigMap:                                platformConfig.ConfigMap,
+			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
+		}
+	case core.InstanceConfigurationIntelSkylakeBmLaunchInstancePlatformConfig:
+		return &comparablePlatformConfig{
+			Type:                                     "IntelSkylakeBmPlatformConfig",
+			IsSecureBootEnabled:                      platformConfig.IsSecureBootEnabled,
+			IsTrustedPlatformModuleEnabled:           platformConfig.IsTrustedPlatformModuleEnabled,
+			IsMeasuredBootEnabled:                    platformConfig.IsMeasuredBootEnabled,
+			IsMemoryEncryptionEnabled:                platformConfig.IsMemoryEncryptionEnabled,
+			IsSymmetricMultiThreadingEnabled:         platformConfig.IsSymmetricMultiThreadingEnabled,
+			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
+			PercentageOfCoresEnabled:                 platformConfig.PercentageOfCoresEnabled,
+			ConfigMap:                                platformConfig.ConfigMap,
+			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
 		}
 	case core.AmdMilanBmPlatformConfig:
-		actual, ok := in.(core.AmdMilanBmPlatformConfig)
-		if !ok {
-			return &comparablePlatformConfig{Type: fmt.Sprintf("%T", in)}
-		}
 		return &comparablePlatformConfig{
 			Type:                                     "AmdMilanBmPlatformConfig",
-			IsSecureBootEnabled:                      pickDefaultFalseBool(actual.IsSecureBootEnabled, desired.IsSecureBootEnabled),
-			IsTrustedPlatformModuleEnabled:           pickDefaultFalseBool(actual.IsTrustedPlatformModuleEnabled, desired.IsTrustedPlatformModuleEnabled),
-			IsMeasuredBootEnabled:                    pickDefaultFalseBool(actual.IsMeasuredBootEnabled, desired.IsMeasuredBootEnabled),
-			IsMemoryEncryptionEnabled:                pickDefaultFalseBool(actual.IsMemoryEncryptionEnabled, desired.IsMemoryEncryptionEnabled),
-			IsSymmetricMultiThreadingEnabled:         pickDefaultFalseBool(actual.IsSymmetricMultiThreadingEnabled, desired.IsSymmetricMultiThreadingEnabled),
-			IsAccessControlServiceEnabled:            pickDefaultFalseBool(actual.IsAccessControlServiceEnabled, desired.IsAccessControlServiceEnabled),
-			AreVirtualInstructionsEnabled:            pickDefaultFalseBool(actual.AreVirtualInstructionsEnabled, desired.AreVirtualInstructionsEnabled),
-			IsInputOutputMemoryManagementUnitEnabled: pickDefaultFalseBool(actual.IsInputOutputMemoryManagementUnitEnabled, desired.IsInputOutputMemoryManagementUnitEnabled),
-			PercentageOfCoresEnabled:                 pickInt(actual.PercentageOfCoresEnabled, desired.PercentageOfCoresEnabled),
-			ConfigMap:                                pickStringMap(actual.ConfigMap, desired.ConfigMap),
-			NumaNodesPerSocket:                       pickEnum(string(actual.NumaNodesPerSocket), string(desired.NumaNodesPerSocket)),
+			IsSecureBootEnabled:                      platformConfig.IsSecureBootEnabled,
+			IsTrustedPlatformModuleEnabled:           platformConfig.IsTrustedPlatformModuleEnabled,
+			IsMeasuredBootEnabled:                    platformConfig.IsMeasuredBootEnabled,
+			IsMemoryEncryptionEnabled:                platformConfig.IsMemoryEncryptionEnabled,
+			IsSymmetricMultiThreadingEnabled:         platformConfig.IsSymmetricMultiThreadingEnabled,
+			IsAccessControlServiceEnabled:            platformConfig.IsAccessControlServiceEnabled,
+			AreVirtualInstructionsEnabled:            platformConfig.AreVirtualInstructionsEnabled,
+			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
+			PercentageOfCoresEnabled:                 platformConfig.PercentageOfCoresEnabled,
+			ConfigMap:                                platformConfig.ConfigMap,
+			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
+		}
+	case core.InstanceConfigurationAmdMilanBmLaunchInstancePlatformConfig:
+		return &comparablePlatformConfig{
+			Type:                                     "AmdMilanBmPlatformConfig",
+			IsSecureBootEnabled:                      platformConfig.IsSecureBootEnabled,
+			IsTrustedPlatformModuleEnabled:           platformConfig.IsTrustedPlatformModuleEnabled,
+			IsMeasuredBootEnabled:                    platformConfig.IsMeasuredBootEnabled,
+			IsMemoryEncryptionEnabled:                platformConfig.IsMemoryEncryptionEnabled,
+			IsSymmetricMultiThreadingEnabled:         platformConfig.IsSymmetricMultiThreadingEnabled,
+			IsAccessControlServiceEnabled:            platformConfig.IsAccessControlServiceEnabled,
+			AreVirtualInstructionsEnabled:            platformConfig.AreVirtualInstructionsEnabled,
+			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
+			PercentageOfCoresEnabled:                 platformConfig.PercentageOfCoresEnabled,
+			ConfigMap:                                platformConfig.ConfigMap,
+			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
 		}
 	default:
 		return nil

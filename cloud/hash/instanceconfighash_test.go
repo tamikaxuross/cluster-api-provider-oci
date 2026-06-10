@@ -315,6 +315,206 @@ func TestComputeHash_ApprovedParityFieldsAffectDesiredHashAndProjection(t *testi
 	}
 }
 
+func TestComputeComparableHash_NormalizesInstanceConfigurationPlatformConfigTypes(t *testing.T) {
+	tests := []struct {
+		name    string
+		desired core.InstanceConfigurationLaunchInstancePlatformConfig
+		actual  core.InstanceConfigurationLaunchInstancePlatformConfig
+	}{
+		{
+			name: "AMD Milan BM",
+			desired: core.AmdMilanBmPlatformConfig{
+				IsSecureBootEnabled:                      common.Bool(true),
+				IsTrustedPlatformModuleEnabled:           common.Bool(true),
+				IsMeasuredBootEnabled:                    common.Bool(true),
+				IsMemoryEncryptionEnabled:                common.Bool(true),
+				IsSymmetricMultiThreadingEnabled:         common.Bool(true),
+				IsAccessControlServiceEnabled:            common.Bool(true),
+				AreVirtualInstructionsEnabled:            common.Bool(true),
+				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
+				PercentageOfCoresEnabled:                 common.Int(50),
+				ConfigMap:                                map[string]string{"hpc": "enabled"},
+				NumaNodesPerSocket:                       core.AmdMilanBmPlatformConfigNumaNodesPerSocketNps2,
+			},
+			actual: core.InstanceConfigurationAmdMilanBmLaunchInstancePlatformConfig{
+				IsSecureBootEnabled:                      common.Bool(true),
+				IsTrustedPlatformModuleEnabled:           common.Bool(true),
+				IsMeasuredBootEnabled:                    common.Bool(true),
+				IsMemoryEncryptionEnabled:                common.Bool(true),
+				IsSymmetricMultiThreadingEnabled:         common.Bool(true),
+				IsAccessControlServiceEnabled:            common.Bool(true),
+				AreVirtualInstructionsEnabled:            common.Bool(true),
+				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
+				PercentageOfCoresEnabled:                 common.Int(50),
+				ConfigMap:                                map[string]string{"hpc": "enabled"},
+				NumaNodesPerSocket:                       core.InstanceConfigurationAmdMilanBmLaunchInstancePlatformConfigNumaNodesPerSocketNps2,
+			},
+		},
+		{
+			name: "AMD Rome BM GPU",
+			desired: core.AmdRomeBmGpuPlatformConfig{
+				IsSecureBootEnabled:                      common.Bool(true),
+				IsTrustedPlatformModuleEnabled:           common.Bool(true),
+				IsMeasuredBootEnabled:                    common.Bool(true),
+				IsMemoryEncryptionEnabled:                common.Bool(true),
+				IsSymmetricMultiThreadingEnabled:         common.Bool(true),
+				IsAccessControlServiceEnabled:            common.Bool(true),
+				AreVirtualInstructionsEnabled:            common.Bool(true),
+				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
+				ConfigMap:                                map[string]string{"gpu": "enabled"},
+				NumaNodesPerSocket:                       core.AmdRomeBmGpuPlatformConfigNumaNodesPerSocketNps2,
+			},
+			actual: core.InstanceConfigurationAmdRomeBmGpuLaunchInstancePlatformConfig{
+				IsSecureBootEnabled:                      common.Bool(true),
+				IsTrustedPlatformModuleEnabled:           common.Bool(true),
+				IsMeasuredBootEnabled:                    common.Bool(true),
+				IsMemoryEncryptionEnabled:                common.Bool(true),
+				IsSymmetricMultiThreadingEnabled:         common.Bool(true),
+				IsAccessControlServiceEnabled:            common.Bool(true),
+				AreVirtualInstructionsEnabled:            common.Bool(true),
+				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
+				ConfigMap:                                map[string]string{"gpu": "enabled"},
+				NumaNodesPerSocket:                       core.InstanceConfigurationAmdRomeBmGpuLaunchInstancePlatformConfigNumaNodesPerSocketNps2,
+			},
+		},
+		{
+			name: "AMD Rome BM",
+			desired: core.AmdRomeBmPlatformConfig{
+				IsSecureBootEnabled:                      common.Bool(true),
+				IsTrustedPlatformModuleEnabled:           common.Bool(true),
+				IsMeasuredBootEnabled:                    common.Bool(true),
+				IsMemoryEncryptionEnabled:                common.Bool(true),
+				IsSymmetricMultiThreadingEnabled:         common.Bool(true),
+				IsAccessControlServiceEnabled:            common.Bool(true),
+				AreVirtualInstructionsEnabled:            common.Bool(true),
+				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
+				PercentageOfCoresEnabled:                 common.Int(50),
+				ConfigMap:                                map[string]string{"numa": "compact"},
+				NumaNodesPerSocket:                       core.AmdRomeBmPlatformConfigNumaNodesPerSocketNps2,
+			},
+			actual: core.InstanceConfigurationAmdRomeBmLaunchInstancePlatformConfig{
+				IsSecureBootEnabled:                      common.Bool(true),
+				IsTrustedPlatformModuleEnabled:           common.Bool(true),
+				IsMeasuredBootEnabled:                    common.Bool(true),
+				IsMemoryEncryptionEnabled:                common.Bool(true),
+				IsSymmetricMultiThreadingEnabled:         common.Bool(true),
+				IsAccessControlServiceEnabled:            common.Bool(true),
+				AreVirtualInstructionsEnabled:            common.Bool(true),
+				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
+				PercentageOfCoresEnabled:                 common.Int(50),
+				ConfigMap:                                map[string]string{"numa": "compact"},
+				NumaNodesPerSocket:                       core.InstanceConfigurationAmdRomeBmLaunchInstancePlatformConfigNumaNodesPerSocketNps2,
+			},
+		},
+		{
+			name: "AMD VM",
+			desired: core.AmdVmPlatformConfig{
+				IsSecureBootEnabled:              common.Bool(true),
+				IsTrustedPlatformModuleEnabled:   common.Bool(true),
+				IsMeasuredBootEnabled:            common.Bool(true),
+				IsMemoryEncryptionEnabled:        common.Bool(true),
+				IsSymmetricMultiThreadingEnabled: common.Bool(true),
+			},
+			actual: core.InstanceConfigurationAmdVmLaunchInstancePlatformConfig{
+				IsSecureBootEnabled:              common.Bool(true),
+				IsTrustedPlatformModuleEnabled:   common.Bool(true),
+				IsMeasuredBootEnabled:            common.Bool(true),
+				IsMemoryEncryptionEnabled:        common.Bool(true),
+				IsSymmetricMultiThreadingEnabled: common.Bool(true),
+			},
+		},
+		{
+			name: "Intel Icelake BM",
+			desired: core.IntelIcelakeBmPlatformConfig{
+				IsSecureBootEnabled:                      common.Bool(true),
+				IsTrustedPlatformModuleEnabled:           common.Bool(true),
+				IsMeasuredBootEnabled:                    common.Bool(true),
+				IsMemoryEncryptionEnabled:                common.Bool(true),
+				IsSymmetricMultiThreadingEnabled:         common.Bool(true),
+				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
+				PercentageOfCoresEnabled:                 common.Int(50),
+				ConfigMap:                                map[string]string{"ice": "lake"},
+				NumaNodesPerSocket:                       core.IntelIcelakeBmPlatformConfigNumaNodesPerSocketNps2,
+			},
+			actual: core.InstanceConfigurationIntelIcelakeBmLaunchInstancePlatformConfig{
+				IsSecureBootEnabled:                      common.Bool(true),
+				IsTrustedPlatformModuleEnabled:           common.Bool(true),
+				IsMeasuredBootEnabled:                    common.Bool(true),
+				IsMemoryEncryptionEnabled:                common.Bool(true),
+				IsSymmetricMultiThreadingEnabled:         common.Bool(true),
+				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
+				PercentageOfCoresEnabled:                 common.Int(50),
+				ConfigMap:                                map[string]string{"ice": "lake"},
+				NumaNodesPerSocket:                       core.InstanceConfigurationIntelIcelakeBmLaunchInstancePlatformConfigNumaNodesPerSocketNps2,
+			},
+		},
+		{
+			name: "Intel Skylake BM",
+			desired: core.IntelSkylakeBmPlatformConfig{
+				IsSecureBootEnabled:                      common.Bool(true),
+				IsTrustedPlatformModuleEnabled:           common.Bool(true),
+				IsMeasuredBootEnabled:                    common.Bool(true),
+				IsMemoryEncryptionEnabled:                common.Bool(true),
+				IsSymmetricMultiThreadingEnabled:         common.Bool(true),
+				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
+				PercentageOfCoresEnabled:                 common.Int(50),
+				ConfigMap:                                map[string]string{"sky": "lake"},
+				NumaNodesPerSocket:                       core.IntelSkylakeBmPlatformConfigNumaNodesPerSocketNps2,
+			},
+			actual: core.InstanceConfigurationIntelSkylakeBmLaunchInstancePlatformConfig{
+				IsSecureBootEnabled:                      common.Bool(true),
+				IsTrustedPlatformModuleEnabled:           common.Bool(true),
+				IsMeasuredBootEnabled:                    common.Bool(true),
+				IsMemoryEncryptionEnabled:                common.Bool(true),
+				IsSymmetricMultiThreadingEnabled:         common.Bool(true),
+				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
+				PercentageOfCoresEnabled:                 common.Int(50),
+				ConfigMap:                                map[string]string{"sky": "lake"},
+				NumaNodesPerSocket:                       core.InstanceConfigurationIntelSkylakeBmLaunchInstancePlatformConfigNumaNodesPerSocketNps2,
+			},
+		},
+		{
+			name: "Intel VM",
+			desired: core.IntelVmPlatformConfig{
+				IsSecureBootEnabled:              common.Bool(true),
+				IsTrustedPlatformModuleEnabled:   common.Bool(true),
+				IsMeasuredBootEnabled:            common.Bool(true),
+				IsMemoryEncryptionEnabled:        common.Bool(true),
+				IsSymmetricMultiThreadingEnabled: common.Bool(true),
+			},
+			actual: core.InstanceConfigurationIntelVmLaunchInstancePlatformConfig{
+				IsSecureBootEnabled:              common.Bool(true),
+				IsTrustedPlatformModuleEnabled:   common.Bool(true),
+				IsMeasuredBootEnabled:            common.Bool(true),
+				IsMemoryEncryptionEnabled:        common.Bool(true),
+				IsSymmetricMultiThreadingEnabled: common.Bool(true),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			desired := &core.InstanceConfigurationLaunchInstanceDetails{
+				Shape:          common.String("VM.Standard.E4.Flex"),
+				PlatformConfig: tt.desired,
+			}
+			actual := &core.InstanceConfigurationLaunchInstanceDetails{
+				Shape:          common.String("VM.Standard.E4.Flex"),
+				PlatformConfig: tt.actual,
+			}
+
+			desiredHash, err := ComputeHash(desired)
+			g.Expect(err).To(BeNil())
+
+			actualHash, err := ComputeComparableHash(actual, desired)
+			g.Expect(err).To(BeNil())
+
+			g.Expect(actualHash).To(Equal(desiredHash))
+		})
+	}
+}
+
 func TestNormalizeLaunchDetails_NilInput(t *testing.T) {
 	g := NewWithT(t)
 	result := projectLaunchDetails(nil, nil)
