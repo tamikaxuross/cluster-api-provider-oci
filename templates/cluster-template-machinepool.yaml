@@ -83,6 +83,8 @@ spec:
       shape: "${OCI_CONTROL_PLANE_MACHINE_TYPE=VM.Standard.E4.Flex}"
       shapeConfig:
         ocpus: "${OCI_CONTROL_PLANE_MACHINE_TYPE_OCPUS=1}"
+      instanceOptions:
+        areLegacyImdsEndpointsDisabled: true
       metadata:
         ssh_authorized_keys: "${OCI_SSH_KEY}"
       isPvEncryptionInTransitEnabled: ${OCI_CONTROL_PLANE_PV_TRANSIT_ENCRYPTION=true}
@@ -118,6 +120,9 @@ metadata:
   namespace: default
 spec:
   instanceDisplayNameFormatter: "${CLUSTER_NAME}-mp-$${launchCount}"
+  # instanceHostnameFormatter requires subnet DNS support. If the subnet does
+  # not have a valid DNS resolver, OCI CreateInstancePool fails.
+  # instanceHostnameFormatter: "${CLUSTER_NAME}-host-$${launchCount}"
   instanceConfiguration:
     instanceOptions:
       areLegacyImdsEndpointsDisabled: true
@@ -126,7 +131,26 @@ spec:
     shape: "${OCI_NODE_MACHINE_TYPE=VM.Standard.E4.Flex}"
     shapeConfig:
       ocpus: "${OCI_NODE_MACHINE_TYPE_OCPUS=1}"
+      # Use vcpus only when validating vCPU-based shape config behavior.
+      # vcpus: ${OCI_NODE_MACHINE_TYPE_VCPUS=6}
+    instanceOptions:
+      areLegacyImdsEndpointsDisabled: true
     preferredMaintenanceAction: LIVE_MIGRATE
+    # launchMode can be enabled for explicit launch mode validation.
+    # launchMode: PARAVIRTUALIZED
+    # clusterPlacementGroupId requires an existing OCI Cluster Placement Group OCID.
+    # Replace the placeholder with a real CPG OCID before uncommenting.
+    # clusterPlacementGroupId: "<cluster-placement-group-ocid>"
+    # licensingConfigs requires a valid Windows licensing scenario.
+    # licensingConfigs:
+    #   - type: WINDOWS
+    #     licenseType: BRING_YOUR_OWN_LICENSE
+    # securityAttributes requires an existing OCI security attribute namespace and key.
+    # securityAttributes:
+    #   Oracle-DataSecurity-ZPR:
+    #     MaxEgressCount:
+    #       value: "42"
+    #       mode: audit
     metadata:
       ssh_authorized_keys: "${OCI_SSH_KEY}"
 
