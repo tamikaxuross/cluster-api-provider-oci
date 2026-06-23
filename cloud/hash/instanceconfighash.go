@@ -467,7 +467,7 @@ func projectPlatformConfig(in, mask core.InstanceConfigurationLaunchInstancePlat
 		IsTrustedPlatformModuleEnabled:           pickDefaultFalseBool(actual.IsTrustedPlatformModuleEnabled, desired.IsTrustedPlatformModuleEnabled),
 		IsMeasuredBootEnabled:                    pickDefaultFalseBool(actual.IsMeasuredBootEnabled, desired.IsMeasuredBootEnabled),
 		IsMemoryEncryptionEnabled:                pickDefaultFalseBool(actual.IsMemoryEncryptionEnabled, desired.IsMemoryEncryptionEnabled),
-		IsSymmetricMultiThreadingEnabled:         pickDefaultFalseBool(actual.IsSymmetricMultiThreadingEnabled, desired.IsSymmetricMultiThreadingEnabled),
+		IsSymmetricMultiThreadingEnabled:         pickDefaultTrueBool(actual.IsSymmetricMultiThreadingEnabled, desired.IsSymmetricMultiThreadingEnabled),
 		IsAccessControlServiceEnabled:            pickDefaultFalseBool(actual.IsAccessControlServiceEnabled, desired.IsAccessControlServiceEnabled),
 		AreVirtualInstructionsEnabled:            pickDefaultFalseBool(actual.AreVirtualInstructionsEnabled, desired.AreVirtualInstructionsEnabled),
 		IsInputOutputMemoryManagementUnitEnabled: pickDefaultFalseBool(actual.IsInputOutputMemoryManagementUnitEnabled, desired.IsInputOutputMemoryManagementUnitEnabled),
@@ -922,6 +922,16 @@ func pickDefaultFalseBool(actual, mask *bool) *bool {
 		return nil
 	}
 	if actual == nil || !*actual {
+		return nil
+	}
+	return actual
+}
+
+func pickDefaultTrueBool(actual, mask *bool) *bool {
+	if mask == nil {
+		return nil
+	}
+	if actual == nil || *actual {
 		return nil
 	}
 	return actual

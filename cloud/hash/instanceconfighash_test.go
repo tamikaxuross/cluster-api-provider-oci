@@ -241,7 +241,7 @@ func TestComputeHash_ApprovedParityFieldsAffectDesiredHashAndProjection(t *testi
 			},
 			assert: func(g *WithT, projected *comparableLaunchDetails) {
 				g.Expect(projected.PlatformConfig.Type).To(Equal("AmdVmPlatformConfig"))
-				g.Expect(*projected.PlatformConfig.IsSymmetricMultiThreadingEnabled).To(BeTrue())
+				g.Expect(projected.PlatformConfig.IsSymmetricMultiThreadingEnabled).To(BeNil())
 			},
 		},
 		{
@@ -269,7 +269,7 @@ func TestComputeHash_ApprovedParityFieldsAffectDesiredHashAndProjection(t *testi
 			},
 			assert: func(g *WithT, projected *comparableLaunchDetails) {
 				g.Expect(projected.PlatformConfig.Type).To(Equal("IntelSkylakeBmPlatformConfig"))
-				g.Expect(*projected.PlatformConfig.IsSymmetricMultiThreadingEnabled).To(BeTrue())
+				g.Expect(projected.PlatformConfig.IsSymmetricMultiThreadingEnabled).To(BeNil())
 				g.Expect(*projected.PlatformConfig.IsInputOutputMemoryManagementUnitEnabled).To(BeTrue())
 				g.Expect(*projected.PlatformConfig.PercentageOfCoresEnabled).To(Equal(50))
 				g.Expect(projected.PlatformConfig.ConfigMap).To(Equal(map[string]string{"sky": "lake"}))
@@ -285,7 +285,7 @@ func TestComputeHash_ApprovedParityFieldsAffectDesiredHashAndProjection(t *testi
 			},
 			assert: func(g *WithT, projected *comparableLaunchDetails) {
 				g.Expect(projected.PlatformConfig.Type).To(Equal("IntelVmPlatformConfig"))
-				g.Expect(*projected.PlatformConfig.IsSymmetricMultiThreadingEnabled).To(BeTrue())
+				g.Expect(projected.PlatformConfig.IsSymmetricMultiThreadingEnabled).To(BeNil())
 			},
 		},
 	}
@@ -511,6 +511,62 @@ func TestComputeComparableHash_NormalizesInstanceConfigurationPlatformConfigType
 			g.Expect(err).To(BeNil())
 
 			g.Expect(actualHash).To(Equal(desiredHash))
+		})
+	}
+}
+
+func TestComputeComparableHash_NormalizesOmittedDefaultEnabledSMT(t *testing.T) {
+	tests := []struct {
+		name       string
+		desiredSMT *bool
+		actualSMT  *bool
+		wantEqual  bool
+	}{
+		{
+			name:       "desired true matches omitted OCI readback",
+			desiredSMT: common.Bool(true),
+			wantEqual:  true,
+		},
+		{
+			name:       "desired false differs from omitted OCI readback",
+			desiredSMT: common.Bool(false),
+			wantEqual:  false,
+		},
+		{
+			name:       "desired false matches false OCI readback",
+			desiredSMT: common.Bool(false),
+			actualSMT:  common.Bool(false),
+			wantEqual:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			desired := &core.InstanceConfigurationLaunchInstanceDetails{
+				Shape: common.String("VM.Standard.E3.Flex"),
+				PlatformConfig: core.AmdVmPlatformConfig{
+					IsSymmetricMultiThreadingEnabled: tt.desiredSMT,
+				},
+			}
+			actual := &core.InstanceConfigurationLaunchInstanceDetails{
+				Shape: common.String("VM.Standard.E3.Flex"),
+				PlatformConfig: core.InstanceConfigurationAmdVmLaunchInstancePlatformConfig{
+					IsSymmetricMultiThreadingEnabled: tt.actualSMT,
+				},
+			}
+
+			desiredHash, err := ComputeHash(desired)
+			g.Expect(err).To(BeNil())
+
+			actualHash, err := ComputeComparableHash(actual, desired)
+			g.Expect(err).To(BeNil())
+
+			if tt.wantEqual {
+				g.Expect(actualHash).To(Equal(desiredHash))
+			} else {
+				g.Expect(actualHash).ToNot(Equal(desiredHash))
+			}
 		})
 	}
 }
