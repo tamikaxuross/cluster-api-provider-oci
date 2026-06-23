@@ -1325,8 +1325,12 @@ func assertMachinePoolInstanceConfigurationAmdVMSMT(ctx context.Context, instanc
 		default:
 			g.Expect(platformConfig).To(BeAssignableToTypeOf(core.InstanceConfigurationAmdVmLaunchInstancePlatformConfig{}))
 		}
-		g.Expect(actualSMT).ToNot(BeNil())
-		g.Expect(*actualSMT).To(Equal(expected))
+		// OCI omits default-enabled AMD VM SMT in InstanceConfiguration readbacks.
+		actual := true
+		if actualSMT != nil {
+			actual = *actualSMT
+		}
+		g.Expect(actual).To(Equal(expected))
 	}, e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes")...).Should(Succeed(), "Timed out waiting for actual OCI InstanceConfiguration AMD VM SMT platform config")
 }
 
