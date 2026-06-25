@@ -835,6 +835,12 @@ var _ = Describe("Workload cluster creation", func() {
 
 		By("Verifying the actual OCI InstancePool switches before cleanup can run")
 		assertMachinePoolActualInstancePoolSwitch(ctx, bootstrapClusterProxy, result.Cluster, result.MachinePools[0], desiredICID, specName)
+
+		By("Verifying the actual OCI InstancePool carries the updated MachinePool formatter")
+		assertMachinePoolActualInstancePoolFormatters(ctx, bootstrapClusterProxy, result.Cluster, result.MachinePools[0], common.String("updated-worker-${launchCount}"), nil, specName)
+
+		By("Verifying the actual OCI InstanceConfiguration carries the updated iPXE script")
+		assertMachinePoolInstanceConfigurationIpxeScript(ctx, desiredICID, common.String("#!ipxe"), specName)
 	})
 
 	It("Machine Pool - Instance Configuration Field Removal [DailyTests]", func() {
@@ -1278,6 +1284,46 @@ func assertMachinePoolActualInstancePoolSwitch(ctx context.Context, clusterProxy
 		g.Expect(resp.InstancePool.InstanceConfigurationId).ToNot(BeNil())
 		g.Expect(*resp.InstancePool.InstanceConfigurationId).To(Equal(desiredInstanceConfigurationID))
 	}, e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes")...).Should(Succeed(), "Timed out waiting for the actual OCI InstancePool to switch instance configuration")
+}
+
+func assertMachinePoolActualInstancePoolFormatters(ctx context.Context, clusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster, machinePool *clusterv1.MachinePool, expectedDisplayNameFormatter *string, expectedHostnameFormatter *string, specName string) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for machine pool formatter check")
+	Expect(clusterProxy).ToNot(BeNil(), "clusterProxy is required for machine pool formatter check")
+	Expect(cluster).ToNot(BeNil(), "cluster is required for machine pool formatter check")
+	Expect(machinePool).ToNot(BeNil(), "machinePool is required for machine pool formatter check")
+
+	lister := clusterProxy.GetClient()
+	Expect(lister).ToNot(BeNil(), "clusterProxy client is required for machine pool formatter check")
+
+	var instancePoolID string
+	Eventually(func(g Gomega) {
+		ociMachinePool := &infrav2exp.OCIMachinePool{}
+		err := lister.Get(ctx, client.ObjectKey{Name: machinePool.Name, Namespace: cluster.Namespace}, ociMachinePool)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(ociMachinePool.Spec.OCID).ToNot(BeNil())
+		g.Expect(*ociMachinePool.Spec.OCID).ToNot(BeEmpty())
+		instancePoolID = *ociMachinePool.Spec.OCID
+	}, e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes")...).Should(Succeed(), "Timed out waiting for the machine pool OCID")
+
+	computeManagementClient := newE2EComputeManagementClient()
+	Eventually(func(g Gomega) {
+		resp, err := computeManagementClient.GetInstancePool(ctx, core.GetInstancePoolRequest{
+			InstancePoolId: common.String(instancePoolID),
+		})
+		g.Expect(err).NotTo(HaveOccurred())
+		if expectedDisplayNameFormatter == nil {
+			g.Expect(resp.InstancePool.InstanceDisplayNameFormatter).To(BeNil())
+		} else {
+			g.Expect(resp.InstancePool.InstanceDisplayNameFormatter).ToNot(BeNil())
+			g.Expect(*resp.InstancePool.InstanceDisplayNameFormatter).To(Equal(*expectedDisplayNameFormatter))
+		}
+		if expectedHostnameFormatter == nil {
+			g.Expect(resp.InstancePool.InstanceHostnameFormatter).To(BeNil())
+		} else {
+			g.Expect(resp.InstancePool.InstanceHostnameFormatter).ToNot(BeNil())
+			g.Expect(*resp.InstancePool.InstanceHostnameFormatter).To(Equal(*expectedHostnameFormatter))
+		}
+	}, e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes")...).Should(Succeed(), "Timed out waiting for actual OCI InstancePool formatter fields")
 }
 
 func assertMachinePoolInstanceConfigurationIpxeScript(ctx context.Context, instanceConfigurationID string, expected *string, specName string) {
