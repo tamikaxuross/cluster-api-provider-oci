@@ -59,6 +59,18 @@ type InstanceConfiguration struct {
 	// The shape configuration of the instance, applicable for flex instances.
 	ShapeConfig *ShapeConfig `json:"shapeConfig,omitempty"`
 
+	// Free-form tags for instances launched by this machine pool.
+	// These tags override OCICluster freeform tags with the same key.
+	// +optional
+	FreeformTags map[string]string `json:"freeformTags,omitempty"`
+
+	// Defined tags for instances launched by this machine pool. Each key is
+	// predefined and scoped to a namespace.
+	// These tags override OCICluster defined tags with the same namespace/key.
+	// Example: `{"Operations": {"CostCenter": "42"}}`
+	// +optional
+	DefinedTags map[string]map[string]string `json:"definedTags,omitempty"`
+
 	InstanceVnicConfiguration *infrastructurev1beta2.NetworkDetails `json:"instanceVnicConfiguration,omitempty"`
 
 	// PlatformConfig defines the platform config parameters
@@ -108,6 +120,11 @@ type InstanceConfiguration struct {
 type PlacementDetails struct {
 	// The availability domain to place instances.
 	AvailabilityDomain int `mandatory:"true" json:"availabilityDomain"`
+
+	// FaultDomains defines the list of fault domains in which to place instances.
+	// If omitted, all known fault domains for the availability domain are used.
+	// +optional
+	FaultDomains []string `json:"faultDomains,omitempty"`
 }
 
 // LaunchDetails Instance launch details for creating an instance from an instance configuration

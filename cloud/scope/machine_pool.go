@@ -372,10 +372,14 @@ func (s *MachinePoolScope) BuildInstancePoolPlacement() ([]core.CreateInstancePo
 	for _, ad := range ads {
 		for _, specPlacment := range specPlacementDetails {
 			if strings.HasSuffix(ad.Name, strconv.Itoa(specPlacment.AvailabilityDomain)) {
+				faultDomains := ad.FaultDomains
+				if len(specPlacment.FaultDomains) > 0 {
+					faultDomains = specPlacment.FaultDomains
+				}
 				placement := core.CreateInstancePoolPlacementConfigurationDetails{
 					AvailabilityDomain: common.String(ad.Name),
 					PrimarySubnetId:    s.GetWorkerMachineSubnet(),
-					FaultDomains:       ad.FaultDomains,
+					FaultDomains:       faultDomains,
 				}
 				s.Info("Adding machine placement for AD", "AD", ad.Name)
 				placements = append(placements, placement)
@@ -398,6 +402,23 @@ func (s *MachinePoolScope) BuildInstancePoolPlacement() ([]core.CreateInstancePo
 	return placements, nil
 }
 
+func (s *MachinePoolScope) buildUpdateInstancePoolPlacement() ([]core.UpdateInstancePoolPlacementConfigurationDetails, error) {
+	createPlacements, err := s.BuildInstancePoolPlacement()
+	if err != nil {
+		return nil, err
+	}
+
+	updatePlacements := make([]core.UpdateInstancePoolPlacementConfigurationDetails, 0, len(createPlacements))
+	for _, placement := range createPlacements {
+		updatePlacements = append(updatePlacements, core.UpdateInstancePoolPlacementConfigurationDetails{
+			AvailabilityDomain: placement.AvailabilityDomain,
+			FaultDomains:       placement.FaultDomains,
+			PrimarySubnetId:    placement.PrimarySubnetId,
+		})
+	}
+	return updatePlacements, nil
+}
+
 // IsResourceCreatedByClusterAPI determines if the instance was created by the cluster using the
 // tags created at instance launch.
 func (s *MachinePoolScope) IsResourceCreatedByClusterAPI(resourceFreeFormTags map[string]string) bool {
@@ -412,11 +433,18 @@ func (s *MachinePoolScope) IsResourceCreatedByClusterAPI(resourceFreeFormTags ma
 
 // GetFreeFormTags gets the free form tags for the MachinePoolScope cluster and returns them
 func (m *MachinePoolScope) GetFreeFormTags() map[string]string {
-	tags := ociutil.BuildClusterTags(m.OCIClusterAccesor.GetOCIResourceIdentifier())
-	if m.OCIClusterAccesor.GetFreeformTags() != nil {
-		for k, v := range m.OCIClusterAccesor.GetFreeformTags() {
-			tags[k] = v
-		}
+	tags := make(map[string]string)
+	for k, v := range m.OCIClusterAccesor.GetFreeformTags() {
+		tags[k] = v
+	}
+	for k, v := range m.OCIMachinePool.Spec.InstanceConfiguration.FreeformTags {
+		tags[k] = v
+	}
+	// Ownership tags must be applied last. Resource discovery and cleanup depend
+	// on these values matching the controller-owned cluster identifiers, so users
+	// cannot override them through cluster or machine pool freeform tags.
+	for k, v := range ociutil.BuildClusterTags(m.OCIClusterAccesor.GetOCIResourceIdentifier()) {
+		tags[k] = v
 	}
 
 	return tags
@@ -519,10 +547,11 @@ func (m *MachinePoolScope) ReconcileInstanceConfiguration(ctx context.Context, _
 	//   configChanged:     desired config hash  vs  actual config hash (projected)
 	//   bootstrapChanged: desired user_data hash  vs  actual user_data hash
 	//
-	// Config uses ComputeComparableHash which projects the actual OCI
-	// response onto only the fields present in the desired spec. This
-	// filters out OCI-returned defaults (e.g. ShapeConfig.MemoryInGBs on
-	// flex shapes) that would otherwise cause continuous recreates (issue #509).
+	// Config uses ComputeComparableHash which filters out OCI-returned scalar
+	// defaults (e.g. ShapeConfig.MemoryInGBs on flex shapes) that would otherwise
+	// cause continuous recreates (issue #509). Tag maps are compared as part of
+	// the launch behavior so tag additions, changes, and removals recreate the
+	// immutable instance configuration.
 	//
 	// Bootstrap compares OCI actual vs desired. We still classify kubeadm
 	// discovery-token-only drift separately for observability, but bootstrap
@@ -591,15 +620,22 @@ func (m *MachinePoolScope) ReconcileInstanceConfiguration(ctx context.Context, _
 // getDefinedTags builds the defined tags map for InstanceConfiguration creation.
 func (m *MachinePoolScope) getDefinedTags() map[string]map[string]interface{} {
 	definedTags := make(map[string]map[string]interface{})
-	if m.OCIClusterAccesor.GetDefinedTags() == nil {
-		return definedTags
-	}
 	for ns, mapNs := range m.OCIClusterAccesor.GetDefinedTags() {
 		mapValues := make(map[string]interface{})
 		for k, v := range mapNs {
 			mapValues[k] = v
 		}
 		definedTags[ns] = mapValues
+	}
+	for ns, mapNs := range m.OCIMachinePool.Spec.InstanceConfiguration.DefinedTags {
+		mapValues, ok := definedTags[ns]
+		if !ok {
+			mapValues = make(map[string]interface{})
+			definedTags[ns] = mapValues
+		}
+		for k, v := range mapNs {
+			mapValues[k] = v
+		}
 	}
 	return definedTags
 }
@@ -820,17 +856,36 @@ func (m *MachinePoolScope) CreateInstancePool(ctx context.Context) (*core.Instan
 
 // UpdatePool attempts to update the instance pool
 func (m *MachinePoolScope) UpdatePool(ctx context.Context, instancePool *core.InstancePool) (*core.InstancePool, error) {
-	if instancePoolNeedsUpdates(m, instancePool) {
+	var placementConfigurations []core.UpdateInstancePoolPlacementConfigurationDetails
+	placementNeedsUpdate := false
+	if len(m.OCIMachinePool.Spec.PlacementDetails) > 0 {
+		var err error
+		placementConfigurations, err = m.buildUpdateInstancePoolPlacement()
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to build instance pool placements")
+		}
+		placementNeedsUpdate = instancePoolPlacementNeedsUpdate(instancePool.PlacementConfigurations, placementConfigurations)
+	}
+	if instancePoolNeedsUpdates(m, instancePool, placementNeedsUpdate) {
 		m.Info("Updating instance pool")
 		replicas := 0
 		if m.MachinePool.Spec.Replicas != nil {
 			replicas = int(*m.MachinePool.Spec.Replicas)
 		}
+
+		updateDetails := core.UpdateInstancePoolDetails{
+			InstanceConfigurationId: m.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId,
+			FreeformTags:            m.GetFreeFormTags(),
+		}
+		if !annotations.ReplicasManagedByExternalAutoscaler(m.MachinePool) {
+			updateDetails.Size = common.Int(replicas)
+		}
+		if placementNeedsUpdate {
+			updateDetails.PlacementConfigurations = placementConfigurations
+		}
+
 		req := core.UpdateInstancePoolRequest{InstancePoolId: instancePool.Id,
-			UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
-				Size:                    common.Int(replicas),
-				InstanceConfigurationId: m.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId,
-			},
+			UpdateInstancePoolDetails: updateDetails,
 		}
 		resp, err := m.ComputeManagementClient.UpdateInstancePool(ctx, req)
 		if err != nil {
@@ -853,7 +908,7 @@ func (m *MachinePoolScope) TerminateInstancePool(ctx context.Context, instancePo
 }
 
 // instancePoolNeedsUpdates compares incoming OCIMachinePool and compares against existing instance pool.
-func instancePoolNeedsUpdates(machinePoolScope *MachinePoolScope, instancePool *core.InstancePool) bool {
+func instancePoolNeedsUpdates(machinePoolScope *MachinePoolScope, instancePool *core.InstancePool, placementNeedsUpdate bool) bool {
 	instanePoolSize := 0
 	machinePoolReplicas := 0
 	if machinePoolScope.MachinePool.Spec.Replicas != nil {
@@ -868,6 +923,43 @@ func instancePoolNeedsUpdates(machinePoolScope *MachinePoolScope, instancePool *
 	} else if !(reflect.DeepEqual(machinePoolScope.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId, instancePool.InstanceConfigurationId)) {
 		return true
 	}
+	return placementNeedsUpdate
+}
+
+func instancePoolPlacementNeedsUpdate(actual []core.InstancePoolPlacementConfiguration, desired []core.UpdateInstancePoolPlacementConfigurationDetails) bool {
+	if len(actual) != len(desired) {
+		return true
+	}
+
+	actualByAvailabilityDomain := make(map[string]core.InstancePoolPlacementConfiguration, len(actual))
+	for _, placement := range actual {
+		if placement.AvailabilityDomain == nil {
+			return true
+		}
+		availabilityDomain := *placement.AvailabilityDomain
+		if _, ok := actualByAvailabilityDomain[availabilityDomain]; ok {
+			return true
+		}
+		actualByAvailabilityDomain[availabilityDomain] = placement
+	}
+
+	for _, desiredPlacement := range desired {
+		if desiredPlacement.AvailabilityDomain == nil {
+			return true
+		}
+
+		actualPlacement, ok := actualByAvailabilityDomain[*desiredPlacement.AvailabilityDomain]
+		if !ok {
+			return true
+		}
+		if !reflect.DeepEqual(actualPlacement.PrimarySubnetId, desiredPlacement.PrimarySubnetId) {
+			return true
+		}
+		if !sameStringSet(actualPlacement.FaultDomains, desiredPlacement.FaultDomains) {
+			return true
+		}
+	}
+
 	return false
 }
 

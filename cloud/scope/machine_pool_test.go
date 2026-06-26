@@ -196,6 +196,7 @@ func TestInstanceConfigCreate(t *testing.T) {
 									CompartmentId: common.String("test-compartment"),
 									Shape:         common.String("test-shape"),
 									CreateVnicDetails: &core.InstanceConfigurationCreateVnicDetails{
+										DefinedTags:  definedTagsInterface,
 										FreeformTags: tags,
 										NsgIds:       []string{"nsg-id"},
 										SubnetId:     common.String("subnet-id"),
@@ -701,6 +702,7 @@ write_files:
 									CompartmentId: common.String("test-compartment"),
 									Shape:         common.String("test-shape"),
 									CreateVnicDetails: &core.InstanceConfigurationCreateVnicDetails{
+										DefinedTags:    definedTagsInterface,
 										FreeformTags:   tags,
 										NsgIds:         []string{"nsg-id", "nsg-id-2"},
 										AssignPublicIp: common.Bool(false),
@@ -739,6 +741,7 @@ write_files:
 									CompartmentId: common.String("test-compartment"),
 									Shape:         common.String("VM.Standard.E4.Flex"),
 									CreateVnicDetails: &core.InstanceConfigurationCreateVnicDetails{
+										DefinedTags:  definedTagsInterface,
 										FreeformTags: tags,
 										NsgIds:       []string{"nsg-id"},
 										SubnetId:     common.String("subnet-id"),
@@ -789,6 +792,7 @@ write_files:
 									CompartmentId: common.String("test-compartment"),
 									Shape:         common.String("test-shape"),
 									CreateVnicDetails: &core.InstanceConfigurationCreateVnicDetails{
+										DefinedTags:  definedTagsInterface,
 										FreeformTags: tags,
 										NsgIds:       []string{"nsg-id"},
 										SubnetId:     common.String("subnet-id"),
@@ -812,6 +816,133 @@ write_files:
 						},
 					}, nil)
 				computeManagementClient.EXPECT().CreateInstanceConfiguration(gomock.Any(), gomock.Any()).Times(0)
+			},
+		},
+		{
+			name:          "instance config recreated when machine pool freeform tags change",
+			errorExpected: false,
+			testSpecificSetup: func(ms *MachinePoolScope, g *WithT) {
+				ms.OCIMachinePool.Spec.InstanceConfiguration = infrav2exp.InstanceConfiguration{
+					Shape:                   common.String("test-shape"),
+					InstanceConfigurationId: common.String("test"),
+					FreeformTags: map[string]string{
+						"workload": "batch",
+					},
+				}
+
+				computeManagementClient.EXPECT().GetInstanceConfiguration(gomock.Any(), gomock.Eq(core.GetInstanceConfigurationRequest{
+					InstanceConfigurationId: common.String("test"),
+				})).
+					Return(core.GetInstanceConfigurationResponse{
+						InstanceConfiguration: core.InstanceConfiguration{
+							Id: common.String("test"),
+							InstanceDetails: core.ComputeInstanceDetails{
+								LaunchDetails: &core.InstanceConfigurationLaunchInstanceDetails{
+									DefinedTags:   definedTagsInterface,
+									FreeformTags:  tags,
+									CompartmentId: common.String("test-compartment"),
+									Shape:         common.String("test-shape"),
+									CreateVnicDetails: &core.InstanceConfigurationCreateVnicDetails{
+										DefinedTags:  definedTagsInterface,
+										FreeformTags: tags,
+										NsgIds:       []string{"nsg-id"},
+										SubnetId:     common.String("subnet-id"),
+									},
+									SourceDetails: core.InstanceConfigurationInstanceSourceViaImageDetails{},
+									Metadata:      map[string]string{"user_data": "dGVzdA=="},
+								},
+							},
+						},
+					}, nil)
+
+				computeManagementClient.EXPECT().ListInstanceConfigurations(gomock.Any(), gomock.Any()).
+					Return(core.ListInstanceConfigurationsResponse{}, nil)
+
+				computeManagementClient.EXPECT().CreateInstanceConfiguration(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, req core.CreateInstanceConfigurationRequest) (core.CreateInstanceConfigurationResponse, error) {
+						expectedTags := map[string]string{
+							ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+							ociutil.ClusterResourceIdentifier: "resource_uid",
+							"workload":                        "batch",
+						}
+						createDetails := req.CreateInstanceConfiguration.(core.CreateInstanceConfigurationDetails)
+						launchDetails := createDetails.InstanceDetails.(core.ComputeInstanceDetails).LaunchDetails
+						g.Expect(createDetails.FreeformTags).To(Equal(expectedTags))
+						g.Expect(launchDetails.FreeformTags).To(Equal(expectedTags))
+						g.Expect(launchDetails.CreateVnicDetails.FreeformTags).To(Equal(expectedTags))
+						return core.CreateInstanceConfigurationResponse{
+							InstanceConfiguration: core.InstanceConfiguration{
+								Id: common.String("id"),
+							},
+						}, nil
+					})
+			},
+		},
+		{
+			name:          "instance config recreated when machine pool defined tags change",
+			errorExpected: false,
+			testSpecificSetup: func(ms *MachinePoolScope, g *WithT) {
+				ms.OCIMachinePool.Spec.InstanceConfiguration = infrav2exp.InstanceConfiguration{
+					Shape:                   common.String("test-shape"),
+					InstanceConfigurationId: common.String("test"),
+					DefinedTags: map[string]map[string]string{
+						"ns1": {
+							"tag1": "pool-override",
+						},
+					},
+				}
+
+				computeManagementClient.EXPECT().GetInstanceConfiguration(gomock.Any(), gomock.Eq(core.GetInstanceConfigurationRequest{
+					InstanceConfigurationId: common.String("test"),
+				})).
+					Return(core.GetInstanceConfigurationResponse{
+						InstanceConfiguration: core.InstanceConfiguration{
+							Id: common.String("test"),
+							InstanceDetails: core.ComputeInstanceDetails{
+								LaunchDetails: &core.InstanceConfigurationLaunchInstanceDetails{
+									DefinedTags:   definedTagsInterface,
+									FreeformTags:  tags,
+									CompartmentId: common.String("test-compartment"),
+									Shape:         common.String("test-shape"),
+									CreateVnicDetails: &core.InstanceConfigurationCreateVnicDetails{
+										DefinedTags:  definedTagsInterface,
+										FreeformTags: tags,
+										NsgIds:       []string{"nsg-id"},
+										SubnetId:     common.String("subnet-id"),
+									},
+									SourceDetails: core.InstanceConfigurationInstanceSourceViaImageDetails{},
+									Metadata:      map[string]string{"user_data": "dGVzdA=="},
+								},
+							},
+						},
+					}, nil)
+
+				computeManagementClient.EXPECT().ListInstanceConfigurations(gomock.Any(), gomock.Any()).
+					Return(core.ListInstanceConfigurationsResponse{}, nil)
+
+				computeManagementClient.EXPECT().CreateInstanceConfiguration(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, req core.CreateInstanceConfigurationRequest) (core.CreateInstanceConfigurationResponse, error) {
+						expectedDefinedTags := map[string]map[string]interface{}{
+							"ns1": {
+								"tag1": "pool-override",
+								"tag2": "bar",
+							},
+							"ns2": {
+								"tag1": "foo1",
+								"tag2": "bar1",
+							},
+						}
+						createDetails := req.CreateInstanceConfiguration.(core.CreateInstanceConfigurationDetails)
+						launchDetails := createDetails.InstanceDetails.(core.ComputeInstanceDetails).LaunchDetails
+						g.Expect(createDetails.DefinedTags).To(Equal(expectedDefinedTags))
+						g.Expect(launchDetails.DefinedTags).To(Equal(expectedDefinedTags))
+						g.Expect(launchDetails.CreateVnicDetails.DefinedTags).To(Equal(expectedDefinedTags))
+						return core.CreateInstanceConfigurationResponse{
+							InstanceConfiguration: core.InstanceConfiguration{
+								Id: common.String("id"),
+							},
+						}, nil
+					})
 			},
 		},
 		{
@@ -1119,6 +1250,7 @@ func TestBackfillAnnotations_Upgrade(t *testing.T) {
 			CompartmentId: common.String("test-compartment"),
 			Shape:         common.String("test-shape"),
 			CreateVnicDetails: &core.InstanceConfigurationCreateVnicDetails{
+				DefinedTags:  definedTagsInterface,
 				FreeformTags: tags,
 				NsgIds:       []string{"nsg-id"},
 				SubnetId:     common.String("subnet-id"),
@@ -1528,6 +1660,186 @@ func TestGetLaunchInstanceDetailsCopiesMetadataAndPropagatesSupportedFields(t *t
 	g.Expect(*launchDetails.AvailabilityConfig.IsLiveMigrationPreferred).To(BeTrue())
 }
 
+func TestMachinePoolEffectiveInstanceTags(t *testing.T) {
+	g := NewWithT(t)
+
+	ociCluster := &infrastructurev1beta2.OCICluster{
+		Spec: infrastructurev1beta2.OCIClusterSpec{
+			OCIResourceIdentifier: "resource_uid",
+			FreeformTags: map[string]string{
+				"cluster-only":                    "cluster",
+				"overlap":                         "cluster",
+				ociutil.CreatedBy:                 "user-created-by",
+				ociutil.ClusterResourceIdentifier: "user-resource-id",
+			},
+			DefinedTags: map[string]map[string]string{
+				"Operations": {
+					"CostCenter": "cluster-42",
+					"Owner":      "cluster-platform",
+				},
+				"Security": {
+					"Profile": "restricted",
+				},
+			},
+		},
+	}
+	machinePool := &infrav2exp.OCIMachinePool{
+		Spec: infrav2exp.OCIMachinePoolSpec{
+			InstanceConfiguration: infrav2exp.InstanceConfiguration{
+				FreeformTags: map[string]string{
+					"pool-only":       "pool",
+					"overlap":         "pool",
+					ociutil.CreatedBy: "pool-created-by",
+				},
+				DefinedTags: map[string]map[string]string{
+					"Operations": {
+						"CostCenter": "pool-43",
+					},
+					"Billing": {
+						"Project": "capoci",
+					},
+				},
+			},
+		},
+	}
+	ms := &MachinePoolScope{
+		OCIClusterAccesor: OCISelfManagedCluster{OCICluster: ociCluster},
+		OCIMachinePool:    machinePool,
+	}
+
+	g.Expect(ms.GetFreeFormTags()).To(Equal(map[string]string{
+		"cluster-only":                    "cluster",
+		"pool-only":                       "pool",
+		"overlap":                         "pool",
+		ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+		ociutil.ClusterResourceIdentifier: "resource_uid",
+	}))
+
+	effectiveDefinedTags := ms.getDefinedTags()
+	g.Expect(effectiveDefinedTags).To(Equal(map[string]map[string]interface{}{
+		"Operations": {
+			"CostCenter": "pool-43",
+			"Owner":      "cluster-platform",
+		},
+		"Security": {
+			"Profile": "restricted",
+		},
+		"Billing": {
+			"Project": "capoci",
+		},
+	}))
+
+	ociCluster.Spec.DefinedTags["Operations"]["Owner"] = "mutated"
+	machinePool.Spec.InstanceConfiguration.DefinedTags["Operations"]["CostCenter"] = "mutated"
+	g.Expect(effectiveDefinedTags["Operations"]["Owner"]).To(Equal("cluster-platform"))
+	g.Expect(effectiveDefinedTags["Operations"]["CostCenter"]).To(Equal("pool-43"))
+}
+
+func TestGetLaunchInstanceDetailsAppliesEffectiveInstanceTagsToLaunchAndVnic(t *testing.T) {
+	g := NewWithT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bootstrap",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"value": []byte("test"),
+		},
+	}
+	ociCluster := &infrastructurev1beta2.OCICluster{
+		Spec: infrastructurev1beta2.OCIClusterSpec{
+			CompartmentId:         "test-compartment",
+			OCIResourceIdentifier: "resource_uid",
+			FreeformTags: map[string]string{
+				"cluster-only": "cluster",
+				"overlap":      "cluster",
+			},
+			DefinedTags: map[string]map[string]string{
+				"Operations": {
+					"CostCenter": "cluster-42",
+					"Owner":      "cluster-platform",
+				},
+			},
+			NetworkSpec: infrastructurev1beta2.NetworkSpec{
+				Vcn: infrastructurev1beta2.VCN{
+					Subnets: []*infrastructurev1beta2.Subnet{
+						{
+							Role: infrastructurev1beta2.WorkerRole,
+							ID:   common.String("worker-subnet-id"),
+						},
+					},
+				},
+			},
+		},
+	}
+	machinePool := &infrav2exp.OCIMachinePool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: infrav2exp.OCIMachinePoolSpec{
+			InstanceConfiguration: infrav2exp.InstanceConfiguration{
+				Shape: common.String("test-shape"),
+				FreeformTags: map[string]string{
+					"pool-only": "pool",
+					"overlap":   "pool",
+				},
+				DefinedTags: map[string]map[string]string{
+					"Operations": {
+						"CostCenter": "pool-43",
+					},
+				},
+			},
+		},
+	}
+	client := fake.NewClientBuilder().WithStatusSubresource(machinePool).WithObjects(secret, machinePool).Build()
+	ms, err := NewMachinePoolScope(MachinePoolScopeParams{
+		ComputeManagementClient: mock_computemanagement.NewMockClient(mockCtrl),
+		OCIMachinePool:          machinePool,
+		OCIClusterAccessor:      OCISelfManagedCluster{OCICluster: ociCluster},
+		Cluster:                 &clusterv1.Cluster{},
+		MachinePool: &clusterv1.MachinePool{
+			ObjectMeta: metav1.ObjectMeta{Namespace: "default"},
+			Spec: clusterv1.MachinePoolSpec{
+				Template: clusterv1.MachineTemplateSpec{
+					Spec: clusterv1.MachineSpec{
+						Bootstrap: clusterv1.Bootstrap{
+							DataSecretName: common.String("bootstrap"),
+						},
+					},
+				},
+			},
+		},
+		Client: client,
+	})
+	g.Expect(err).To(BeNil())
+
+	freeformTags := ms.GetFreeFormTags()
+	definedTags := ms.getDefinedTags()
+	launchDetails, err := ms.getLaunchInstanceDetails(machinePool.Spec.InstanceConfiguration, freeformTags, definedTags)
+	g.Expect(err).To(BeNil())
+
+	expectedFreeformTags := map[string]string{
+		"cluster-only":                    "cluster",
+		"pool-only":                       "pool",
+		"overlap":                         "pool",
+		ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+		ociutil.ClusterResourceIdentifier: "resource_uid",
+	}
+	expectedDefinedTags := map[string]map[string]interface{}{
+		"Operations": {
+			"CostCenter": "pool-43",
+			"Owner":      "cluster-platform",
+		},
+	}
+	g.Expect(launchDetails.FreeformTags).To(Equal(expectedFreeformTags))
+	g.Expect(launchDetails.DefinedTags).To(Equal(expectedDefinedTags))
+	g.Expect(launchDetails.CreateVnicDetails.FreeformTags).To(Equal(expectedFreeformTags))
+	g.Expect(launchDetails.CreateVnicDetails.DefinedTags).To(Equal(expectedDefinedTags))
+}
+
 func TestGetLaunchInstanceDetailsExtendedMetadata(t *testing.T) {
 	g := NewWithT(t)
 	mockCtrl := gomock.NewController(t)
@@ -1839,6 +2151,135 @@ func TestInstancePoolCreate(t *testing.T) {
 	}
 }
 
+func TestBuildInstancePoolPlacement(t *testing.T) {
+	tests := []struct {
+		name             string
+		placementDetails []infrav2exp.PlacementDetails
+		expected         []core.CreateInstancePoolPlacementConfigurationDetails
+		errorExpected    bool
+	}{
+		{
+			name: "uses requested fault domains for selected availability domain",
+			placementDetails: []infrav2exp.PlacementDetails{
+				{
+					AvailabilityDomain: 1,
+					FaultDomains:       []string{"fd-2"},
+				},
+			},
+			expected: []core.CreateInstancePoolPlacementConfigurationDetails{
+				{
+					AvailabilityDomain: common.String("test-ad-1"),
+					PrimarySubnetId:    common.String("subnet-id"),
+					FaultDomains:       []string{"fd-2"},
+				},
+			},
+		},
+		{
+			name: "uses cluster fault domains when selected availability domain omits fault domains",
+			placementDetails: []infrav2exp.PlacementDetails{
+				{
+					AvailabilityDomain: 2,
+				},
+			},
+			expected: []core.CreateInstancePoolPlacementConfigurationDetails{
+				{
+					AvailabilityDomain: common.String("test-ad-2"),
+					PrimarySubnetId:    common.String("subnet-id"),
+					FaultDomains:       []string{"fd-3", "fd-4"},
+				},
+			},
+		},
+		{
+			name: "uses all availability domains and cluster fault domains when placement details are omitted",
+			expected: []core.CreateInstancePoolPlacementConfigurationDetails{
+				{
+					AvailabilityDomain: common.String("test-ad-1"),
+					PrimarySubnetId:    common.String("subnet-id"),
+					FaultDomains:       []string{"fd-1", "fd-2"},
+				},
+				{
+					AvailabilityDomain: common.String("test-ad-2"),
+					PrimarySubnetId:    common.String("subnet-id"),
+					FaultDomains:       []string{"fd-3", "fd-4"},
+				},
+			},
+		},
+		{
+			name: "errors when more placement details are requested than cluster availability domains",
+			placementDetails: []infrav2exp.PlacementDetails{
+				{AvailabilityDomain: 1},
+				{AvailabilityDomain: 2},
+				{AvailabilityDomain: 3},
+			},
+			errorExpected: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			infraMachinePool := &infrav2exp.OCIMachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "default",
+				},
+				Spec: infrav2exp.OCIMachinePoolSpec{
+					PlacementDetails: tc.placementDetails,
+				},
+			}
+			scheme := runtime.NewScheme()
+			g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(infrav2exp.AddToScheme(scheme)).To(Succeed())
+
+			ms, err := NewMachinePoolScope(MachinePoolScopeParams{
+				ComputeManagementClient: mock_computemanagement.NewMockClient(mockCtrl),
+				OCIMachinePool:          infraMachinePool,
+				OCIClusterAccessor: OCISelfManagedCluster{
+					OCICluster: &infrastructurev1beta2.OCICluster{
+						Spec: infrastructurev1beta2.OCIClusterSpec{
+							NetworkSpec: infrastructurev1beta2.NetworkSpec{
+								Vcn: infrastructurev1beta2.VCN{
+									Subnets: []*infrastructurev1beta2.Subnet{
+										{
+											Role: infrastructurev1beta2.WorkerRole,
+											ID:   common.String("subnet-id"),
+										},
+									},
+								},
+							},
+							AvailabilityDomains: map[string]infrastructurev1beta2.OCIAvailabilityDomain{
+								"test-ad-1": {
+									Name:         "test-ad-1",
+									FaultDomains: []string{"fd-1", "fd-2"},
+								},
+								"test-ad-2": {
+									Name:         "test-ad-2",
+									FaultDomains: []string{"fd-3", "fd-4"},
+								},
+							},
+						},
+					},
+				},
+				Cluster:     &clusterv1.Cluster{},
+				MachinePool: &clusterv1.MachinePool{},
+				Client:      fake.NewClientBuilder().WithScheme(scheme).WithObjects(infraMachinePool).Build(),
+			})
+			g.Expect(err).To(BeNil())
+
+			placements, err := ms.BuildInstancePoolPlacement()
+			if tc.errorExpected {
+				g.Expect(err).To(Not(BeNil()))
+				return
+			}
+			g.Expect(err).To(BeNil())
+			g.Expect(placements).To(ConsistOf(tc.expected))
+		})
+	}
+}
+
 func TestInstancePoolUpdate(t *testing.T) {
 	var (
 		ms                      *MachinePoolScope
@@ -1859,15 +2300,6 @@ func TestInstancePoolUpdate(t *testing.T) {
 			"tag1": "foo1",
 			"tag2": "bar1",
 		},
-	}
-
-	definedTagsInterface := make(map[string]map[string]interface{})
-	for ns, mapNs := range definedTags {
-		mapValues := make(map[string]interface{})
-		for k, v := range mapNs {
-			mapValues[k] = v
-		}
-		definedTagsInterface[ns] = mapValues
 	}
 
 	setup := func(t *testing.T, g *WithT) {
@@ -1918,6 +2350,10 @@ func TestInstancePoolUpdate(t *testing.T) {
 						Name:         "ad-1",
 						FaultDomains: []string{"fd-5", "fd-6"},
 					},
+					"ad-2": {
+						Name:         "ad-2",
+						FaultDomains: []string{"fd-7", "fd-8"},
+					},
 				},
 			},
 		}
@@ -1962,6 +2398,19 @@ func TestInstancePoolUpdate(t *testing.T) {
 		mockCtrl.Finish()
 	}
 
+	matchingPlacementConfigurations := []core.InstancePoolPlacementConfiguration{
+		{
+			AvailabilityDomain: common.String("ad-1"),
+			PrimarySubnetId:    common.String("subnet-id"),
+			FaultDomains:       []string{"fd-5", "fd-6"},
+		},
+		{
+			AvailabilityDomain: common.String("ad-2"),
+			PrimarySubnetId:    common.String("subnet-id"),
+			FaultDomains:       []string{"fd-7", "fd-8"},
+		},
+	}
+
 	tests := []struct {
 		name                string
 		errorExpected       bool
@@ -1979,6 +2428,7 @@ func TestInstancePoolUpdate(t *testing.T) {
 			instancepool: &core.InstancePool{
 				Size:                    common.Int(3),
 				InstanceConfigurationId: common.String("config_id"),
+				PlacementConfigurations: matchingPlacementConfigurations,
 			},
 			testSpecificSetup: func(ms *MachinePoolScope) {
 				ms.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId = common.String("config_id")
@@ -1990,6 +2440,7 @@ func TestInstancePoolUpdate(t *testing.T) {
 			instancepool: &core.InstancePool{
 				Size:                    common.Int(3),
 				InstanceConfigurationId: common.String("config_id"),
+				PlacementConfigurations: matchingPlacementConfigurations,
 			},
 			testSpecificSetup: func(ms *MachinePoolScope) {
 				ms.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId = common.String("config_id_new")
@@ -1997,6 +2448,95 @@ func TestInstancePoolUpdate(t *testing.T) {
 					UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
 						Size:                    common.Int(3),
 						InstanceConfigurationId: common.String("config_id_new"),
+						FreeformTags:            tags,
+					},
+				})).
+					Return(core.UpdateInstancePoolResponse{
+						InstancePool: core.InstancePool{
+							Id: common.String("id"),
+						},
+					}, nil)
+			},
+		},
+		{
+			name:          "instance pool update due to availability domain and fault domain change",
+			errorExpected: false,
+			instancepool: &core.InstancePool{
+				Size:                    common.Int(3),
+				InstanceConfigurationId: common.String("config_id"),
+				PlacementConfigurations: []core.InstancePoolPlacementConfiguration{
+					{
+						AvailabilityDomain: common.String("ad-1"),
+						PrimarySubnetId:    common.String("subnet-id"),
+						FaultDomains:       []string{"fd-5", "fd-6"},
+					},
+				},
+			},
+			testSpecificSetup: func(ms *MachinePoolScope) {
+				ms.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId = common.String("config_id")
+				ms.OCIMachinePool.Spec.PlacementDetails = []infrav2exp.PlacementDetails{
+					{
+						AvailabilityDomain: 2,
+						FaultDomains:       []string{"fd-7"},
+					},
+				}
+				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
+					UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
+						Size:                    common.Int(3),
+						InstanceConfigurationId: common.String("config_id"),
+						FreeformTags:            tags,
+						PlacementConfigurations: []core.UpdateInstancePoolPlacementConfigurationDetails{
+							{
+								AvailabilityDomain: common.String("ad-2"),
+								PrimarySubnetId:    common.String("subnet-id"),
+								FaultDomains:       []string{"fd-7"},
+							},
+						},
+					},
+				})).
+					Return(core.UpdateInstancePoolResponse{
+						InstancePool: core.InstancePool{
+							Id: common.String("id"),
+						},
+					}, nil)
+			},
+		},
+		{
+			name:          "instance pool placement update omits size when replicas are externally managed",
+			errorExpected: false,
+			instancepool: &core.InstancePool{
+				Size:                    common.Int(5),
+				InstanceConfigurationId: common.String("config_id"),
+				PlacementConfigurations: []core.InstancePoolPlacementConfiguration{
+					{
+						AvailabilityDomain: common.String("ad-1"),
+						PrimarySubnetId:    common.String("subnet-id"),
+						FaultDomains:       []string{"fd-5", "fd-6"},
+					},
+				},
+			},
+			testSpecificSetup: func(ms *MachinePoolScope) {
+				ms.MachinePool.Annotations = map[string]string{
+					clusterv1.ReplicasManagedByAnnotation: "",
+				}
+				ms.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId = common.String("config_id")
+				ms.OCIMachinePool.Spec.PlacementDetails = []infrav2exp.PlacementDetails{
+					{
+						AvailabilityDomain: 2,
+						FaultDomains:       []string{"fd-7"},
+					},
+				}
+				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
+					UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
+						InstanceConfigurationId: common.String("config_id"),
+						FreeformTags:            tags,
+						PlacementConfigurations: []core.UpdateInstancePoolPlacementConfigurationDetails{
+							{
+								AvailabilityDomain: common.String("ad-2"),
+								PrimarySubnetId:    common.String("subnet-id"),
+								FaultDomains:       []string{"fd-7"},
+							},
+						},
 					},
 				})).
 					Return(core.UpdateInstancePoolResponse{
@@ -2012,6 +2552,7 @@ func TestInstancePoolUpdate(t *testing.T) {
 			instancepool: &core.InstancePool{
 				Size:                    common.Int(3),
 				InstanceConfigurationId: common.String("config_id"),
+				PlacementConfigurations: matchingPlacementConfigurations,
 			},
 			testSpecificSetup: func(ms *MachinePoolScope) {
 				ms.MachinePool.Annotations = map[string]string{
@@ -2038,6 +2579,147 @@ func TestInstancePoolUpdate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestInstancePoolUpdateSkipsDefaultPlacementDrift(t *testing.T) {
+	g := NewWithT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	replicas := int32(3)
+	infraMachinePool := &infrav2exp.OCIMachinePool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "default",
+		},
+		Spec: infrav2exp.OCIMachinePoolSpec{
+			InstanceConfiguration: infrav2exp.InstanceConfiguration{
+				InstanceConfigurationId: common.String("config_id"),
+			},
+		},
+	}
+	ms, err := NewMachinePoolScope(MachinePoolScopeParams{
+		ComputeManagementClient: mock_computemanagement.NewMockClient(mockCtrl),
+		OCIMachinePool:          infraMachinePool,
+		OCIClusterAccessor: OCISelfManagedCluster{
+			OCICluster: &infrastructurev1beta2.OCICluster{},
+		},
+		Cluster: &clusterv1.Cluster{},
+		MachinePool: &clusterv1.MachinePool{
+			Spec: clusterv1.MachinePoolSpec{
+				Replicas: &replicas,
+			},
+		},
+		Client: fake.NewClientBuilder().WithObjects(infraMachinePool).Build(),
+	})
+	g.Expect(err).To(BeNil())
+
+	instancePool := &core.InstancePool{
+		Size:                    common.Int(3),
+		InstanceConfigurationId: common.String("config_id"),
+	}
+
+	updatedPool, err := ms.UpdatePool(context.Background(), instancePool)
+	g.Expect(err).To(BeNil())
+	g.Expect(updatedPool).To(Equal(instancePool))
+}
+
+func TestInstancePoolUpdatePrimarySubnetPlacement(t *testing.T) {
+	g := NewWithT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	replicas := int32(3)
+	computeManagementClient := mock_computemanagement.NewMockClient(mockCtrl)
+	infraMachinePool := &infrav2exp.OCIMachinePool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "default",
+		},
+		Spec: infrav2exp.OCIMachinePoolSpec{
+			PlacementDetails: []infrav2exp.PlacementDetails{
+				{
+					AvailabilityDomain: 1,
+					FaultDomains:       []string{"fd-5"},
+				},
+			},
+			InstanceConfiguration: infrav2exp.InstanceConfiguration{
+				InstanceConfigurationId: common.String("config_id"),
+			},
+		},
+	}
+	ms, err := NewMachinePoolScope(MachinePoolScopeParams{
+		ComputeManagementClient: computeManagementClient,
+		OCIMachinePool:          infraMachinePool,
+		OCIClusterAccessor: OCISelfManagedCluster{
+			OCICluster: &infrastructurev1beta2.OCICluster{
+				Spec: infrastructurev1beta2.OCIClusterSpec{
+					NetworkSpec: infrastructurev1beta2.NetworkSpec{
+						Vcn: infrastructurev1beta2.VCN{
+							Subnets: []*infrastructurev1beta2.Subnet{
+								{
+									Role: infrastructurev1beta2.WorkerRole,
+									ID:   common.String("new-subnet-id"),
+								},
+							},
+						},
+					},
+					AvailabilityDomains: map[string]infrastructurev1beta2.OCIAvailabilityDomain{
+						"ad-1": {
+							Name:         "ad-1",
+							FaultDomains: []string{"fd-5"},
+						},
+					},
+				},
+			},
+		},
+		Cluster: &clusterv1.Cluster{},
+		MachinePool: &clusterv1.MachinePool{
+			Spec: clusterv1.MachinePoolSpec{
+				Replicas: &replicas,
+			},
+		},
+		Client: fake.NewClientBuilder().WithObjects(infraMachinePool).Build(),
+	})
+	g.Expect(err).To(BeNil())
+
+	instancePool := &core.InstancePool{
+		Id:                      common.String("pool-id"),
+		Size:                    common.Int(3),
+		InstanceConfigurationId: common.String("config_id"),
+		PlacementConfigurations: []core.InstancePoolPlacementConfiguration{
+			{
+				AvailabilityDomain: common.String("ad-1"),
+				PrimarySubnetId:    common.String("old-subnet-id"),
+				FaultDomains:       []string{"fd-5"},
+			},
+		},
+	}
+	computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
+		InstancePoolId: common.String("pool-id"),
+		UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
+			Size:                    common.Int(3),
+			InstanceConfigurationId: common.String("config_id"),
+			FreeformTags: map[string]string{
+				ociutil.ClusterResourceIdentifier: "",
+				ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+			},
+			PlacementConfigurations: []core.UpdateInstancePoolPlacementConfigurationDetails{
+				{
+					AvailabilityDomain: common.String("ad-1"),
+					PrimarySubnetId:    common.String("new-subnet-id"),
+					FaultDomains:       []string{"fd-5"},
+				},
+			},
+		},
+	})).Return(core.UpdateInstancePoolResponse{
+		InstancePool: core.InstancePool{
+			Id: common.String("pool-id"),
+		},
+	}, nil)
+
+	_, err = ms.UpdatePool(context.Background(), instancePool)
+	g.Expect(err).To(BeNil())
 }
 
 func TestSyncReplicasFromInstancePool(t *testing.T) {
