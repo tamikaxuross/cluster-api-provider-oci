@@ -292,6 +292,7 @@ generate-e2e-templates: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(OCI_TEMPLATES)/v1beta2/cluster-template-remote-vcn-peering --load-restrictor LoadRestrictionsNone > $(OCI_TEMPLATES)/v1beta2/cluster-template-remote-vcn-peering.yaml
 	$(KUSTOMIZE) build $(OCI_TEMPLATES)/v1beta2/cluster-template-externally-managed-vcn --load-restrictor LoadRestrictionsNone > $(OCI_TEMPLATES)/v1beta2/cluster-template-externally-managed-vcn.yaml
 	$(KUSTOMIZE) build $(OCI_TEMPLATES)/v1beta2/cluster-template-machine-pool --load-restrictor LoadRestrictionsNone > $(OCI_TEMPLATES)/v1beta2/cluster-template-machine-pool.yaml
+	$(KUSTOMIZE) build $(OCI_TEMPLATES)/v1beta2/cluster-template-machine-pool-fd --load-restrictor LoadRestrictionsNone > $(OCI_TEMPLATES)/v1beta2/cluster-template-machine-pool-fd.yaml
 	$(KUSTOMIZE) build $(OCI_TEMPLATES)/v1beta2/cluster-template-managed --load-restrictor LoadRestrictionsNone > $(OCI_TEMPLATES)/v1beta2/cluster-template-managed.yaml
 	$(KUSTOMIZE) build $(OCI_TEMPLATES)/v1beta2/cluster-template-managed-node-recycling --load-restrictor LoadRestrictionsNone > $(OCI_TEMPLATES)/v1beta2/cluster-template-managed-node-recycling.yaml
 	$(KUSTOMIZE) build $(OCI_TEMPLATES)/v1beta2/cluster-template-managed-cluster-identity --load-restrictor LoadRestrictionsNone > $(OCI_TEMPLATES)/v1beta2/cluster-template-managed-cluster-identity.yaml
@@ -389,7 +390,7 @@ $(KUSTOMIZE): ## Download kustomize locally if necessary.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) sigs.k8s.io/kustomize/kustomize/v4 $(KUSTOMIZE_BIN) $(KUSTOMIZE_VER)
 
 $(GINKGO): ## Build ginkgo.
-	GOBIN=$(BIN_DIR)/ $(GO_INSTALL) github.com/onsi/ginkgo/v2/ginkgo $(GINKGO_BIN) v2.27.2
+	GOBIN=$(BIN_DIR)/ $(GO_INSTALL) github.com/onsi/ginkgo/v2/ginkgo $(GINKGO_BIN) v2.23.4
 
 $(GOLANGCI_LINT): ## Build golanci-lint.
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(BIN_DIR) $(GOLANGCI_LINT_VERSION)
