@@ -228,7 +228,13 @@ func normalizeFreeformTags(tags map[string]string) map[string]string {
 	}
 	output := make(map[string]string, len(tags))
 	for k, v := range tags {
+		if k == "oci-default" {
+			continue
+		}
 		output[k] = v
+	}
+	if len(output) == 0 {
+		return nil
 	}
 	return output
 }
@@ -239,6 +245,9 @@ func normalizeDefinedTags(tags map[string]map[string]interface{}) map[string]map
 	}
 	output := make(map[string]map[string]interface{}, len(tags))
 	for namespace, values := range tags {
+		if namespace == "Oracle-Tags" {
+			continue
+		}
 		if len(values) == 0 {
 			continue
 		}

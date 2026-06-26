@@ -534,6 +534,10 @@ func TestReconciliationFunction(t *testing.T) {
 					UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
 						Size:                    common.Int(3),
 						InstanceConfigurationId: common.String("new-id"),
+						FreeformTags: map[string]string{
+							ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+							ociutil.ClusterResourceIdentifier: "resource_uid",
+						},
 					},
 				})).
 					Return(core.UpdateInstancePoolResponse{

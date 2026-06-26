@@ -848,9 +848,6 @@ write_files:
 						},
 					}, nil)
 
-				computeManagementClient.EXPECT().ListInstanceConfigurations(gomock.Any(), gomock.Any()).
-					Return(core.ListInstanceConfigurationsResponse{}, nil)
-
 				computeManagementClient.EXPECT().CreateInstanceConfiguration(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, req core.CreateInstanceConfigurationRequest) (core.CreateInstanceConfigurationResponse, error) {
 						expectedTags := map[string]string{
@@ -909,9 +906,6 @@ write_files:
 							},
 						},
 					}, nil)
-
-				computeManagementClient.EXPECT().ListInstanceConfigurations(gomock.Any(), gomock.Any()).
-					Return(core.ListInstanceConfigurationsResponse{}, nil)
 
 				computeManagementClient.EXPECT().CreateInstanceConfiguration(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, req core.CreateInstanceConfigurationRequest) (core.CreateInstanceConfigurationResponse, error) {
@@ -1677,6 +1671,11 @@ func TestReconcileInstanceConfigurationCoalescesMultipleApprovedFieldChanges(t *
 	desiredLaunch := orderingLaunchDetails("new-shape", "test")
 	desiredLaunch.LaunchMode = core.InstanceConfigurationLaunchInstanceDetailsLaunchModeNative
 	desiredLaunch.PreferredMaintenanceAction = core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionReboot
+	desiredLaunch.FreeformTags = map[string]string{
+		ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+		ociutil.ClusterResourceIdentifier: "resource_uid",
+	}
+	desiredLaunch.CreateVnicDetails.FreeformTags = desiredLaunch.FreeformTags
 
 	computeMgmt.EXPECT().GetInstanceConfiguration(gomock.Any(), gomock.Eq(core.GetInstanceConfigurationRequest{
 		InstanceConfigurationId: common.String("old-id"),
@@ -1789,6 +1788,10 @@ func TestBootstrapTriggeredRotationUpdatesPoolBeforeCleanupEligibility(t *testin
 		UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
 			Size:                    common.Int(3),
 			InstanceConfigurationId: common.String("new-id"),
+			FreeformTags: map[string]string{
+				ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+				ociutil.ClusterResourceIdentifier: "resource_uid",
+			},
 		},
 	})).
 		Return(core.UpdateInstancePoolResponse{
@@ -3302,8 +3305,12 @@ func TestInstancePoolUpdate(t *testing.T) {
 				ms.OCIMachinePool.Spec.InstanceHostnameFormatter = common.String("new-host-${launchCount}")
 				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
 					UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
-						Size:                         common.Int(3),
-						InstanceConfigurationId:      common.String("config_id"),
+						Size:                    common.Int(3),
+						InstanceConfigurationId: common.String("config_id"),
+						FreeformTags: map[string]string{
+							ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+							ociutil.ClusterResourceIdentifier: "resource_uid",
+						},
 						InstanceDisplayNameFormatter: common.String("new-display-${launchCount}"),
 						InstanceHostnameFormatter:    common.String("new-host-${launchCount}"),
 					},
