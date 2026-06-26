@@ -88,8 +88,6 @@ spec:
       metadata:
         ssh_authorized_keys: "${OCI_SSH_KEY}"
       isPvEncryptionInTransitEnabled: ${OCI_CONTROL_PLANE_PV_TRANSIT_ENCRYPTION=true}
-      instanceOptions:
-        areLegacyImdsEndpointsDisabled: true
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachinePool
@@ -135,8 +133,9 @@ spec:
       ocpus: "${OCI_NODE_MACHINE_TYPE_OCPUS=1}"
       # Use vcpus only when validating vCPU-based shape config behavior.
       # vcpus: ${OCI_NODE_MACHINE_TYPE_VCPUS=6}
-    instanceOptions:
-      areLegacyImdsEndpointsDisabled: true
+    # LIVE_MIGRATE support depends on the instance shape, region, platform,
+    # and image. If this template fails in a new environment, verify support:
+    # https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/movinganinstance.htm
     preferredMaintenanceAction: LIVE_MIGRATE
     # launchMode can be enabled for explicit launch mode validation.
     # launchMode: PARAVIRTUALIZED

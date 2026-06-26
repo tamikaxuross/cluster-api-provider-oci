@@ -1653,6 +1653,30 @@ func TestCleanupInstanceConfigurationDeletesOnlyAfterSuccessfulSwitch(t *testing
 	g.Expect(err).To(BeNil())
 }
 
+func TestCleanupInstanceConfigurationDefersWhenFormatterUpdateStalls(t *testing.T) {
+	g := NewWithT(t)
+	ms, computeMgmt := newInstanceConfigurationOrderingScope(t, "test")
+
+	ms.OCIMachinePool.Spec.InstanceDisplayNameFormatter = common.String("new-${launchCount}")
+	ms.OCIMachinePool.Spec.InstanceHostnameFormatter = common.String("new-host-${launchCount}")
+	ms.OCIMachinePool.Spec.InstanceConfiguration = infrav2exp.InstanceConfiguration{
+		InstanceConfigurationId: common.String("new-id"),
+	}
+	stalledPool := &core.InstancePool{
+		Id:                           common.String("pool-id"),
+		InstanceConfigurationId:      common.String("new-id"),
+		InstanceDisplayNameFormatter: common.String("old-${launchCount}"),
+		InstanceHostnameFormatter:    common.String("old-host-${launchCount}"),
+	}
+
+	computeMgmt.EXPECT().ListInstanceConfigurations(gomock.Any(), gomock.Any()).Times(0)
+	computeMgmt.EXPECT().DeleteInstanceConfiguration(gomock.Any(), gomock.Any()).Times(0)
+
+	g.Expect(ms.InstancePoolUsesDesiredInstanceConfiguration(stalledPool)).To(BeFalse())
+	err := ms.CleanupInstanceConfiguration(context.Background(), stalledPool)
+	g.Expect(err).To(BeNil())
+}
+
 func TestReconcileInstanceConfigurationCoalescesMultipleApprovedFieldChanges(t *testing.T) {
 	g := NewWithT(t)
 	ms, computeMgmt := newInstanceConfigurationOrderingScope(t, "test")
@@ -3306,6 +3330,40 @@ func TestInstancePoolUpdate(t *testing.T) {
 				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
 					UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
 						Size:                    common.Int(3),
+						InstanceConfigurationId: common.String("config_id"),
+						FreeformTags: map[string]string{
+							ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+							ociutil.ClusterResourceIdentifier: "resource_uid",
+						},
+						InstanceDisplayNameFormatter: common.String("new-display-${launchCount}"),
+						InstanceHostnameFormatter:    common.String("new-host-${launchCount}"),
+					},
+				})).
+					Return(core.UpdateInstancePoolResponse{
+						InstancePool: core.InstancePool{
+							Id: common.String("id"),
+						},
+					}, nil)
+			},
+		},
+		{
+			name:          "instance pool formatter update omits size when replicas are externally managed",
+			errorExpected: false,
+			instancepool: &core.InstancePool{
+				Size:                         common.Int(5),
+				InstanceConfigurationId:      common.String("config_id"),
+				InstanceDisplayNameFormatter: common.String("old-display-${launchCount}"),
+				InstanceHostnameFormatter:    common.String("old-host-${launchCount}"),
+			},
+			testSpecificSetup: func(ms *MachinePoolScope) {
+				ms.MachinePool.Annotations = map[string]string{
+					clusterv1.ReplicasManagedByAnnotation: "",
+				}
+				ms.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId = common.String("config_id")
+				ms.OCIMachinePool.Spec.InstanceDisplayNameFormatter = common.String("new-display-${launchCount}")
+				ms.OCIMachinePool.Spec.InstanceHostnameFormatter = common.String("new-host-${launchCount}")
+				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
+					UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
 						InstanceConfigurationId: common.String("config_id"),
 						FreeformTags: map[string]string{
 							ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,

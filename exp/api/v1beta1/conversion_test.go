@@ -98,11 +98,11 @@ func TestOCIMachinePoolDeferredAndOutOfScopeFieldsRemainAbsent(t *testing.T) {
 		obj    interface{}
 		fields []string
 	}{
-		{OCIMachinePoolSpec{}, []string{"definedTags", "displayName", "freeformTags", "loadBalancers", "placementConfigurations"}},
+		{OCIMachinePoolSpec{}, []string{"displayName", "loadBalancers", "placementConfigurations"}},
 		{InstanceConfiguration{}, []string{"availabilityDomain", "blockVolumes", "faultDomain", "instanceSourceImageFilterDetails", "secondaryVnics"}},
 		{MachinePoolNetworkDetails{}, []string{"privateIp"}},
 		{PlacementDetails{}, []string{"secondaryVnicSubnets"}},
-		{v1beta2.OCIMachinePoolSpec{}, []string{"definedTags", "displayName", "freeformTags", "loadBalancers", "placementConfigurations"}},
+		{v1beta2.OCIMachinePoolSpec{}, []string{"displayName", "loadBalancers", "placementConfigurations"}},
 		{v1beta2.InstanceConfiguration{}, []string{"availabilityDomain", "blockVolumes", "faultDomain", "instanceSourceImageFilterDetails", "secondaryVnics"}},
 		{v1beta2.MachinePoolNetworkDetails{}, []string{"privateIp"}},
 		{v1beta2.PlacementDetails{}, []string{"secondaryVnicSubnets"}},
@@ -118,9 +118,7 @@ func TestOCIMachinePoolDeferredAndOutOfScopeFieldsRemainAbsent(t *testing.T) {
 	crd := string(crdBytes)
 	for _, field := range []string{
 		"blockVolumes:",
-		"definedTags:",
 		"faultDomain:",
-		"freeformTags:",
 		"instanceSourceImageFilterDetails:",
 		"loadBalancers:",
 		"placementConfigurations:",

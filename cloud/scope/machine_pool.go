@@ -1058,7 +1058,8 @@ func instancePoolPlacementNeedsUpdate(actual []core.InstancePoolPlacementConfigu
 }
 
 // InstancePoolUsesDesiredInstanceConfiguration reports whether the actual
-// InstancePool has switched to the desired backing InstanceConfiguration.
+// InstancePool has switched to the desired backing InstanceConfiguration and
+// any MachinePool-level formatter fields that are updated on the InstancePool.
 func (m *MachinePoolScope) InstancePoolUsesDesiredInstanceConfiguration(instancePool *core.InstancePool) bool {
 	if instancePool == nil {
 		return true
@@ -1066,7 +1067,9 @@ func (m *MachinePoolScope) InstancePoolUsesDesiredInstanceConfiguration(instance
 	desiredID := m.GetInstanceConfigurationId()
 	return desiredID != nil &&
 		instancePool.InstanceConfigurationId != nil &&
-		ptr.ToString(instancePool.InstanceConfigurationId) == ptr.ToString(desiredID)
+		ptr.ToString(instancePool.InstanceConfigurationId) == ptr.ToString(desiredID) &&
+		reflect.DeepEqual(m.OCIMachinePool.Spec.InstanceDisplayNameFormatter, instancePool.InstanceDisplayNameFormatter) &&
+		reflect.DeepEqual(m.OCIMachinePool.Spec.InstanceHostnameFormatter, instancePool.InstanceHostnameFormatter)
 }
 
 func (m *MachinePoolScope) getAgentConfig() *core.InstanceConfigurationLaunchInstanceAgentConfigDetails {
@@ -1317,7 +1320,11 @@ func (m *MachinePoolScope) CleanupInstanceConfiguration(ctx context.Context, ins
 	if !m.InstancePoolUsesDesiredInstanceConfiguration(instancePool) {
 		m.Info("Deferring instance configuration cleanup until instance pool switch is observed",
 			"desiredInstanceConfigurationId", ptr.ToString(m.GetInstanceConfigurationId()),
-			"actualInstanceConfigurationId", ptr.ToString(instancePool.InstanceConfigurationId))
+			"actualInstanceConfigurationId", ptr.ToString(instancePool.InstanceConfigurationId),
+			"desiredInstanceDisplayNameFormatter", ptr.ToString(m.OCIMachinePool.Spec.InstanceDisplayNameFormatter),
+			"actualInstanceDisplayNameFormatter", ptr.ToString(instancePool.InstanceDisplayNameFormatter),
+			"desiredInstanceHostnameFormatter", ptr.ToString(m.OCIMachinePool.Spec.InstanceHostnameFormatter),
+			"actualInstanceHostnameFormatter", ptr.ToString(instancePool.InstanceHostnameFormatter))
 		return nil
 	}
 

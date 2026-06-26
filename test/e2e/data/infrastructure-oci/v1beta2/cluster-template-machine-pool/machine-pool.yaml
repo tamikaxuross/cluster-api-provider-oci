@@ -38,6 +38,9 @@ spec:
     shape: "${OCI_NODE_MACHINE_TYPE=VM.Standard.E4.Flex}"
     shapeConfig:
       ocpus: "1"
+    # LIVE_MIGRATE support depends on the instance shape, region, platform,
+    # and image. If this test fails in a new environment, verify support:
+    # https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/movinganinstance.htm
     preferredMaintenanceAction: LIVE_MIGRATE
 
 ---
