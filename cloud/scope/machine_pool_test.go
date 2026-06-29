@@ -3315,6 +3315,62 @@ func TestInstancePoolUpdate(t *testing.T) {
 			},
 		},
 		{
+			name:          "instance pool primary VNIC subnet placement update",
+			errorExpected: false,
+			instancepool: &core.InstancePool{
+				Size:                    common.Int(3),
+				InstanceConfigurationId: common.String("config_id"),
+				PlacementConfigurations: []core.InstancePoolPlacementConfiguration{
+					{
+						AvailabilityDomain: common.String("ad-1"),
+						PrimarySubnetId:    common.String("subnet-id"),
+						FaultDomains:       []string{"fd-5", "fd-6"},
+					},
+				},
+			},
+			testSpecificSetup: func(ms *MachinePoolScope) {
+				ms.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId = common.String("config_id")
+				ms.OCIMachinePool.Spec.PlacementDetails = []infrav2exp.PlacementDetails{
+					{
+						AvailabilityDomain: 1,
+						FaultDomains:       []string{"fd-5", "fd-6"},
+						PrimaryVnicSubnets: &infrav2exp.InstancePoolPlacementPrimarySubnet{
+							SubnetId:       common.String("primary-subnet-id"),
+							IsAssignIpv6Ip: common.Bool(true),
+							Ipv6AddressIpv6SubnetCidrPairDetails: []infrav2exp.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails{{
+								Ipv6SubnetCidr: common.String("2001:db8::/64"),
+							}},
+						},
+					},
+				}
+				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
+					UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
+						Size:                    common.Int(3),
+						InstanceConfigurationId: common.String("config_id"),
+						FreeformTags:            tags,
+						PlacementConfigurations: []core.UpdateInstancePoolPlacementConfigurationDetails{
+							{
+								AvailabilityDomain: common.String("ad-1"),
+								FaultDomains:       []string{"fd-5", "fd-6"},
+								PrimaryVnicSubnets: &core.InstancePoolPlacementPrimarySubnet{
+									SubnetId:       common.String("primary-subnet-id"),
+									IsAssignIpv6Ip: common.Bool(true),
+									Ipv6AddressIpv6SubnetCidrPairDetails: []core.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails{{
+										Ipv6SubnetCidr: common.String("2001:db8::/64"),
+									}},
+								},
+							},
+						},
+					},
+				})).
+					Return(core.UpdateInstancePoolResponse{
+						InstancePool: core.InstancePool{
+							Id: common.String("id"),
+						},
+					}, nil)
+			},
+		},
+		{
 			name:          "instance pool formatter update",
 			errorExpected: false,
 			instancepool: &core.InstancePool{

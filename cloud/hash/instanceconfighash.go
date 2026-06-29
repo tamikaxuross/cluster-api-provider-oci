@@ -481,7 +481,7 @@ func projectPlatformConfig(in, mask core.InstanceConfigurationLaunchInstancePlat
 		AreVirtualInstructionsEnabled:            pickDefaultFalseBool(actual.AreVirtualInstructionsEnabled, desired.AreVirtualInstructionsEnabled),
 		IsInputOutputMemoryManagementUnitEnabled: pickDefaultFalseBool(actual.IsInputOutputMemoryManagementUnitEnabled, desired.IsInputOutputMemoryManagementUnitEnabled),
 		PercentageOfCoresEnabled:                 pickInt(actual.PercentageOfCoresEnabled, desired.PercentageOfCoresEnabled),
-		ConfigMap:                                pickStringMap(actual.ConfigMap, desired.ConfigMap),
+		ConfigMap:                                pickStringMapDetectRemoval(actual.ConfigMap, desired.ConfigMap),
 		NumaNodesPerSocket:                       pickEnum(actual.NumaNodesPerSocket, desired.NumaNodesPerSocket),
 	}
 }
@@ -896,6 +896,27 @@ func pickStringMap(actual, mask map[string]string) map[string]string {
 	result := make(map[string]string, len(mask))
 	for key := range mask {
 		if value, ok := actual[key]; ok {
+			result[key] = value
+		}
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+func pickStringMapDetectRemoval(actual, mask map[string]string) map[string]string {
+	if len(actual) == 0 {
+		return nil
+	}
+	result := make(map[string]string, len(actual))
+	for key := range mask {
+		if value, ok := actual[key]; ok {
+			result[key] = value
+		}
+	}
+	for key, value := range actual {
+		if _, ok := mask[key]; !ok {
 			result[key] = value
 		}
 	}

@@ -515,6 +515,27 @@ func TestComputeComparableHash_NormalizesInstanceConfigurationPlatformConfigType
 	}
 }
 
+func TestProjectLaunchDetailsDetectsPlatformConfigMapRemoval(t *testing.T) {
+	g := NewWithT(t)
+
+	actual := &core.InstanceConfigurationLaunchInstanceDetails{
+		PlatformConfig: core.IntelSkylakeBmPlatformConfig{
+			ConfigMap: map[string]string{
+				"stale": "enabled",
+			},
+		},
+	}
+	desired := &core.InstanceConfigurationLaunchInstanceDetails{
+		PlatformConfig: core.IntelSkylakeBmPlatformConfig{},
+	}
+
+	projected := projectLaunchDetails(actual, desired)
+	g.Expect(projected.PlatformConfig).ToNot(BeNil())
+	g.Expect(projected.PlatformConfig.ConfigMap).To(Equal(map[string]string{
+		"stale": "enabled",
+	}))
+}
+
 func TestComputeComparableHash_NormalizesOmittedDefaultEnabledSMT(t *testing.T) {
 	tests := []struct {
 		name       string

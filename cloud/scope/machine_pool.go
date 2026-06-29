@@ -421,6 +421,7 @@ func (s *MachinePoolScope) buildUpdateInstancePoolPlacement() ([]core.UpdateInst
 			AvailabilityDomain: placement.AvailabilityDomain,
 			FaultDomains:       placement.FaultDomains,
 			PrimarySubnetId:    placement.PrimarySubnetId,
+			PrimaryVnicSubnets: placement.PrimaryVnicSubnets,
 		})
 	}
 	return updatePlacements, nil
@@ -1047,6 +1048,9 @@ func instancePoolPlacementNeedsUpdate(actual []core.InstancePoolPlacementConfigu
 			return true
 		}
 		if !reflect.DeepEqual(actualPlacement.PrimarySubnetId, desiredPlacement.PrimarySubnetId) {
+			return true
+		}
+		if !reflect.DeepEqual(actualPlacement.PrimaryVnicSubnets, desiredPlacement.PrimaryVnicSubnets) {
 			return true
 		}
 		if !sameStringSet(actualPlacement.FaultDomains, desiredPlacement.FaultDomains) {
