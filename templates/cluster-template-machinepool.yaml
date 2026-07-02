@@ -134,9 +134,9 @@ spec:
       # Use vcpus only when validating vCPU-based shape config behavior.
       # vcpus: ${OCI_NODE_MACHINE_TYPE_VCPUS=6}
     # LIVE_MIGRATE support depends on the instance shape, region, platform,
-    # and image. If this template fails in a new environment, verify support:
+    # and image. Verify support before enabling it:
     # https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/movinganinstance.htm
-    preferredMaintenanceAction: LIVE_MIGRATE
+    # preferredMaintenanceAction: LIVE_MIGRATE
     # launchMode can be enabled for explicit launch mode validation.
     # launchMode: PARAVIRTUALIZED
     # clusterPlacementGroupId requires an existing OCI Cluster Placement Group OCID.
