@@ -236,24 +236,6 @@ spec:
                         description: HostnameLabel defines the hostname for the VNIC's
                           primary private IP. Used for DNS.
                         type: string
-                      ipv6AddressIpv6SubnetCidrPairDetails:
-                        description: Ipv6AddressIpv6SubnetCidrPairDetails defines
-                          IPv6 CIDR pair details for the primary VNIC.
-                        items:
-                          description: InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails
-                            defines an IPv6 address and subnet CIDR pair.
-                          properties:
-                            ipv6Address:
-                              description: Ipv6Address is an available IPv6 address
-                                of the subnet from a valid IPv6 prefix.
-                              type: string
-                            ipv6SubnetCidr:
-                              description: Ipv6SubnetCidr is used to disambiguate
-                                which subnet prefix should be used to create an IPv6
-                                allocation.
-                              type: string
-                          type: object
-                        type: array
                       nsgId:
                         description: |-
                           NSGId defines the ID of the NSG to use. This parameter takes priority over NsgNames.
@@ -271,15 +253,6 @@ spec:
                         items:
                           type: string
                         type: array
-                      securityAttributes:
-                        additionalProperties:
-                          additionalProperties:
-                            x-kubernetes-preserve-unknown-fields: true
-                          type: object
-                        description: SecurityAttributes are OCI security attributes
-                          for the primary VNIC.
-                        type: object
-                        x-kubernetes-preserve-unknown-fields: true
                       skipSourceDestCheck:
                         description: SkipSourceDestCheck defines whether the source/destination
                           check is disabled on the VNIC.
@@ -379,10 +352,6 @@ spec:
                         properties:
                           areVirtualInstructionsEnabled:
                             type: boolean
-                          configMap:
-                            additionalProperties:
-                              type: string
-                            type: object
                           isAccessControlServiceEnabled:
                             type: boolean
                           isInputOutputMemoryManagementUnitEnabled:
@@ -406,10 +375,6 @@ spec:
                         properties:
                           areVirtualInstructionsEnabled:
                             type: boolean
-                          configMap:
-                            additionalProperties:
-                              type: string
-                            type: object
                           isAccessControlServiceEnabled:
                             type: boolean
                           isInputOutputMemoryManagementUnitEnabled:
@@ -431,10 +396,6 @@ spec:
                         properties:
                           areVirtualInstructionsEnabled:
                             type: boolean
-                          configMap:
-                            additionalProperties:
-                              type: string
-                            type: object
                           isAccessControlServiceEnabled:
                             type: boolean
                           isInputOutputMemoryManagementUnitEnabled:
@@ -469,10 +430,6 @@ spec:
                         type: object
                       intelIcelakeBmPlatformConfig:
                         properties:
-                          configMap:
-                            additionalProperties:
-                              type: string
-                            type: object
                           isInputOutputMemoryManagementUnitEnabled:
                             type: boolean
                           isMeasuredBootEnabled:
@@ -492,10 +449,6 @@ spec:
                         type: object
                       intelSkylakeBmPlatformConfig:
                         properties:
-                          configMap:
-                            additionalProperties:
-                              type: string
-                            type: object
                           isInputOutputMemoryManagementUnitEnabled:
                             type: boolean
                           isMeasuredBootEnabled:
@@ -551,15 +504,6 @@ spec:
                     description: PreferredMaintenanceAction defines the preferred
                       maintenance action for an instance.
                     type: string
-                  securityAttributes:
-                    additionalProperties:
-                      additionalProperties:
-                        x-kubernetes-preserve-unknown-fields: true
-                      type: object
-                    description: SecurityAttributes are OCI security attributes for
-                      the launched instance.
-                    type: object
-                    x-kubernetes-preserve-unknown-fields: true
                   shape:
                     type: string
                   shapeConfig:
@@ -621,21 +565,6 @@ spec:
                       description: PrimaryVnicSubnets defines primary VNIC subnet
                         placement details.
                       properties:
-                        ipv6AddressIpv6SubnetCidrPairDetails:
-                          description: Ipv6AddressIpv6SubnetCidrPairDetails defines
-                            IPv6 CIDR pair details for placement.
-                          items:
-                            description: InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails
-                              defines an IPv6 address and subnet CIDR pair for pool
-                              placement.
-                            properties:
-                              ipv6SubnetCidr:
-                                description: Ipv6SubnetCidr is used to disambiguate
-                                  which subnet prefix should be used to create an
-                                  IPv6 allocation.
-                                type: string
-                            type: object
-                          type: array
                         isAssignIpv6Ip:
                           description: IsAssignIpv6Ip determines whether to assign
                             an IPv6 address at instance and VNIC creation.
@@ -959,24 +888,6 @@ spec:
                         description: HostnameLabel defines the hostname for the VNIC's
                           primary private IP. Used for DNS.
                         type: string
-                      ipv6AddressIpv6SubnetCidrPairDetails:
-                        description: Ipv6AddressIpv6SubnetCidrPairDetails defines
-                          IPv6 CIDR pair details for the primary VNIC.
-                        items:
-                          description: InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails
-                            defines an IPv6 address and subnet CIDR pair.
-                          properties:
-                            ipv6Address:
-                              description: Ipv6Address is an available IPv6 address
-                                of the subnet from a valid IPv6 prefix.
-                              type: string
-                            ipv6SubnetCidr:
-                              description: Ipv6SubnetCidr is used to disambiguate
-                                which subnet prefix should be used to create an IPv6
-                                allocation.
-                              type: string
-                          type: object
-                        type: array
                       nsgId:
                         description: |-
                           NSGId defines the ID of the NSG to use. This parameter takes priority over NsgNames.
@@ -994,15 +905,6 @@ spec:
                         items:
                           type: string
                         type: array
-                      securityAttributes:
-                        additionalProperties:
-                          additionalProperties:
-                            x-kubernetes-preserve-unknown-fields: true
-                          type: object
-                        description: SecurityAttributes are OCI security attributes
-                          for the primary VNIC.
-                        type: object
-                        x-kubernetes-preserve-unknown-fields: true
                       skipSourceDestCheck:
                         description: SkipSourceDestCheck defines whether the source/destination
                           check is disabled on the VNIC.
@@ -1107,10 +1009,6 @@ spec:
                         properties:
                           areVirtualInstructionsEnabled:
                             type: boolean
-                          configMap:
-                            additionalProperties:
-                              type: string
-                            type: object
                           isAccessControlServiceEnabled:
                             type: boolean
                           isInputOutputMemoryManagementUnitEnabled:
@@ -1138,10 +1036,6 @@ spec:
                         properties:
                           areVirtualInstructionsEnabled:
                             type: boolean
-                          configMap:
-                            additionalProperties:
-                              type: string
-                            type: object
                           isAccessControlServiceEnabled:
                             type: boolean
                           isInputOutputMemoryManagementUnitEnabled:
@@ -1167,10 +1061,6 @@ spec:
                         properties:
                           areVirtualInstructionsEnabled:
                             type: boolean
-                          configMap:
-                            additionalProperties:
-                              type: string
-                            type: object
                           isAccessControlServiceEnabled:
                             type: boolean
                           isInputOutputMemoryManagementUnitEnabled:
@@ -1211,10 +1101,6 @@ spec:
                         description: IntelIcelakeBmPlatformConfig describes Intel
                           Icelake BM platform configuration.
                         properties:
-                          configMap:
-                            additionalProperties:
-                              type: string
-                            type: object
                           isInputOutputMemoryManagementUnitEnabled:
                             type: boolean
                           isMeasuredBootEnabled:
@@ -1238,10 +1124,6 @@ spec:
                         description: IntelSkylakeBmPlatformConfig describes Intel
                           Skylake BM platform configuration.
                         properties:
-                          configMap:
-                            additionalProperties:
-                              type: string
-                            type: object
                           isInputOutputMemoryManagementUnitEnabled:
                             type: boolean
                           isMeasuredBootEnabled:
@@ -1301,15 +1183,6 @@ spec:
                     description: PreferredMaintenanceAction defines the preferred
                       maintenance action for an instance.
                     type: string
-                  securityAttributes:
-                    additionalProperties:
-                      additionalProperties:
-                        x-kubernetes-preserve-unknown-fields: true
-                      type: object
-                    description: SecurityAttributes are OCI security attributes for
-                      the launched instance.
-                    type: object
-                    x-kubernetes-preserve-unknown-fields: true
                   shape:
                     type: string
                   shapeConfig:
@@ -1371,21 +1244,6 @@ spec:
                       description: PrimaryVnicSubnets defines primary VNIC subnet
                         placement details.
                       properties:
-                        ipv6AddressIpv6SubnetCidrPairDetails:
-                          description: Ipv6AddressIpv6SubnetCidrPairDetails defines
-                            IPv6 CIDR pair details for placement.
-                          items:
-                            description: InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails
-                              defines an IPv6 address and subnet CIDR pair for pool
-                              placement.
-                            properties:
-                              ipv6SubnetCidr:
-                                description: Ipv6SubnetCidr is used to disambiguate
-                                  which subnet prefix should be used to create an
-                                  IPv6 allocation.
-                                type: string
-                            type: object
-                          type: array
                         isAssignIpv6Ip:
                           description: IsAssignIpv6Ip determines whether to assign
                             an IPv6 address at instance and VNIC creation.
