@@ -2035,11 +2035,6 @@ func TestGetLaunchInstanceDetailsCopiesMetadataAndPropagatesSupportedFields(t *t
 			LicenseType: infrav2exp.LaunchInstanceLicensingConfigLicenseTypeEnum(core.LaunchInstanceLicensingConfigLicenseTypeBringYourOwnLicense),
 		}},
 		PreferredMaintenanceAction: infrav2exp.PreferredMaintenanceActionEnum(core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionReboot),
-		SecurityAttributes: map[string]map[string]apiextensionsv1.JSON{
-			"Oracle-DataSecurity-ZPR": {
-				"MaxEgressCount": {Raw: []byte(`{"value":"42","mode":"audit"}`)},
-			},
-		},
 		ShapeConfig: &infrav2exp.ShapeConfig{
 			Vcpus: &vcpus,
 		},
@@ -2057,15 +2052,6 @@ func TestGetLaunchInstanceDetailsCopiesMetadataAndPropagatesSupportedFields(t *t
 			SubnetId:     common.String("explicit-subnet-id"),
 			NSGIds:       []string{"explicit-nsg-id"},
 			AssignIpv6Ip: true,
-			Ipv6AddressIpv6SubnetCidrPairDetails: []infrav2exp.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails{{
-				Ipv6SubnetCidr: common.String("2001:db8::/64"),
-				Ipv6Address:    common.String("2001:db8::10"),
-			}},
-			SecurityAttributes: map[string]map[string]apiextensionsv1.JSON{
-				"Oracle-DataSecurity-ZPR": {
-					"VnicEgress": {Raw: []byte(`"audit"`)},
-				},
-			},
 		},
 		PlatformConfig: &infrav2exp.PlatformConfig{
 			PlatformConfigType: infrav2exp.PlatformConfigTypeIntelSkylakeBm,
@@ -2073,7 +2059,6 @@ func TestGetLaunchInstanceDetailsCopiesMetadataAndPropagatesSupportedFields(t *t
 				IsSymmetricMultiThreadingEnabled:         common.Bool(false),
 				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
 				PercentageOfCoresEnabled:                 &percentage,
-				ConfigMap:                                map[string]string{"config": "enabled"},
 				NumaNodesPerSocket:                       infrav2exp.IntelSkylakeBmPlatformConfigNumaNodesPerSocketNps2,
 			},
 		},
@@ -2090,16 +2075,10 @@ func TestGetLaunchInstanceDetailsCopiesMetadataAndPropagatesSupportedFields(t *t
 	g.Expect(launchDetails.CreateVnicDetails.NsgIds).To(Equal([]string{"explicit-nsg-id"}))
 	g.Expect(*launchDetails.CreateVnicDetails.AssignIpv6Ip).To(BeTrue())
 	g.Expect(*launchDetails.CreateVnicDetails.AssignPublicIp).To(BeFalse())
-	g.Expect(launchDetails.CreateVnicDetails.Ipv6AddressIpv6SubnetCidrPairDetails).To(Equal([]core.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails{{
-		Ipv6SubnetCidr: common.String("2001:db8::/64"),
-		Ipv6Address:    common.String("2001:db8::10"),
-	}}))
-	g.Expect(launchDetails.CreateVnicDetails.SecurityAttributes["Oracle-DataSecurity-ZPR"]["VnicEgress"]).To(Equal("audit"))
 	g.Expect(*launchDetails.ClusterPlacementGroupId).To(Equal("cluster-placement-group-id"))
 	g.Expect(*launchDetails.IpxeScript).To(Equal("#!ipxe"))
 	g.Expect(launchDetails.LaunchMode).To(Equal(core.InstanceConfigurationLaunchInstanceDetailsLaunchModeNative))
 	g.Expect(launchDetails.PreferredMaintenanceAction).To(Equal(core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionReboot))
-	g.Expect(launchDetails.SecurityAttributes["Oracle-DataSecurity-ZPR"]["MaxEgressCount"]).To(Equal(map[string]interface{}{"value": "42", "mode": "audit"}))
 	g.Expect(launchDetails.LicensingConfigs).To(Equal([]core.LaunchInstanceLicensingConfig{core.LaunchInstanceWindowsLicensingConfig{
 		LicenseType: core.LaunchInstanceLicensingConfigLicenseTypeBringYourOwnLicense,
 	}}))
@@ -2109,7 +2088,6 @@ func TestGetLaunchInstanceDetailsCopiesMetadataAndPropagatesSupportedFields(t *t
 	g.Expect(*platformConfig.IsSymmetricMultiThreadingEnabled).To(BeFalse())
 	g.Expect(*platformConfig.IsInputOutputMemoryManagementUnitEnabled).To(BeTrue())
 	g.Expect(*platformConfig.PercentageOfCoresEnabled).To(Equal(50))
-	g.Expect(platformConfig.ConfigMap).To(Equal(map[string]string{"config": "enabled"}))
 	g.Expect(platformConfig.NumaNodesPerSocket).To(Equal(core.IntelSkylakeBmPlatformConfigNumaNodesPerSocketNps2))
 
 	sourceDetails, ok := launchDetails.SourceDetails.(core.InstanceConfigurationInstanceSourceViaImageDetails)
@@ -2428,48 +2406,6 @@ func TestGetPlatformConfigPropagatesApprovedPlatformFields(t *testing.T) {
 		assert         func(g *WithT, platformConfig core.PlatformConfig)
 	}{
 		{
-			name: "AMD Milan BM config map",
-			platformConfig: &infrav2exp.PlatformConfig{
-				PlatformConfigType: infrav2exp.PlatformConfigTypeAmdMilanBm,
-				AmdMilanBmPlatformConfig: infrav2exp.AmdMilanBmPlatformConfig{
-					ConfigMap: map[string]string{"hpc": "enabled"},
-				},
-			},
-			assert: func(g *WithT, platformConfig core.PlatformConfig) {
-				actual, ok := platformConfig.(core.AmdMilanBmPlatformConfig)
-				g.Expect(ok).To(BeTrue())
-				g.Expect(actual.ConfigMap).To(Equal(map[string]string{"hpc": "enabled"}))
-			},
-		},
-		{
-			name: "AMD Rome BM GPU config map",
-			platformConfig: &infrav2exp.PlatformConfig{
-				PlatformConfigType: infrav2exp.PlatformConfigTypeAmdRomeBmGpu,
-				AmdRomeBmGpuPlatformConfig: infrav2exp.AmdRomeBmGpuPlatformConfig{
-					ConfigMap: map[string]string{"gpu": "enabled"},
-				},
-			},
-			assert: func(g *WithT, platformConfig core.PlatformConfig) {
-				actual, ok := platformConfig.(core.AmdRomeBmGpuPlatformConfig)
-				g.Expect(ok).To(BeTrue())
-				g.Expect(actual.ConfigMap).To(Equal(map[string]string{"gpu": "enabled"}))
-			},
-		},
-		{
-			name: "AMD Rome BM config map",
-			platformConfig: &infrav2exp.PlatformConfig{
-				PlatformConfigType: infrav2exp.PlatformConfigTypeAmdRomeBm,
-				AmdRomeBmPlatformConfig: infrav2exp.AmdRomeBmPlatformConfig{
-					ConfigMap: map[string]string{"numa": "compact"},
-				},
-			},
-			assert: func(g *WithT, platformConfig core.PlatformConfig) {
-				actual, ok := platformConfig.(core.AmdRomeBmPlatformConfig)
-				g.Expect(ok).To(BeTrue())
-				g.Expect(actual.ConfigMap).To(Equal(map[string]string{"numa": "compact"}))
-			},
-		},
-		{
 			name: "AMD VM SMT",
 			platformConfig: &infrav2exp.PlatformConfig{
 				PlatformConfigType: infrav2exp.PlatformConfigTypeAmdvm,
@@ -2484,20 +2420,6 @@ func TestGetPlatformConfigPropagatesApprovedPlatformFields(t *testing.T) {
 			},
 		},
 		{
-			name: "Intel Icelake BM config map",
-			platformConfig: &infrav2exp.PlatformConfig{
-				PlatformConfigType: infrav2exp.PlatformConfigTypeIntelIcelakeBm,
-				IntelIcelakeBmPlatformConfig: infrav2exp.IntelIcelakeBmPlatformConfig{
-					ConfigMap: map[string]string{"ice": "lake"},
-				},
-			},
-			assert: func(g *WithT, platformConfig core.PlatformConfig) {
-				actual, ok := platformConfig.(core.IntelIcelakeBmPlatformConfig)
-				g.Expect(ok).To(BeTrue())
-				g.Expect(actual.ConfigMap).To(Equal(map[string]string{"ice": "lake"}))
-			},
-		},
-		{
 			name: "Intel Skylake BM approved knobs",
 			platformConfig: &infrav2exp.PlatformConfig{
 				PlatformConfigType: infrav2exp.PlatformConfigTypeIntelSkylakeBm,
@@ -2505,7 +2427,6 @@ func TestGetPlatformConfigPropagatesApprovedPlatformFields(t *testing.T) {
 					IsSymmetricMultiThreadingEnabled:         &falseValue,
 					IsInputOutputMemoryManagementUnitEnabled: &trueValue,
 					PercentageOfCoresEnabled:                 &percentage,
-					ConfigMap:                                map[string]string{"sky": "lake"},
 					NumaNodesPerSocket:                       infrav2exp.IntelSkylakeBmPlatformConfigNumaNodesPerSocketNps2,
 				},
 			},
@@ -2515,7 +2436,6 @@ func TestGetPlatformConfigPropagatesApprovedPlatformFields(t *testing.T) {
 				g.Expect(actual.IsSymmetricMultiThreadingEnabled).To(Equal(&falseValue))
 				g.Expect(actual.IsInputOutputMemoryManagementUnitEnabled).To(Equal(&trueValue))
 				g.Expect(actual.PercentageOfCoresEnabled).To(Equal(&percentage))
-				g.Expect(actual.ConfigMap).To(Equal(map[string]string{"sky": "lake"}))
 				g.Expect(actual.NumaNodesPerSocket).To(Equal(core.IntelSkylakeBmPlatformConfigNumaNodesPerSocketNps2))
 			},
 		},
@@ -2831,9 +2751,6 @@ func TestInstancePoolCreate(t *testing.T) {
 					PrimaryVnicSubnets: &infrav2exp.InstancePoolPlacementPrimarySubnet{
 						SubnetId:       common.String("primary-subnet-id"),
 						IsAssignIpv6Ip: common.Bool(true),
-						Ipv6AddressIpv6SubnetCidrPairDetails: []infrav2exp.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails{{
-							Ipv6SubnetCidr: common.String("2001:db8::/64"),
-						}},
 					},
 				}}
 				ms.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId = common.String("config_id")
@@ -2849,9 +2766,6 @@ func TestInstancePoolCreate(t *testing.T) {
 							PrimaryVnicSubnets: &core.InstancePoolPlacementPrimarySubnet{
 								SubnetId:       common.String("primary-subnet-id"),
 								IsAssignIpv6Ip: common.Bool(true),
-								Ipv6AddressIpv6SubnetCidrPairDetails: []core.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails{{
-									Ipv6SubnetCidr: common.String("2001:db8::/64"),
-								}},
 							},
 						}},
 						FreeformTags:                 tags,
@@ -3337,9 +3251,6 @@ func TestInstancePoolUpdate(t *testing.T) {
 						PrimaryVnicSubnets: &infrav2exp.InstancePoolPlacementPrimarySubnet{
 							SubnetId:       common.String("primary-subnet-id"),
 							IsAssignIpv6Ip: common.Bool(true),
-							Ipv6AddressIpv6SubnetCidrPairDetails: []infrav2exp.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails{{
-								Ipv6SubnetCidr: common.String("2001:db8::/64"),
-							}},
 						},
 					},
 				}
@@ -3355,9 +3266,6 @@ func TestInstancePoolUpdate(t *testing.T) {
 								PrimaryVnicSubnets: &core.InstancePoolPlacementPrimarySubnet{
 									SubnetId:       common.String("primary-subnet-id"),
 									IsAssignIpv6Ip: common.Bool(true),
-									Ipv6AddressIpv6SubnetCidrPairDetails: []core.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails{{
-										Ipv6SubnetCidr: common.String("2001:db8::/64"),
-									}},
 								},
 							},
 						},

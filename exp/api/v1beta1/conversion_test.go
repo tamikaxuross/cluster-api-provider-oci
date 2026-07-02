@@ -46,35 +46,21 @@ func sampleExtendedMetadata() map[string]apiextensionsv1.JSON {
 	}
 }
 
-func sampleSecurityAttributes() map[string]map[string]apiextensionsv1.JSON {
-	return map[string]map[string]apiextensionsv1.JSON{
-		"Oracle-DataSecurity-ZPR": {
-			"MaxEgressCount": {Raw: []byte(`{"value":"42","mode":"audit"}`)},
-		},
-	}
-}
-
 func OCIMachinePoolFuzzer(obj *OCIMachinePool, c randfill.Continue) {
 	c.FillNoCustom(obj)
 	// nil fields which have been removed so that tests dont fail
 	if obj.Spec.InstanceConfiguration.InstanceVnicConfiguration != nil {
 		obj.Spec.InstanceConfiguration.InstanceVnicConfiguration.NSGId = nil
 		obj.Spec.InstanceConfiguration.InstanceVnicConfiguration.SubnetId = nil
-		obj.Spec.InstanceConfiguration.InstanceVnicConfiguration.SecurityAttributes = sampleSecurityAttributes()
 	}
 	// Replace fuzzed bytes with valid JSON so the roundtrip works
 	obj.Spec.InstanceConfiguration.ExtendedMetadata = sampleExtendedMetadata()
-	obj.Spec.InstanceConfiguration.SecurityAttributes = sampleSecurityAttributes()
 }
 
 func OCIMachinePoolHubFuzzer(obj *v1beta2.OCIMachinePool, c randfill.Continue) {
 	c.FillNoCustom(obj)
 	// Replace fuzzed bytes with valid JSON so the roundtrip works
 	obj.Spec.InstanceConfiguration.ExtendedMetadata = sampleExtendedMetadata()
-	obj.Spec.InstanceConfiguration.SecurityAttributes = sampleSecurityAttributes()
-	if obj.Spec.InstanceConfiguration.InstanceVnicConfiguration != nil {
-		obj.Spec.InstanceConfiguration.InstanceVnicConfiguration.SecurityAttributes = sampleSecurityAttributes()
-	}
 }
 
 func TestOCIMachinePoolDeferredAndOutOfScopeFieldsRemainAbsent(t *testing.T) {

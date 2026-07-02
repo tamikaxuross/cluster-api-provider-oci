@@ -136,11 +136,6 @@ type InstanceConfiguration struct {
 	// +optional
 	PreferredMaintenanceAction PreferredMaintenanceActionEnum `json:"preferredMaintenanceAction,omitempty"`
 
-	// SecurityAttributes are OCI security attributes for the launched instance.
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +optional
-	SecurityAttributes map[string]map[string]apiextensionsv1.JSON `json:"securityAttributes,omitempty"`
-
 	// Custom metadata key/value pairs that you provide, such as the SSH public key
 	// required to connect to the instance.
 	Metadata map[string]string `json:"metadata,omitempty"`
@@ -208,10 +203,6 @@ type MachinePoolNetworkDetails struct {
 	// +optional
 	AssignIpv6Ip bool `json:"assignIpv6Ip,omitempty"`
 
-	// Ipv6AddressIpv6SubnetCidrPairDetails defines IPv6 CIDR pair details for the primary VNIC.
-	// +optional
-	Ipv6AddressIpv6SubnetCidrPairDetails []InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails `json:"ipv6AddressIpv6SubnetCidrPairDetails,omitempty"`
-
 	// AssignPublicIp defines whether the instance should have a public IP address.
 	AssignPublicIp bool `json:"assignPublicIp,omitempty"`
 
@@ -240,22 +231,6 @@ type MachinePoolNetworkDetails struct {
 
 	// AssignPrivateDnsRecord defines whether the VNIC should be assigned a DNS record.
 	AssignPrivateDnsRecord *bool `json:"assignPrivateDnsRecord,omitempty"`
-
-	// SecurityAttributes are OCI security attributes for the primary VNIC.
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +optional
-	SecurityAttributes map[string]map[string]apiextensionsv1.JSON `json:"securityAttributes,omitempty"`
-}
-
-// InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails defines an IPv6 address and subnet CIDR pair.
-type InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails struct {
-	// Ipv6SubnetCidr is used to disambiguate which subnet prefix should be used to create an IPv6 allocation.
-	// +optional
-	Ipv6SubnetCidr *string `json:"ipv6SubnetCidr,omitempty"`
-
-	// Ipv6Address is an available IPv6 address of the subnet from a valid IPv6 prefix.
-	// +optional
-	Ipv6Address *string `json:"ipv6Address,omitempty"`
 }
 
 // InstancePoolPlacementPrimarySubnet defines primary VNIC subnet placement details.
@@ -267,17 +242,6 @@ type InstancePoolPlacementPrimarySubnet struct {
 	// IsAssignIpv6Ip determines whether to assign an IPv6 address at instance and VNIC creation.
 	// +optional
 	IsAssignIpv6Ip *bool `json:"isAssignIpv6Ip,omitempty"`
-
-	// Ipv6AddressIpv6SubnetCidrPairDetails defines IPv6 CIDR pair details for placement.
-	// +optional
-	Ipv6AddressIpv6SubnetCidrPairDetails []InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails `json:"ipv6AddressIpv6SubnetCidrPairDetails,omitempty"`
-}
-
-// InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails defines an IPv6 address and subnet CIDR pair for pool placement.
-type InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails struct {
-	// Ipv6SubnetCidr is used to disambiguate which subnet prefix should be used to create an IPv6 allocation.
-	// +optional
-	Ipv6SubnetCidr *string `json:"ipv6SubnetCidr,omitempty"`
 }
 
 // PlatformConfigTypeEnum defines the type of platform configuration.
@@ -333,7 +297,6 @@ type AmdMilanBmPlatformConfig struct {
 	AreVirtualInstructionsEnabled            *bool                                          `json:"areVirtualInstructionsEnabled,omitempty"`
 	IsInputOutputMemoryManagementUnitEnabled *bool                                          `json:"isInputOutputMemoryManagementUnitEnabled,omitempty"`
 	PercentageOfCoresEnabled                 *int                                           `json:"percentageOfCoresEnabled,omitempty"`
-	ConfigMap                                map[string]string                              `json:"configMap,omitempty"`
 	NumaNodesPerSocket                       AmdMilanBmPlatformConfigNumaNodesPerSocketEnum `json:"numaNodesPerSocket,omitempty"`
 }
 
@@ -358,7 +321,6 @@ type AmdRomeBmPlatformConfig struct {
 	AreVirtualInstructionsEnabled            *bool                                         `json:"areVirtualInstructionsEnabled,omitempty"`
 	IsInputOutputMemoryManagementUnitEnabled *bool                                         `json:"isInputOutputMemoryManagementUnitEnabled,omitempty"`
 	PercentageOfCoresEnabled                 *int                                          `json:"percentageOfCoresEnabled,omitempty"`
-	ConfigMap                                map[string]string                             `json:"configMap,omitempty"`
 	NumaNodesPerSocket                       AmdRomeBmPlatformConfigNumaNodesPerSocketEnum `json:"numaNodesPerSocket,omitempty"`
 }
 
@@ -379,7 +341,6 @@ type IntelSkylakeBmPlatformConfig struct {
 	IsSymmetricMultiThreadingEnabled         *bool                                              `json:"isSymmetricMultiThreadingEnabled,omitempty"`
 	IsInputOutputMemoryManagementUnitEnabled *bool                                              `json:"isInputOutputMemoryManagementUnitEnabled,omitempty"`
 	PercentageOfCoresEnabled                 *int                                               `json:"percentageOfCoresEnabled,omitempty"`
-	ConfigMap                                map[string]string                                  `json:"configMap,omitempty"`
 	NumaNodesPerSocket                       IntelSkylakeBmPlatformConfigNumaNodesPerSocketEnum `json:"numaNodesPerSocket,omitempty"`
 }
 
@@ -403,7 +364,6 @@ type AmdRomeBmGpuPlatformConfig struct {
 	IsAccessControlServiceEnabled            *bool                                            `json:"isAccessControlServiceEnabled,omitempty"`
 	AreVirtualInstructionsEnabled            *bool                                            `json:"areVirtualInstructionsEnabled,omitempty"`
 	IsInputOutputMemoryManagementUnitEnabled *bool                                            `json:"isInputOutputMemoryManagementUnitEnabled,omitempty"`
-	ConfigMap                                map[string]string                                `json:"configMap,omitempty"`
 	NumaNodesPerSocket                       AmdRomeBmGpuPlatformConfigNumaNodesPerSocketEnum `json:"numaNodesPerSocket,omitempty"`
 }
 
@@ -424,7 +384,6 @@ type IntelIcelakeBmPlatformConfig struct {
 	IsSymmetricMultiThreadingEnabled         *bool                                              `json:"isSymmetricMultiThreadingEnabled,omitempty"`
 	IsInputOutputMemoryManagementUnitEnabled *bool                                              `json:"isInputOutputMemoryManagementUnitEnabled,omitempty"`
 	PercentageOfCoresEnabled                 *int                                               `json:"percentageOfCoresEnabled,omitempty"`
-	ConfigMap                                map[string]string                                  `json:"configMap,omitempty"`
 	NumaNodesPerSocket                       IntelIcelakeBmPlatformConfigNumaNodesPerSocketEnum `json:"numaNodesPerSocket,omitempty"`
 }
 

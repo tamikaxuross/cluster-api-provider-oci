@@ -19,13 +19,11 @@ package scope
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 
@@ -436,23 +434,9 @@ func buildPrimaryVnicSubnets(spec *infrav2exp.InstancePoolPlacementPrimarySubnet
 		subnetID = defaultSubnetID
 	}
 	return &core.InstancePoolPlacementPrimarySubnet{
-		SubnetId:                             subnetID,
-		IsAssignIpv6Ip:                       spec.IsAssignIpv6Ip,
-		Ipv6AddressIpv6SubnetCidrPairDetails: buildPlacementIpv6Pairs(spec.Ipv6AddressIpv6SubnetCidrPairDetails),
+		SubnetId:       subnetID,
+		IsAssignIpv6Ip: spec.IsAssignIpv6Ip,
 	}
-}
-
-func buildPlacementIpv6Pairs(spec []infrav2exp.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails) []core.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails {
-	if len(spec) == 0 {
-		return nil
-	}
-	pairs := make([]core.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails, 0, len(spec))
-	for _, pair := range spec {
-		pairs = append(pairs, core.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails{
-			Ipv6SubnetCidr: pair.Ipv6SubnetCidr,
-		})
-	}
-	return pairs
 }
 
 // IsResourceCreatedByClusterAPI determines if the instance was created by the cluster using the
@@ -737,19 +721,12 @@ func (m *MachinePoolScope) getLaunchInstanceDetails(instanceConfigurationSpec in
 		FreeformTags:            freeFormTags,
 		DefinedTags:             definedTags,
 		IpxeScript:              instanceConfigurationSpec.IpxeScript,
-		SecurityAttributes:      nil,
 	}
 	licensingConfigs, err := buildLaunchInstanceLicensingConfigs(instanceConfigurationSpec.LicensingConfigs)
 	if err != nil {
 		return nil, err
 	}
 	launchDetails.LicensingConfigs = licensingConfigs
-
-	securityAttributes, err := convertSecurityAttributes(instanceConfigurationSpec.SecurityAttributes)
-	if err != nil {
-		return nil, err
-	}
-	launchDetails.SecurityAttributes = securityAttributes
 
 	if instanceConfigurationSpec.CapacityReservationId != nil {
 		launchDetails.CapacityReservationId = instanceConfigurationSpec.CapacityReservationId
@@ -1050,7 +1027,7 @@ func instancePoolPlacementNeedsUpdate(actual []core.InstancePoolPlacementConfigu
 		if !reflect.DeepEqual(actualPlacement.PrimarySubnetId, desiredPlacement.PrimarySubnetId) {
 			return true
 		}
-		if !reflect.DeepEqual(actualPlacement.PrimaryVnicSubnets, desiredPlacement.PrimaryVnicSubnets) {
+		if !samePrimaryVnicSubnets(actualPlacement.PrimaryVnicSubnets, desiredPlacement.PrimaryVnicSubnets) {
 			return true
 		}
 		if !sameStringSet(actualPlacement.FaultDomains, desiredPlacement.FaultDomains) {
@@ -1059,6 +1036,28 @@ func instancePoolPlacementNeedsUpdate(actual []core.InstancePoolPlacementConfigu
 	}
 
 	return false
+}
+
+// samePrimaryVnicSubnets compares desired vs actual PrimaryVnicSubnets semantically
+// rather than with reflect.DeepEqual, because OCI may normalize IsAssignIpv6Ip nil→false
+// or return IPv6 CIDR pairs in a different order, causing spurious drift detection.
+// When desired is nil the user did not set the field, so any OCI value is acceptable.
+func samePrimaryVnicSubnets(actual, desired *core.InstancePoolPlacementPrimarySubnet) bool {
+	if desired == nil {
+		return true
+	}
+	if actual == nil {
+		return false
+	}
+	if ptr.ToString(actual.SubnetId) != ptr.ToString(desired.SubnetId) {
+		return false
+	}
+	desiredIpv6 := desired.IsAssignIpv6Ip != nil && *desired.IsAssignIpv6Ip
+	actualIpv6 := actual.IsAssignIpv6Ip != nil && *actual.IsAssignIpv6Ip
+	if desiredIpv6 != actualIpv6 {
+		return false
+	}
+	return true
 }
 
 // InstancePoolUsesDesiredInstanceConfiguration reports whether the actual
@@ -1194,7 +1193,6 @@ func (m *MachinePoolScope) getPlatformConfig() core.PlatformConfig {
 				IsAccessControlServiceEnabled:            platformConfig.AmdRomeBmGpuPlatformConfig.IsAccessControlServiceEnabled,
 				AreVirtualInstructionsEnabled:            platformConfig.AmdRomeBmGpuPlatformConfig.AreVirtualInstructionsEnabled,
 				IsInputOutputMemoryManagementUnitEnabled: platformConfig.AmdRomeBmGpuPlatformConfig.IsInputOutputMemoryManagementUnitEnabled,
-				ConfigMap:                                platformConfig.AmdRomeBmGpuPlatformConfig.ConfigMap,
 				NumaNodesPerSocket:                       numaNodesPerSocket,
 			}
 		case infrav2exp.PlatformConfigTypeAmdRomeBm:
@@ -1209,7 +1207,6 @@ func (m *MachinePoolScope) getPlatformConfig() core.PlatformConfig {
 				AreVirtualInstructionsEnabled:            platformConfig.AmdRomeBmPlatformConfig.AreVirtualInstructionsEnabled,
 				IsInputOutputMemoryManagementUnitEnabled: platformConfig.AmdRomeBmPlatformConfig.IsInputOutputMemoryManagementUnitEnabled,
 				PercentageOfCoresEnabled:                 platformConfig.AmdRomeBmPlatformConfig.PercentageOfCoresEnabled,
-				ConfigMap:                                platformConfig.AmdRomeBmPlatformConfig.ConfigMap,
 				NumaNodesPerSocket:                       numaNodesPerSocket,
 			}
 		case infrav2exp.PlatformConfigTypeIntelIcelakeBm:
@@ -1222,7 +1219,6 @@ func (m *MachinePoolScope) getPlatformConfig() core.PlatformConfig {
 				IsSymmetricMultiThreadingEnabled:         platformConfig.IntelIcelakeBmPlatformConfig.IsSymmetricMultiThreadingEnabled,
 				PercentageOfCoresEnabled:                 platformConfig.IntelIcelakeBmPlatformConfig.PercentageOfCoresEnabled,
 				IsInputOutputMemoryManagementUnitEnabled: platformConfig.IntelIcelakeBmPlatformConfig.IsInputOutputMemoryManagementUnitEnabled,
-				ConfigMap:                                platformConfig.IntelIcelakeBmPlatformConfig.ConfigMap,
 				NumaNodesPerSocket:                       numaNodesPerSocket,
 			}
 		case infrav2exp.PlatformConfigTypeAmdvm:
@@ -1251,7 +1247,6 @@ func (m *MachinePoolScope) getPlatformConfig() core.PlatformConfig {
 				IsSymmetricMultiThreadingEnabled:         platformConfig.IntelSkylakeBmPlatformConfig.IsSymmetricMultiThreadingEnabled,
 				IsInputOutputMemoryManagementUnitEnabled: platformConfig.IntelSkylakeBmPlatformConfig.IsInputOutputMemoryManagementUnitEnabled,
 				PercentageOfCoresEnabled:                 platformConfig.IntelSkylakeBmPlatformConfig.PercentageOfCoresEnabled,
-				ConfigMap:                                platformConfig.IntelSkylakeBmPlatformConfig.ConfigMap,
 				NumaNodesPerSocket:                       numaNodesPerSocket,
 			}
 		case infrav2exp.PlatformConfigTypeAmdMilanBm:
@@ -1266,7 +1261,6 @@ func (m *MachinePoolScope) getPlatformConfig() core.PlatformConfig {
 				AreVirtualInstructionsEnabled:            platformConfig.AmdMilanBmPlatformConfig.AreVirtualInstructionsEnabled,
 				IsInputOutputMemoryManagementUnitEnabled: platformConfig.AmdMilanBmPlatformConfig.IsInputOutputMemoryManagementUnitEnabled,
 				PercentageOfCoresEnabled:                 platformConfig.AmdMilanBmPlatformConfig.PercentageOfCoresEnabled,
-				ConfigMap:                                platformConfig.AmdMilanBmPlatformConfig.ConfigMap,
 				NumaNodesPerSocket:                       numaNodesPerSocket,
 			}
 		default:
@@ -1432,28 +1426,8 @@ func (m *MachinePoolScope) getVnicDetails(instanceConfigurationSpec infrav2exp.I
 		createVnicDetails.SkipSourceDestCheck = instanceConfigurationSpec.InstanceVnicConfiguration.SkipSourceDestCheck
 		createVnicDetails.AssignPrivateDnsRecord = instanceConfigurationSpec.InstanceVnicConfiguration.AssignPrivateDnsRecord
 		createVnicDetails.DisplayName = instanceConfigurationSpec.InstanceVnicConfiguration.DisplayName
-		createVnicDetails.Ipv6AddressIpv6SubnetCidrPairDetails = buildInstanceConfigurationIpv6Pairs(instanceConfigurationSpec.InstanceVnicConfiguration.Ipv6AddressIpv6SubnetCidrPairDetails)
-		securityAttributes, err := convertSecurityAttributes(instanceConfigurationSpec.InstanceVnicConfiguration.SecurityAttributes)
-		if err != nil {
-			return nil, err
-		}
-		createVnicDetails.SecurityAttributes = securityAttributes
 	}
 	return &createVnicDetails, nil
-}
-
-func buildInstanceConfigurationIpv6Pairs(spec []infrav2exp.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails) []core.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails {
-	if len(spec) == 0 {
-		return nil
-	}
-	pairs := make([]core.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails, 0, len(spec))
-	for _, pair := range spec {
-		pairs = append(pairs, core.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails{
-			Ipv6SubnetCidr: pair.Ipv6SubnetCidr,
-			Ipv6Address:    pair.Ipv6Address,
-		})
-	}
-	return pairs
 }
 
 func buildLaunchInstanceLicensingConfigs(spec []infrav2exp.LaunchInstanceLicensingConfig) ([]core.LaunchInstanceLicensingConfig, error) {
@@ -1476,29 +1450,6 @@ func buildLaunchInstanceLicensingConfigs(spec []infrav2exp.LaunchInstanceLicensi
 		}
 	}
 	return configs, nil
-}
-
-func convertSecurityAttributes(input map[string]map[string]apiextensionsv1.JSON) (map[string]map[string]interface{}, error) {
-	if len(input) == 0 {
-		return nil, nil
-	}
-	output := make(map[string]map[string]interface{}, len(input))
-	for namespace, attrs := range input {
-		convertedAttrs := make(map[string]interface{}, len(attrs))
-		for key, value := range attrs {
-			if len(value.Raw) == 0 {
-				convertedAttrs[key] = nil
-				continue
-			}
-			var converted interface{}
-			if err := json.Unmarshal(value.Raw, &converted); err != nil {
-				return nil, err
-			}
-			convertedAttrs[key] = converted
-		}
-		output[namespace] = convertedAttrs
-	}
-	return output, nil
 }
 
 func copyStringMap(in map[string]string) map[string]string {

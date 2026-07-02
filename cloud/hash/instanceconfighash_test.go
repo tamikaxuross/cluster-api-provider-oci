@@ -133,23 +133,6 @@ func TestComputeHash_ApprovedParityFieldsAffectDesiredHashAndProjection(t *testi
 			},
 		},
 		{
-			name: "launch security attributes",
-			mutate: func(ld *core.InstanceConfigurationLaunchInstanceDetails) {
-				ld.SecurityAttributes = map[string]map[string]interface{}{
-					"Oracle-DataSecurity-ZPR": {
-						"MaxEgressCount": map[string]interface{}{"value": "42", "mode": "audit"},
-					},
-				}
-			},
-			assert: func(g *WithT, projected *comparableLaunchDetails) {
-				g.Expect(projected.SecurityAttributes).To(Equal(map[string]map[string]interface{}{
-					"Oracle-DataSecurity-ZPR": {
-						"MaxEgressCount": map[string]interface{}{"value": "42", "mode": "audit"},
-					},
-				}))
-			},
-		},
-		{
 			name: "shape vcpus",
 			mutate: func(ld *core.InstanceConfigurationLaunchInstanceDetails) {
 				ld.ShapeConfig = &core.InstanceConfigurationLaunchInstanceShapeConfigDetails{
@@ -158,78 +141,6 @@ func TestComputeHash_ApprovedParityFieldsAffectDesiredHashAndProjection(t *testi
 			},
 			assert: func(g *WithT, projected *comparableLaunchDetails) {
 				g.Expect(*projected.ShapeConfig.VCPUs).To(Equal(4))
-			},
-		},
-		{
-			name: "primary VNIC IPv6 CIDR pairs",
-			mutate: func(ld *core.InstanceConfigurationLaunchInstanceDetails) {
-				ld.CreateVnicDetails = &core.InstanceConfigurationCreateVnicDetails{
-					Ipv6AddressIpv6SubnetCidrPairDetails: []core.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails{{
-						Ipv6SubnetCidr: common.String("2001:db8::/64"),
-						Ipv6Address:    common.String("2001:db8::10"),
-					}},
-				}
-			},
-			assert: func(g *WithT, projected *comparableLaunchDetails) {
-				g.Expect(projected.CreateVnicDetails.IPv6AddressCIDRPairs).To(Equal([]comparableIPv6AddressCIDRPair{{
-					IPv6SubnetCIDR: common.String("2001:db8::/64"),
-					IPv6Address:    common.String("2001:db8::10"),
-				}}))
-			},
-		},
-		{
-			name: "primary VNIC security attributes",
-			mutate: func(ld *core.InstanceConfigurationLaunchInstanceDetails) {
-				ld.CreateVnicDetails = &core.InstanceConfigurationCreateVnicDetails{
-					SecurityAttributes: map[string]map[string]interface{}{
-						"Oracle-DataSecurity-ZPR": {
-							"VnicEgress": "audit",
-						},
-					},
-				}
-			},
-			assert: func(g *WithT, projected *comparableLaunchDetails) {
-				g.Expect(projected.CreateVnicDetails.SecurityAttributes).To(Equal(map[string]map[string]interface{}{
-					"Oracle-DataSecurity-ZPR": {
-						"VnicEgress": "audit",
-					},
-				}))
-			},
-		},
-		{
-			name: "AMD Milan BM config map",
-			mutate: func(ld *core.InstanceConfigurationLaunchInstanceDetails) {
-				ld.PlatformConfig = core.AmdMilanBmPlatformConfig{
-					ConfigMap: map[string]string{"hpc": "enabled"},
-				}
-			},
-			assert: func(g *WithT, projected *comparableLaunchDetails) {
-				g.Expect(projected.PlatformConfig.Type).To(Equal("AmdMilanBmPlatformConfig"))
-				g.Expect(projected.PlatformConfig.ConfigMap).To(Equal(map[string]string{"hpc": "enabled"}))
-			},
-		},
-		{
-			name: "AMD Rome BM GPU config map",
-			mutate: func(ld *core.InstanceConfigurationLaunchInstanceDetails) {
-				ld.PlatformConfig = core.AmdRomeBmGpuPlatformConfig{
-					ConfigMap: map[string]string{"gpu": "enabled"},
-				}
-			},
-			assert: func(g *WithT, projected *comparableLaunchDetails) {
-				g.Expect(projected.PlatformConfig.Type).To(Equal("AmdRomeBmGpuPlatformConfig"))
-				g.Expect(projected.PlatformConfig.ConfigMap).To(Equal(map[string]string{"gpu": "enabled"}))
-			},
-		},
-		{
-			name: "AMD Rome BM config map",
-			mutate: func(ld *core.InstanceConfigurationLaunchInstanceDetails) {
-				ld.PlatformConfig = core.AmdRomeBmPlatformConfig{
-					ConfigMap: map[string]string{"numa": "compact"},
-				}
-			},
-			assert: func(g *WithT, projected *comparableLaunchDetails) {
-				g.Expect(projected.PlatformConfig.Type).To(Equal("AmdRomeBmPlatformConfig"))
-				g.Expect(projected.PlatformConfig.ConfigMap).To(Equal(map[string]string{"numa": "compact"}))
 			},
 		},
 		{
@@ -245,25 +156,12 @@ func TestComputeHash_ApprovedParityFieldsAffectDesiredHashAndProjection(t *testi
 			},
 		},
 		{
-			name: "Intel Icelake BM config map",
-			mutate: func(ld *core.InstanceConfigurationLaunchInstanceDetails) {
-				ld.PlatformConfig = core.IntelIcelakeBmPlatformConfig{
-					ConfigMap: map[string]string{"ice": "lake"},
-				}
-			},
-			assert: func(g *WithT, projected *comparableLaunchDetails) {
-				g.Expect(projected.PlatformConfig.Type).To(Equal("IntelIcelakeBmPlatformConfig"))
-				g.Expect(projected.PlatformConfig.ConfigMap).To(Equal(map[string]string{"ice": "lake"}))
-			},
-		},
-		{
 			name: "Intel Skylake BM approved knobs",
 			mutate: func(ld *core.InstanceConfigurationLaunchInstanceDetails) {
 				ld.PlatformConfig = core.IntelSkylakeBmPlatformConfig{
 					IsSymmetricMultiThreadingEnabled:         common.Bool(true),
 					IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
 					PercentageOfCoresEnabled:                 common.Int(50),
-					ConfigMap:                                map[string]string{"sky": "lake"},
 					NumaNodesPerSocket:                       core.IntelSkylakeBmPlatformConfigNumaNodesPerSocketNps2,
 				}
 			},
@@ -272,7 +170,6 @@ func TestComputeHash_ApprovedParityFieldsAffectDesiredHashAndProjection(t *testi
 				g.Expect(projected.PlatformConfig.IsSymmetricMultiThreadingEnabled).To(BeNil())
 				g.Expect(*projected.PlatformConfig.IsInputOutputMemoryManagementUnitEnabled).To(BeTrue())
 				g.Expect(*projected.PlatformConfig.PercentageOfCoresEnabled).To(Equal(50))
-				g.Expect(projected.PlatformConfig.ConfigMap).To(Equal(map[string]string{"sky": "lake"}))
 				g.Expect(projected.PlatformConfig.NumaNodesPerSocket).To(Equal(string(core.IntelSkylakeBmPlatformConfigNumaNodesPerSocketNps2)))
 			},
 		},
@@ -333,7 +230,6 @@ func TestComputeComparableHash_NormalizesInstanceConfigurationPlatformConfigType
 				AreVirtualInstructionsEnabled:            common.Bool(true),
 				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
 				PercentageOfCoresEnabled:                 common.Int(50),
-				ConfigMap:                                map[string]string{"hpc": "enabled"},
 				NumaNodesPerSocket:                       core.AmdMilanBmPlatformConfigNumaNodesPerSocketNps2,
 			},
 			actual: core.InstanceConfigurationAmdMilanBmLaunchInstancePlatformConfig{
@@ -346,7 +242,6 @@ func TestComputeComparableHash_NormalizesInstanceConfigurationPlatformConfigType
 				AreVirtualInstructionsEnabled:            common.Bool(true),
 				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
 				PercentageOfCoresEnabled:                 common.Int(50),
-				ConfigMap:                                map[string]string{"hpc": "enabled"},
 				NumaNodesPerSocket:                       core.InstanceConfigurationAmdMilanBmLaunchInstancePlatformConfigNumaNodesPerSocketNps2,
 			},
 		},
@@ -361,7 +256,6 @@ func TestComputeComparableHash_NormalizesInstanceConfigurationPlatformConfigType
 				IsAccessControlServiceEnabled:            common.Bool(true),
 				AreVirtualInstructionsEnabled:            common.Bool(true),
 				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
-				ConfigMap:                                map[string]string{"gpu": "enabled"},
 				NumaNodesPerSocket:                       core.AmdRomeBmGpuPlatformConfigNumaNodesPerSocketNps2,
 			},
 			actual: core.InstanceConfigurationAmdRomeBmGpuLaunchInstancePlatformConfig{
@@ -373,7 +267,6 @@ func TestComputeComparableHash_NormalizesInstanceConfigurationPlatformConfigType
 				IsAccessControlServiceEnabled:            common.Bool(true),
 				AreVirtualInstructionsEnabled:            common.Bool(true),
 				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
-				ConfigMap:                                map[string]string{"gpu": "enabled"},
 				NumaNodesPerSocket:                       core.InstanceConfigurationAmdRomeBmGpuLaunchInstancePlatformConfigNumaNodesPerSocketNps2,
 			},
 		},
@@ -389,7 +282,6 @@ func TestComputeComparableHash_NormalizesInstanceConfigurationPlatformConfigType
 				AreVirtualInstructionsEnabled:            common.Bool(true),
 				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
 				PercentageOfCoresEnabled:                 common.Int(50),
-				ConfigMap:                                map[string]string{"numa": "compact"},
 				NumaNodesPerSocket:                       core.AmdRomeBmPlatformConfigNumaNodesPerSocketNps2,
 			},
 			actual: core.InstanceConfigurationAmdRomeBmLaunchInstancePlatformConfig{
@@ -402,7 +294,6 @@ func TestComputeComparableHash_NormalizesInstanceConfigurationPlatformConfigType
 				AreVirtualInstructionsEnabled:            common.Bool(true),
 				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
 				PercentageOfCoresEnabled:                 common.Int(50),
-				ConfigMap:                                map[string]string{"numa": "compact"},
 				NumaNodesPerSocket:                       core.InstanceConfigurationAmdRomeBmLaunchInstancePlatformConfigNumaNodesPerSocketNps2,
 			},
 		},
@@ -433,7 +324,6 @@ func TestComputeComparableHash_NormalizesInstanceConfigurationPlatformConfigType
 				IsSymmetricMultiThreadingEnabled:         common.Bool(true),
 				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
 				PercentageOfCoresEnabled:                 common.Int(50),
-				ConfigMap:                                map[string]string{"ice": "lake"},
 				NumaNodesPerSocket:                       core.IntelIcelakeBmPlatformConfigNumaNodesPerSocketNps2,
 			},
 			actual: core.InstanceConfigurationIntelIcelakeBmLaunchInstancePlatformConfig{
@@ -444,7 +334,6 @@ func TestComputeComparableHash_NormalizesInstanceConfigurationPlatformConfigType
 				IsSymmetricMultiThreadingEnabled:         common.Bool(true),
 				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
 				PercentageOfCoresEnabled:                 common.Int(50),
-				ConfigMap:                                map[string]string{"ice": "lake"},
 				NumaNodesPerSocket:                       core.InstanceConfigurationIntelIcelakeBmLaunchInstancePlatformConfigNumaNodesPerSocketNps2,
 			},
 		},
@@ -458,7 +347,6 @@ func TestComputeComparableHash_NormalizesInstanceConfigurationPlatformConfigType
 				IsSymmetricMultiThreadingEnabled:         common.Bool(true),
 				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
 				PercentageOfCoresEnabled:                 common.Int(50),
-				ConfigMap:                                map[string]string{"sky": "lake"},
 				NumaNodesPerSocket:                       core.IntelSkylakeBmPlatformConfigNumaNodesPerSocketNps2,
 			},
 			actual: core.InstanceConfigurationIntelSkylakeBmLaunchInstancePlatformConfig{
@@ -469,7 +357,6 @@ func TestComputeComparableHash_NormalizesInstanceConfigurationPlatformConfigType
 				IsSymmetricMultiThreadingEnabled:         common.Bool(true),
 				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
 				PercentageOfCoresEnabled:                 common.Int(50),
-				ConfigMap:                                map[string]string{"sky": "lake"},
 				NumaNodesPerSocket:                       core.InstanceConfigurationIntelSkylakeBmLaunchInstancePlatformConfigNumaNodesPerSocketNps2,
 			},
 		},
@@ -513,27 +400,6 @@ func TestComputeComparableHash_NormalizesInstanceConfigurationPlatformConfigType
 			g.Expect(actualHash).To(Equal(desiredHash))
 		})
 	}
-}
-
-func TestProjectLaunchDetailsDetectsPlatformConfigMapRemoval(t *testing.T) {
-	g := NewWithT(t)
-
-	actual := &core.InstanceConfigurationLaunchInstanceDetails{
-		PlatformConfig: core.IntelSkylakeBmPlatformConfig{
-			ConfigMap: map[string]string{
-				"stale": "enabled",
-			},
-		},
-	}
-	desired := &core.InstanceConfigurationLaunchInstanceDetails{
-		PlatformConfig: core.IntelSkylakeBmPlatformConfig{},
-	}
-
-	projected := projectLaunchDetails(actual, desired)
-	g.Expect(projected.PlatformConfig).ToNot(BeNil())
-	g.Expect(projected.PlatformConfig.ConfigMap).To(Equal(map[string]string{
-		"stale": "enabled",
-	}))
 }
 
 func TestComputeComparableHash_NormalizesOmittedDefaultEnabledSMT(t *testing.T) {
@@ -601,17 +467,15 @@ func TestNormalizeLaunchDetails_NilInput(t *testing.T) {
 func TestNormalizeLaunchDetails_StripsIgnoredFields(t *testing.T) {
 	g := NewWithT(t)
 	original := &core.InstanceConfigurationLaunchInstanceDetails{
-		DisplayName:        common.String("test-instance"),
-		Shape:              common.String("VM.Standard2.1"),
-		FreeformTags:       map[string]string{"tag1": "value1"},
-		DefinedTags:        map[string]map[string]interface{}{"namespace": {"key": "value"}},
-		SecurityAttributes: map[string]map[string]interface{}{"security": {"attr": "val"}},
+		DisplayName:  common.String("test-instance"),
+		Shape:        common.String("VM.Standard2.1"),
+		FreeformTags: map[string]string{"tag1": "value1"},
+		DefinedTags:  map[string]map[string]interface{}{"namespace": {"key": "value"}},
 		CreateVnicDetails: &core.InstanceConfigurationCreateVnicDetails{
-			DisplayName:        common.String("vnic"),
-			FreeformTags:       map[string]string{"vnic-tag": "vnic-value"},
-			DefinedTags:        map[string]map[string]interface{}{"vnic-ns": {"vnic-key": "vnic-value"}},
-			SecurityAttributes: map[string]map[string]interface{}{"vnic-sec": {"vnic-attr": "vnic-val"}},
-			NsgIds:             []string{"nsg1", "nsg2"},
+			DisplayName:  common.String("vnic"),
+			FreeformTags: map[string]string{"vnic-tag": "vnic-value"},
+			DefinedTags:  map[string]map[string]interface{}{"vnic-ns": {"vnic-key": "vnic-value"}},
+			NsgIds:       []string{"nsg1", "nsg2"},
 		},
 	}
 
@@ -1502,50 +1366,16 @@ func TestComputeComparableHash_DetectsSetToUnsetOptionalLaunchFields(t *testing.
 				},
 			},
 		},
-		{
-			name: "preferred maintenance action",
-			actual: &core.InstanceConfigurationLaunchInstanceDetails{
-				PreferredMaintenanceAction: core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionReboot,
-			},
-		},
+		// Note: preferred maintenance action is intentionally excluded here.
+		// Both LIVE_MIGRATE and REBOOT are valid OCI service defaults depending on shape,
+		// so we cannot distinguish "user removed the field" from "OCI returned its default."
+		// We treat both as untracked defaults to prevent continuous reconciliation on shapes
+		// that return REBOOT by default. Removal of this field is therefore not detectable.
 		{
 			name: "shape vcpus",
 			actual: &core.InstanceConfigurationLaunchInstanceDetails{
 				ShapeConfig: &core.InstanceConfigurationLaunchInstanceShapeConfigDetails{
 					Vcpus: common.Int(4),
-				},
-			},
-		},
-		{
-			name: "primary VNIC IPv6 CIDR pairs",
-			actual: &core.InstanceConfigurationLaunchInstanceDetails{
-				CreateVnicDetails: &core.InstanceConfigurationCreateVnicDetails{
-					Ipv6AddressIpv6SubnetCidrPairDetails: []core.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails{{
-						Ipv6SubnetCidr: common.String("2001:db8::/64"),
-						Ipv6Address:    common.String("2001:db8::10"),
-					}},
-				},
-			},
-		},
-		{
-			name: "primary VNIC security attributes",
-			actual: &core.InstanceConfigurationLaunchInstanceDetails{
-				CreateVnicDetails: &core.InstanceConfigurationCreateVnicDetails{
-					SecurityAttributes: map[string]map[string]interface{}{
-						"Oracle-DataSecurity-ZPR": {
-							"VnicEgress": "audit",
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "instance security attributes",
-			actual: &core.InstanceConfigurationLaunchInstanceDetails{
-				SecurityAttributes: map[string]map[string]interface{}{
-					"Oracle-DataSecurity-ZPR": {
-						"MaxEgressCount": map[string]interface{}{"value": "42", "mode": "audit"},
-					},
 				},
 			},
 		},
@@ -1562,132 +1392,6 @@ func TestComputeComparableHash_DetectsSetToUnsetOptionalLaunchFields(t *testing.
 
 			desired := &core.InstanceConfigurationLaunchInstanceDetails{
 				Shape: common.String("VM.Standard2.1"),
-			}
-
-			actualHash, err := ComputeComparableHash(actual, desired)
-			g.Expect(err).To(BeNil())
-
-			desiredHash, err := ComputeHash(desired)
-			g.Expect(err).To(BeNil())
-
-			g.Expect(actualHash).ToNot(Equal(desiredHash))
-		})
-	}
-}
-
-func TestComputeComparableHash_DetectsPartialInstanceSecurityAttributesRemoval(t *testing.T) {
-	tests := []struct {
-		name    string
-		actual  map[string]map[string]interface{}
-		desired map[string]map[string]interface{}
-	}{
-		{
-			name: "namespace removal",
-			actual: map[string]map[string]interface{}{
-				"Oracle-DataSecurity-ZPR": {
-					"MaxEgressCount": map[string]interface{}{"value": "42", "mode": "audit"},
-				},
-				"stale-namespace": {
-					"StaleAttribute": "old-value",
-				},
-			},
-			desired: map[string]map[string]interface{}{
-				"Oracle-DataSecurity-ZPR": {
-					"MaxEgressCount": map[string]interface{}{"value": "42", "mode": "audit"},
-				},
-			},
-		},
-		{
-			name: "key removal",
-			actual: map[string]map[string]interface{}{
-				"Oracle-DataSecurity-ZPR": {
-					"MaxEgressCount": map[string]interface{}{"value": "42", "mode": "audit"},
-					"StaleAttribute": "old-value",
-				},
-			},
-			desired: map[string]map[string]interface{}{
-				"Oracle-DataSecurity-ZPR": {
-					"MaxEgressCount": map[string]interface{}{"value": "42", "mode": "audit"},
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-			actual := &core.InstanceConfigurationLaunchInstanceDetails{
-				Shape:              common.String("VM.Standard2.1"),
-				SecurityAttributes: tt.actual,
-			}
-			desired := &core.InstanceConfigurationLaunchInstanceDetails{
-				Shape:              common.String("VM.Standard2.1"),
-				SecurityAttributes: tt.desired,
-			}
-
-			actualHash, err := ComputeComparableHash(actual, desired)
-			g.Expect(err).To(BeNil())
-
-			desiredHash, err := ComputeHash(desired)
-			g.Expect(err).To(BeNil())
-
-			g.Expect(actualHash).ToNot(Equal(desiredHash))
-		})
-	}
-}
-
-func TestComputeComparableHash_DetectsPartialVNICSecurityAttributesRemoval(t *testing.T) {
-	tests := []struct {
-		name    string
-		actual  map[string]map[string]interface{}
-		desired map[string]map[string]interface{}
-	}{
-		{
-			name: "namespace removal",
-			actual: map[string]map[string]interface{}{
-				"Oracle-DataSecurity-ZPR": {
-					"VnicEgress": "audit",
-				},
-				"stale-namespace": {
-					"StaleAttribute": "old-value",
-				},
-			},
-			desired: map[string]map[string]interface{}{
-				"Oracle-DataSecurity-ZPR": {
-					"VnicEgress": "audit",
-				},
-			},
-		},
-		{
-			name: "key removal",
-			actual: map[string]map[string]interface{}{
-				"Oracle-DataSecurity-ZPR": {
-					"VnicEgress":     "audit",
-					"StaleAttribute": "old-value",
-				},
-			},
-			desired: map[string]map[string]interface{}{
-				"Oracle-DataSecurity-ZPR": {
-					"VnicEgress": "audit",
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-			actual := &core.InstanceConfigurationLaunchInstanceDetails{
-				Shape: common.String("VM.Standard2.1"),
-				CreateVnicDetails: &core.InstanceConfigurationCreateVnicDetails{
-					SecurityAttributes: tt.actual,
-				},
-			}
-			desired := &core.InstanceConfigurationLaunchInstanceDetails{
-				Shape: common.String("VM.Standard2.1"),
-				CreateVnicDetails: &core.InstanceConfigurationCreateVnicDetails{
-					SecurityAttributes: tt.desired,
-				},
 			}
 
 			actualHash, err := ComputeComparableHash(actual, desired)
@@ -1741,10 +1445,9 @@ func TestComputeHash_ComprehensiveTest(t *testing.T) {
 		DefinedTags:  map[string]map[string]interface{}{"oracle-tags": {"CreatedBy": "test"}},
 
 		// Fields that should be included
-		Shape:              common.String("VM.Standard.E4.Flex"),
-		CompartmentId:      common.String("ocid1.compartment.oc1..test"),
-		DedicatedVmHostId:  common.String("ocid1.dedicatedvmhost.oc1..test"),
-		SecurityAttributes: map[string]map[string]interface{}{"security": {"level": "high"}},
+		Shape:             common.String("VM.Standard.E4.Flex"),
+		CompartmentId:     common.String("ocid1.compartment.oc1..test"),
+		DedicatedVmHostId: common.String("ocid1.dedicatedvmhost.oc1..test"),
 
 		// Metadata - user_data should be excluded
 		Metadata: map[string]string{
@@ -1761,12 +1464,11 @@ func TestComputeHash_ComprehensiveTest(t *testing.T) {
 			Nvmes:       &nvmes,
 		},
 
-		// VNIC details - display name excluded, tags/security attributes included, NSGs sorted
+		// VNIC details - display name excluded, tags included, NSGs sorted
 		CreateVnicDetails: &core.InstanceConfigurationCreateVnicDetails{
 			DisplayName:            common.String("test-vnic"),
 			FreeformTags:           map[string]string{"vnic-tag": "value"},
 			DefinedTags:            map[string]map[string]interface{}{"vnic-ns": {"key": "val"}},
-			SecurityAttributes:     map[string]map[string]interface{}{"vnic-sec": {"attr": "val"}},
 			AssignPublicIp:         common.Bool(false),
 			SkipSourceDestCheck:    common.Bool(false),
 			AssignPrivateDnsRecord: common.Bool(true),
@@ -1841,7 +1543,6 @@ func TestComputeHash_ComprehensiveTest(t *testing.T) {
 	g.Expect(*normalized.Shape).To(Equal("VM.Standard.E4.Flex"))
 	g.Expect(*normalized.CompartmentID).To(Equal("ocid1.compartment.oc1..test"))
 	g.Expect(*normalized.DedicatedVMHostID).To(Equal("ocid1.dedicatedvmhost.oc1..test"))
-	g.Expect(normalized.SecurityAttributes).To(Equal(map[string]map[string]interface{}{"security": {"level": "high"}}))
 
 	// Metadata should exclude user_data (tracked separately) but keep other keys
 	expectedMetadata := map[string]string{
@@ -1863,7 +1564,6 @@ func TestComputeHash_ComprehensiveTest(t *testing.T) {
 	g.Expect(*normalized.CreateVnicDetails.HostnameLabel).To(Equal("test-host"))
 	g.Expect(normalized.CreateVnicDetails.FreeformTags).To(Equal(map[string]string{"vnic-tag": "value"}))
 	g.Expect(normalized.CreateVnicDetails.DefinedTags).To(Equal(map[string]map[string]interface{}{"vnic-ns": {"key": "val"}}))
-	g.Expect(normalized.CreateVnicDetails.SecurityAttributes).To(Equal(map[string]map[string]interface{}{"vnic-sec": {"attr": "val"}}))
 	expectedNSGs := []string{"ocid1.nsg.oc1..nsg1", "ocid1.nsg.oc1..nsg2", "ocid1.nsg.oc1..nsg3"}
 	g.Expect(normalized.CreateVnicDetails.NSGIDs).To(Equal(expectedNSGs))
 
@@ -2072,6 +1772,50 @@ func TestComputeComparableHash_ExtendedMetadataClearDetected(t *testing.T) {
 			g.Expect(err).To(BeNil())
 
 			g.Expect(hashActual).ToNot(Equal(hashDesired))
+		})
+	}
+}
+
+// TestComputeComparableHash_OciEnumDefaultsDoNotCauseDrift verifies that when
+// the desired spec omits LaunchMode or PreferredMaintenanceAction, OCI returning
+// any of its known service defaults does not produce a hash mismatch (which
+// would cause continuous reconciliation).
+func TestComputeComparableHash_OciEnumDefaultsDoNotCauseDrift(t *testing.T) {
+	shape := common.String("VM.Standard.E4.Flex")
+
+	cases := []struct {
+		name    string
+		actual  core.InstanceConfigurationLaunchInstanceDetailsLaunchModeEnum
+		maintAc core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionEnum
+	}{
+		{"NATIVE launch mode not drift", core.InstanceConfigurationLaunchInstanceDetailsLaunchModeNative, ""},
+		{"PARAVIRTUALIZED launch mode not drift", core.InstanceConfigurationLaunchInstanceDetailsLaunchModeParavirtualized, ""},
+		{"EMULATED launch mode not drift", core.InstanceConfigurationLaunchInstanceDetailsLaunchModeEmulated, ""},
+		{"LIVE_MIGRATE maintenance not drift", "", core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionLiveMigrate},
+		{"REBOOT maintenance not drift", "", core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionReboot},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			// desired: user did not set LaunchMode or PreferredMaintenanceAction
+			desired := &core.InstanceConfigurationLaunchInstanceDetails{Shape: shape}
+
+			// actual: OCI returned a service default the user never asked for
+			actual := &core.InstanceConfigurationLaunchInstanceDetails{
+				Shape:                      shape,
+				LaunchMode:                 tc.actual,
+				PreferredMaintenanceAction: tc.maintAc,
+			}
+
+			hashDesired, err := ComputeComparableHash(desired, desired)
+			g.Expect(err).To(BeNil())
+
+			hashActual, err := ComputeComparableHash(actual, desired)
+			g.Expect(err).To(BeNil())
+
+			g.Expect(hashActual).To(Equal(hashDesired), "OCI service default should not appear as drift")
 		})
 	}
 }

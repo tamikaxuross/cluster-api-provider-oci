@@ -43,7 +43,6 @@ type comparableLaunchDetails struct {
 	LaunchMode                     string                               `json:"launchMode,omitempty"`
 	LicensingConfigs               []comparableLicensingConfig          `json:"licensingConfigs,omitempty"`
 	PreferredMaintenanceAction     string                               `json:"preferredMaintenanceAction,omitempty"`
-	SecurityAttributes             map[string]map[string]interface{}    `json:"securityAttributes,omitempty"`
 	Shape                          *string                              `json:"shape,omitempty"`
 	ShapeConfig                    *comparableShapeConfig               `json:"shapeConfig,omitempty"`
 	PlatformConfig                 *comparablePlatformConfig            `json:"platformConfig,omitempty"`
@@ -64,17 +63,10 @@ type comparableCreateVnicDetails struct {
 	FreeformTags           map[string]string                 `json:"freeformTags,omitempty"`
 	DefinedTags            map[string]map[string]interface{} `json:"definedTags,omitempty"`
 	HostnameLabel          *string                           `json:"hostnameLabel,omitempty"`
-	IPv6AddressCIDRPairs   []comparableIPv6AddressCIDRPair   `json:"ipv6AddressIpv6SubnetCidrPairDetails,omitempty"`
 	NSGIDs                 []string                          `json:"nsgIds,omitempty"`
 	PrivateIP              *string                           `json:"privateIp,omitempty"`
-	SecurityAttributes     map[string]map[string]interface{} `json:"securityAttributes,omitempty"`
 	SkipSourceDestCheck    *bool                             `json:"skipSourceDestCheck,omitempty"`
 	SubnetID               *string                           `json:"subnetId,omitempty"`
-}
-
-type comparableIPv6AddressCIDRPair struct {
-	IPv6SubnetCIDR *string `json:"ipv6SubnetCidr,omitempty"`
-	IPv6Address    *string `json:"ipv6Address,omitempty"`
 }
 
 type comparableLicensingConfig struct {
@@ -91,18 +83,17 @@ type comparableShapeConfig struct {
 }
 
 type comparablePlatformConfig struct {
-	Type                                     string            `json:"type,omitempty"`
-	IsSecureBootEnabled                      *bool             `json:"isSecureBootEnabled,omitempty"`
-	IsTrustedPlatformModuleEnabled           *bool             `json:"isTrustedPlatformModuleEnabled,omitempty"`
-	IsMeasuredBootEnabled                    *bool             `json:"isMeasuredBootEnabled,omitempty"`
-	IsMemoryEncryptionEnabled                *bool             `json:"isMemoryEncryptionEnabled,omitempty"`
-	IsSymmetricMultiThreadingEnabled         *bool             `json:"isSymmetricMultiThreadingEnabled,omitempty"`
-	IsAccessControlServiceEnabled            *bool             `json:"isAccessControlServiceEnabled,omitempty"`
-	AreVirtualInstructionsEnabled            *bool             `json:"areVirtualInstructionsEnabled,omitempty"`
-	IsInputOutputMemoryManagementUnitEnabled *bool             `json:"isInputOutputMemoryManagementUnitEnabled,omitempty"`
-	PercentageOfCoresEnabled                 *int              `json:"percentageOfCoresEnabled,omitempty"`
-	ConfigMap                                map[string]string `json:"configMap,omitempty"`
-	NumaNodesPerSocket                       string            `json:"numaNodesPerSocket,omitempty"`
+	Type                                     string `json:"type,omitempty"`
+	IsSecureBootEnabled                      *bool  `json:"isSecureBootEnabled,omitempty"`
+	IsTrustedPlatformModuleEnabled           *bool  `json:"isTrustedPlatformModuleEnabled,omitempty"`
+	IsMeasuredBootEnabled                    *bool  `json:"isMeasuredBootEnabled,omitempty"`
+	IsMemoryEncryptionEnabled                *bool  `json:"isMemoryEncryptionEnabled,omitempty"`
+	IsSymmetricMultiThreadingEnabled         *bool  `json:"isSymmetricMultiThreadingEnabled,omitempty"`
+	IsAccessControlServiceEnabled            *bool  `json:"isAccessControlServiceEnabled,omitempty"`
+	AreVirtualInstructionsEnabled            *bool  `json:"areVirtualInstructionsEnabled,omitempty"`
+	IsInputOutputMemoryManagementUnitEnabled *bool  `json:"isInputOutputMemoryManagementUnitEnabled,omitempty"`
+	PercentageOfCoresEnabled                 *int   `json:"percentageOfCoresEnabled,omitempty"`
+	NumaNodesPerSocket                       string `json:"numaNodesPerSocket,omitempty"`
 }
 
 type comparableSourceDetails struct {
@@ -174,19 +165,25 @@ func projectLaunchDetails(in, mask *core.InstanceConfigurationLaunchInstanceDeta
 	}
 
 	return &comparableLaunchDetails{
-		CapacityReservationID:          pickString(in.CapacityReservationId, mask.CapacityReservationId),
-		ClusterPlacementGroupID:        pickStringDetectRemoval(in.ClusterPlacementGroupId, mask.ClusterPlacementGroupId),
-		CompartmentID:                  pickString(in.CompartmentId, mask.CompartmentId),
-		CreateVnicDetails:              projectCreateVnicDetails(in.CreateVnicDetails, mask.CreateVnicDetails),
-		FreeformTags:                   normalizeFreeformTags(in.FreeformTags),
-		DefinedTags:                    normalizeDefinedTags(in.DefinedTags),
-		Metadata:                       normalizeMetadata(pickMetadata(in.Metadata, mask.Metadata)),
-		ExtendedMetadata:               pickExtendedMetadata(in.ExtendedMetadata, mask.ExtendedMetadata),
-		IpxeScript:                     pickStringDetectRemoval(in.IpxeScript, mask.IpxeScript),
-		LaunchMode:                     pickEnumDetectRemoval(string(in.LaunchMode), string(mask.LaunchMode), string(core.InstanceConfigurationLaunchInstanceDetailsLaunchModeNative)),
-		LicensingConfigs:               projectLicensingConfigs(in.LicensingConfigs, mask.LicensingConfigs),
-		PreferredMaintenanceAction:     pickEnumDetectRemoval(string(in.PreferredMaintenanceAction), string(mask.PreferredMaintenanceAction), string(core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionLiveMigrate)),
-		SecurityAttributes:             pickNestedInterfaceMapDetectRemoval(in.SecurityAttributes, mask.SecurityAttributes),
+		CapacityReservationID:   pickString(in.CapacityReservationId, mask.CapacityReservationId),
+		ClusterPlacementGroupID: pickStringDetectRemoval(in.ClusterPlacementGroupId, mask.ClusterPlacementGroupId),
+		CompartmentID:           pickString(in.CompartmentId, mask.CompartmentId),
+		CreateVnicDetails:       projectCreateVnicDetails(in.CreateVnicDetails, mask.CreateVnicDetails),
+		FreeformTags:            normalizeFreeformTags(in.FreeformTags),
+		DefinedTags:             normalizeDefinedTags(in.DefinedTags),
+		Metadata:                normalizeMetadata(pickMetadata(in.Metadata, mask.Metadata)),
+		ExtendedMetadata:        pickExtendedMetadata(in.ExtendedMetadata, mask.ExtendedMetadata),
+		IpxeScript:              pickStringDetectRemoval(in.IpxeScript, mask.IpxeScript),
+		LaunchMode: pickEnumDetectRemoval(string(in.LaunchMode), string(mask.LaunchMode),
+			string(core.InstanceConfigurationLaunchInstanceDetailsLaunchModeNative),
+			string(core.InstanceConfigurationLaunchInstanceDetailsLaunchModeParavirtualized),
+			string(core.InstanceConfigurationLaunchInstanceDetailsLaunchModeEmulated),
+		),
+		LicensingConfigs: projectLicensingConfigs(in.LicensingConfigs, mask.LicensingConfigs),
+		PreferredMaintenanceAction: pickEnumDetectRemoval(string(in.PreferredMaintenanceAction), string(mask.PreferredMaintenanceAction),
+			string(core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionLiveMigrate),
+			string(core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionReboot),
+		),
 		Shape:                          pickString(in.Shape, mask.Shape),
 		ShapeConfig:                    projectShapeConfig(in.ShapeConfig, mask.ShapeConfig),
 		PlatformConfig:                 projectPlatformConfig(in.PlatformConfig, mask.PlatformConfig),
@@ -364,10 +361,8 @@ func projectCreateVnicDetails(in, mask *core.InstanceConfigurationCreateVnicDeta
 		FreeformTags:           normalizeFreeformTags(in.FreeformTags),
 		DefinedTags:            normalizeDefinedTags(in.DefinedTags),
 		HostnameLabel:          pickString(in.HostnameLabel, mask.HostnameLabel),
-		IPv6AddressCIDRPairs:   projectIPv6AddressCIDRPairs(in.Ipv6AddressIpv6SubnetCidrPairDetails, mask.Ipv6AddressIpv6SubnetCidrPairDetails),
 		NSGIDs:                 nsgIDs,
 		PrivateIP:              pickString(in.PrivateIp, mask.PrivateIp),
-		SecurityAttributes:     pickNestedInterfaceMapDetectRemoval(in.SecurityAttributes, mask.SecurityAttributes),
 		SkipSourceDestCheck:    pickDefaultFalseBool(in.SkipSourceDestCheck, mask.SkipSourceDestCheck),
 		SubnetID:               pickString(in.SubnetId, mask.SubnetId),
 	}
@@ -375,24 +370,6 @@ func projectCreateVnicDetails(in, mask *core.InstanceConfigurationCreateVnicDeta
 		return nil
 	}
 	return result
-}
-
-func projectIPv6AddressCIDRPairs(in, mask []core.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails) []comparableIPv6AddressCIDRPair {
-	if len(in) == 0 {
-		return nil
-	}
-	pairs := make([]comparableIPv6AddressCIDRPair, 0, len(in))
-	for i, pair := range in {
-		var desired core.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails
-		if i < len(mask) {
-			desired = mask[i]
-		}
-		pairs = append(pairs, comparableIPv6AddressCIDRPair{
-			IPv6SubnetCIDR: pickStringDetectRemoval(pair.Ipv6SubnetCidr, desired.Ipv6SubnetCidr),
-			IPv6Address:    pickStringDetectRemoval(pair.Ipv6Address, desired.Ipv6Address),
-		})
-	}
-	return pairs
 }
 
 func projectLicensingConfigs(in, mask []core.LaunchInstanceLicensingConfig) []comparableLicensingConfig {
@@ -481,7 +458,6 @@ func projectPlatformConfig(in, mask core.InstanceConfigurationLaunchInstancePlat
 		AreVirtualInstructionsEnabled:            pickDefaultFalseBool(actual.AreVirtualInstructionsEnabled, desired.AreVirtualInstructionsEnabled),
 		IsInputOutputMemoryManagementUnitEnabled: pickDefaultFalseBool(actual.IsInputOutputMemoryManagementUnitEnabled, desired.IsInputOutputMemoryManagementUnitEnabled),
 		PercentageOfCoresEnabled:                 pickInt(actual.PercentageOfCoresEnabled, desired.PercentageOfCoresEnabled),
-		ConfigMap:                                pickStringMapDetectRemoval(actual.ConfigMap, desired.ConfigMap),
 		NumaNodesPerSocket:                       pickEnum(actual.NumaNodesPerSocket, desired.NumaNodesPerSocket),
 	}
 }
@@ -499,7 +475,6 @@ func platformConfigForHash(config core.InstanceConfigurationLaunchInstancePlatfo
 			IsAccessControlServiceEnabled:            platformConfig.IsAccessControlServiceEnabled,
 			AreVirtualInstructionsEnabled:            platformConfig.AreVirtualInstructionsEnabled,
 			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
-			ConfigMap:                                platformConfig.ConfigMap,
 			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
 		}
 	case core.InstanceConfigurationAmdRomeBmGpuLaunchInstancePlatformConfig:
@@ -513,7 +488,6 @@ func platformConfigForHash(config core.InstanceConfigurationLaunchInstancePlatfo
 			IsAccessControlServiceEnabled:            platformConfig.IsAccessControlServiceEnabled,
 			AreVirtualInstructionsEnabled:            platformConfig.AreVirtualInstructionsEnabled,
 			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
-			ConfigMap:                                platformConfig.ConfigMap,
 			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
 		}
 	case core.AmdRomeBmPlatformConfig:
@@ -528,7 +502,6 @@ func platformConfigForHash(config core.InstanceConfigurationLaunchInstancePlatfo
 			AreVirtualInstructionsEnabled:            platformConfig.AreVirtualInstructionsEnabled,
 			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
 			PercentageOfCoresEnabled:                 platformConfig.PercentageOfCoresEnabled,
-			ConfigMap:                                platformConfig.ConfigMap,
 			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
 		}
 	case core.InstanceConfigurationAmdRomeBmLaunchInstancePlatformConfig:
@@ -543,7 +516,6 @@ func platformConfigForHash(config core.InstanceConfigurationLaunchInstancePlatfo
 			AreVirtualInstructionsEnabled:            platformConfig.AreVirtualInstructionsEnabled,
 			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
 			PercentageOfCoresEnabled:                 platformConfig.PercentageOfCoresEnabled,
-			ConfigMap:                                platformConfig.ConfigMap,
 			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
 		}
 	case core.IntelIcelakeBmPlatformConfig:
@@ -556,7 +528,6 @@ func platformConfigForHash(config core.InstanceConfigurationLaunchInstancePlatfo
 			IsSymmetricMultiThreadingEnabled:         platformConfig.IsSymmetricMultiThreadingEnabled,
 			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
 			PercentageOfCoresEnabled:                 platformConfig.PercentageOfCoresEnabled,
-			ConfigMap:                                platformConfig.ConfigMap,
 			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
 		}
 	case core.InstanceConfigurationIntelIcelakeBmLaunchInstancePlatformConfig:
@@ -569,7 +540,6 @@ func platformConfigForHash(config core.InstanceConfigurationLaunchInstancePlatfo
 			IsSymmetricMultiThreadingEnabled:         platformConfig.IsSymmetricMultiThreadingEnabled,
 			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
 			PercentageOfCoresEnabled:                 platformConfig.PercentageOfCoresEnabled,
-			ConfigMap:                                platformConfig.ConfigMap,
 			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
 		}
 	case core.AmdVmPlatformConfig:
@@ -618,7 +588,6 @@ func platformConfigForHash(config core.InstanceConfigurationLaunchInstancePlatfo
 			IsSymmetricMultiThreadingEnabled:         platformConfig.IsSymmetricMultiThreadingEnabled,
 			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
 			PercentageOfCoresEnabled:                 platformConfig.PercentageOfCoresEnabled,
-			ConfigMap:                                platformConfig.ConfigMap,
 			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
 		}
 	case core.InstanceConfigurationIntelSkylakeBmLaunchInstancePlatformConfig:
@@ -631,7 +600,6 @@ func platformConfigForHash(config core.InstanceConfigurationLaunchInstancePlatfo
 			IsSymmetricMultiThreadingEnabled:         platformConfig.IsSymmetricMultiThreadingEnabled,
 			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
 			PercentageOfCoresEnabled:                 platformConfig.PercentageOfCoresEnabled,
-			ConfigMap:                                platformConfig.ConfigMap,
 			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
 		}
 	case core.AmdMilanBmPlatformConfig:
@@ -646,7 +614,6 @@ func platformConfigForHash(config core.InstanceConfigurationLaunchInstancePlatfo
 			AreVirtualInstructionsEnabled:            platformConfig.AreVirtualInstructionsEnabled,
 			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
 			PercentageOfCoresEnabled:                 platformConfig.PercentageOfCoresEnabled,
-			ConfigMap:                                platformConfig.ConfigMap,
 			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
 		}
 	case core.InstanceConfigurationAmdMilanBmLaunchInstancePlatformConfig:
@@ -661,7 +628,6 @@ func platformConfigForHash(config core.InstanceConfigurationLaunchInstancePlatfo
 			AreVirtualInstructionsEnabled:            platformConfig.AreVirtualInstructionsEnabled,
 			IsInputOutputMemoryManagementUnitEnabled: platformConfig.IsInputOutputMemoryManagementUnitEnabled,
 			PercentageOfCoresEnabled:                 platformConfig.PercentageOfCoresEnabled,
-			ConfigMap:                                platformConfig.ConfigMap,
 			NumaNodesPerSocket:                       string(platformConfig.NumaNodesPerSocket),
 		}
 	default:
@@ -831,50 +797,6 @@ func pickExtendedMetadata(actual, mask map[string]interface{}) map[string]interf
 	return result
 }
 
-func pickNestedInterfaceMap(actual, mask map[string]map[string]interface{}) map[string]map[string]interface{} {
-	if len(mask) == 0 {
-		return nil
-	}
-	if len(actual) == 0 {
-		return nil
-	}
-	result := make(map[string]map[string]interface{}, len(mask))
-	for namespace, attrs := range mask {
-		actualAttrs, ok := actual[namespace]
-		if !ok {
-			continue
-		}
-		convertedAttrs := make(map[string]interface{}, len(attrs))
-		for key := range attrs {
-			if value, ok := actualAttrs[key]; ok {
-				convertedAttrs[key] = value
-			}
-		}
-		if len(convertedAttrs) > 0 {
-			result[namespace] = convertedAttrs
-		}
-	}
-	if len(result) == 0 {
-		return nil
-	}
-	return result
-}
-
-func pickNestedInterfaceMapDetectRemoval(actual, mask map[string]map[string]interface{}) map[string]map[string]interface{} {
-	if len(actual) == 0 {
-		return nil
-	}
-	result := make(map[string]map[string]interface{}, len(actual))
-	for namespace, attrs := range actual {
-		resultAttrs := make(map[string]interface{}, len(attrs))
-		for key, value := range attrs {
-			resultAttrs[key] = value
-		}
-		result[namespace] = resultAttrs
-	}
-	return result
-}
-
 func pickStrings(actual, mask []string) []string {
 	if len(mask) == 0 {
 		return nil
@@ -883,46 +805,6 @@ func pickStrings(actual, mask []string) []string {
 		return nil
 	}
 	result := append([]string(nil), actual...)
-	return result
-}
-
-func pickStringMap(actual, mask map[string]string) map[string]string {
-	if len(mask) == 0 {
-		return nil
-	}
-	if len(actual) == 0 {
-		return nil
-	}
-	result := make(map[string]string, len(mask))
-	for key := range mask {
-		if value, ok := actual[key]; ok {
-			result[key] = value
-		}
-	}
-	if len(result) == 0 {
-		return nil
-	}
-	return result
-}
-
-func pickStringMapDetectRemoval(actual, mask map[string]string) map[string]string {
-	if len(actual) == 0 {
-		return nil
-	}
-	result := make(map[string]string, len(actual))
-	for key := range mask {
-		if value, ok := actual[key]; ok {
-			result[key] = value
-		}
-	}
-	for key, value := range actual {
-		if _, ok := mask[key]; !ok {
-			result[key] = value
-		}
-	}
-	if len(result) == 0 {
-		return nil
-	}
 	return result
 }
 
@@ -1002,12 +884,17 @@ func pickEnum(actual, mask string) string {
 	return actual
 }
 
-func pickEnumDetectRemoval(actual, mask, defaultValue string) string {
+func pickEnumDetectRemoval(actual, mask string, defaultValues ...string) string {
 	if mask != "" {
 		return actual
 	}
-	if actual == "" || actual == defaultValue {
+	if actual == "" {
 		return ""
+	}
+	for _, dv := range defaultValues {
+		if actual == dv {
+			return ""
+		}
 	}
 	return actual
 }

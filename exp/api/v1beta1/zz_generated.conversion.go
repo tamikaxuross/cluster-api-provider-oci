@@ -91,26 +91,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails)(nil), (*v1beta2.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails_To_v1beta2_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails(a.(*InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails), b.(*v1beta2.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails)(nil), (*InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails_To_v1beta1_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails(a.(*v1beta2.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails), b.(*InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails)(nil), (*v1beta2.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails_To_v1beta2_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails(a.(*InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails), b.(*v1beta2.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails)(nil), (*InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails_To_v1beta1_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails(a.(*v1beta2.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails), b.(*InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*InstancePoolPlacementPrimarySubnet)(nil), (*v1beta2.InstancePoolPlacementPrimarySubnet)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_InstancePoolPlacementPrimarySubnet_To_v1beta2_InstancePoolPlacementPrimarySubnet(a.(*InstancePoolPlacementPrimarySubnet), b.(*v1beta2.InstancePoolPlacementPrimarySubnet), scope)
 	}); err != nil {
@@ -559,7 +539,6 @@ func autoConvert_v1beta1_AmdMilanBmPlatformConfig_To_v1beta2_AmdMilanBmPlatformC
 	out.AreVirtualInstructionsEnabled = (*bool)(unsafe.Pointer(in.AreVirtualInstructionsEnabled))
 	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
 	out.PercentageOfCoresEnabled = (*int)(unsafe.Pointer(in.PercentageOfCoresEnabled))
-	out.ConfigMap = *(*map[string]string)(unsafe.Pointer(&in.ConfigMap))
 	out.NumaNodesPerSocket = v1beta2.AmdMilanBmPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
 	return nil
 }
@@ -579,7 +558,6 @@ func autoConvert_v1beta2_AmdMilanBmPlatformConfig_To_v1beta1_AmdMilanBmPlatformC
 	out.AreVirtualInstructionsEnabled = (*bool)(unsafe.Pointer(in.AreVirtualInstructionsEnabled))
 	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
 	out.PercentageOfCoresEnabled = (*int)(unsafe.Pointer(in.PercentageOfCoresEnabled))
-	out.ConfigMap = *(*map[string]string)(unsafe.Pointer(&in.ConfigMap))
 	out.NumaNodesPerSocket = AmdMilanBmPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
 	return nil
 }
@@ -598,7 +576,6 @@ func autoConvert_v1beta1_AmdRomeBmGpuPlatformConfig_To_v1beta2_AmdRomeBmGpuPlatf
 	out.IsAccessControlServiceEnabled = (*bool)(unsafe.Pointer(in.IsAccessControlServiceEnabled))
 	out.AreVirtualInstructionsEnabled = (*bool)(unsafe.Pointer(in.AreVirtualInstructionsEnabled))
 	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
-	out.ConfigMap = *(*map[string]string)(unsafe.Pointer(&in.ConfigMap))
 	out.NumaNodesPerSocket = v1beta2.AmdRomeBmGpuPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
 	return nil
 }
@@ -617,7 +594,6 @@ func autoConvert_v1beta2_AmdRomeBmGpuPlatformConfig_To_v1beta1_AmdRomeBmGpuPlatf
 	out.IsAccessControlServiceEnabled = (*bool)(unsafe.Pointer(in.IsAccessControlServiceEnabled))
 	out.AreVirtualInstructionsEnabled = (*bool)(unsafe.Pointer(in.AreVirtualInstructionsEnabled))
 	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
-	out.ConfigMap = *(*map[string]string)(unsafe.Pointer(&in.ConfigMap))
 	out.NumaNodesPerSocket = AmdRomeBmGpuPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
 	return nil
 }
@@ -637,7 +613,6 @@ func autoConvert_v1beta1_AmdRomeBmPlatformConfig_To_v1beta2_AmdRomeBmPlatformCon
 	out.AreVirtualInstructionsEnabled = (*bool)(unsafe.Pointer(in.AreVirtualInstructionsEnabled))
 	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
 	out.PercentageOfCoresEnabled = (*int)(unsafe.Pointer(in.PercentageOfCoresEnabled))
-	out.ConfigMap = *(*map[string]string)(unsafe.Pointer(&in.ConfigMap))
 	out.NumaNodesPerSocket = v1beta2.AmdRomeBmPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
 	return nil
 }
@@ -657,7 +632,6 @@ func autoConvert_v1beta2_AmdRomeBmPlatformConfig_To_v1beta1_AmdRomeBmPlatformCon
 	out.AreVirtualInstructionsEnabled = (*bool)(unsafe.Pointer(in.AreVirtualInstructionsEnabled))
 	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
 	out.PercentageOfCoresEnabled = (*int)(unsafe.Pointer(in.PercentageOfCoresEnabled))
-	out.ConfigMap = *(*map[string]string)(unsafe.Pointer(&in.ConfigMap))
 	out.NumaNodesPerSocket = AmdRomeBmPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
 	return nil
 }
@@ -717,7 +691,6 @@ func autoConvert_v1beta1_InstanceConfiguration_To_v1beta2_InstanceConfiguration(
 	out.LaunchMode = v1beta2.LaunchModeEnum(in.LaunchMode)
 	out.LicensingConfigs = *(*[]v1beta2.LaunchInstanceLicensingConfig)(unsafe.Pointer(&in.LicensingConfigs))
 	out.PreferredMaintenanceAction = v1beta2.PreferredMaintenanceActionEnum(in.PreferredMaintenanceAction)
-	out.SecurityAttributes = *(*map[string]map[string]v1.JSON)(unsafe.Pointer(&in.SecurityAttributes))
 	out.Metadata = *(*map[string]string)(unsafe.Pointer(&in.Metadata))
 	out.ExtendedMetadata = *(*map[string]v1.JSON)(unsafe.Pointer(&in.ExtendedMetadata))
 	return nil
@@ -750,7 +723,6 @@ func autoConvert_v1beta2_InstanceConfiguration_To_v1beta1_InstanceConfiguration(
 	out.LaunchMode = LaunchModeEnum(in.LaunchMode)
 	out.LicensingConfigs = *(*[]LaunchInstanceLicensingConfig)(unsafe.Pointer(&in.LicensingConfigs))
 	out.PreferredMaintenanceAction = PreferredMaintenanceActionEnum(in.PreferredMaintenanceAction)
-	out.SecurityAttributes = *(*map[string]map[string]v1.JSON)(unsafe.Pointer(&in.SecurityAttributes))
 	out.Metadata = *(*map[string]string)(unsafe.Pointer(&in.Metadata))
 	out.ExtendedMetadata = *(*map[string]v1.JSON)(unsafe.Pointer(&in.ExtendedMetadata))
 	return nil
@@ -761,52 +733,9 @@ func Convert_v1beta2_InstanceConfiguration_To_v1beta1_InstanceConfiguration(in *
 	return autoConvert_v1beta2_InstanceConfiguration_To_v1beta1_InstanceConfiguration(in, out, s)
 }
 
-func autoConvert_v1beta1_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails_To_v1beta2_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails(in *InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails, out *v1beta2.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails, s conversion.Scope) error {
-	out.Ipv6SubnetCidr = (*string)(unsafe.Pointer(in.Ipv6SubnetCidr))
-	out.Ipv6Address = (*string)(unsafe.Pointer(in.Ipv6Address))
-	return nil
-}
-
-// Convert_v1beta1_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails_To_v1beta2_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails is an autogenerated conversion function.
-func Convert_v1beta1_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails_To_v1beta2_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails(in *InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails, out *v1beta2.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails, s conversion.Scope) error {
-	return autoConvert_v1beta1_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails_To_v1beta2_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails(in, out, s)
-}
-
-func autoConvert_v1beta2_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails_To_v1beta1_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails(in *v1beta2.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails, out *InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails, s conversion.Scope) error {
-	out.Ipv6SubnetCidr = (*string)(unsafe.Pointer(in.Ipv6SubnetCidr))
-	out.Ipv6Address = (*string)(unsafe.Pointer(in.Ipv6Address))
-	return nil
-}
-
-// Convert_v1beta2_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails_To_v1beta1_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails is an autogenerated conversion function.
-func Convert_v1beta2_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails_To_v1beta1_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails(in *v1beta2.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails, out *InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails, s conversion.Scope) error {
-	return autoConvert_v1beta2_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails_To_v1beta1_InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails(in, out, s)
-}
-
-func autoConvert_v1beta1_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails_To_v1beta2_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails(in *InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails, out *v1beta2.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails, s conversion.Scope) error {
-	out.Ipv6SubnetCidr = (*string)(unsafe.Pointer(in.Ipv6SubnetCidr))
-	return nil
-}
-
-// Convert_v1beta1_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails_To_v1beta2_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails is an autogenerated conversion function.
-func Convert_v1beta1_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails_To_v1beta2_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails(in *InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails, out *v1beta2.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails, s conversion.Scope) error {
-	return autoConvert_v1beta1_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails_To_v1beta2_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails(in, out, s)
-}
-
-func autoConvert_v1beta2_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails_To_v1beta1_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails(in *v1beta2.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails, out *InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails, s conversion.Scope) error {
-	out.Ipv6SubnetCidr = (*string)(unsafe.Pointer(in.Ipv6SubnetCidr))
-	return nil
-}
-
-// Convert_v1beta2_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails_To_v1beta1_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails is an autogenerated conversion function.
-func Convert_v1beta2_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails_To_v1beta1_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails(in *v1beta2.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails, out *InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails, s conversion.Scope) error {
-	return autoConvert_v1beta2_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails_To_v1beta1_InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails(in, out, s)
-}
-
 func autoConvert_v1beta1_InstancePoolPlacementPrimarySubnet_To_v1beta2_InstancePoolPlacementPrimarySubnet(in *InstancePoolPlacementPrimarySubnet, out *v1beta2.InstancePoolPlacementPrimarySubnet, s conversion.Scope) error {
 	out.SubnetId = (*string)(unsafe.Pointer(in.SubnetId))
 	out.IsAssignIpv6Ip = (*bool)(unsafe.Pointer(in.IsAssignIpv6Ip))
-	out.Ipv6AddressIpv6SubnetCidrPairDetails = *(*[]v1beta2.InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails)(unsafe.Pointer(&in.Ipv6AddressIpv6SubnetCidrPairDetails))
 	return nil
 }
 
@@ -818,7 +747,6 @@ func Convert_v1beta1_InstancePoolPlacementPrimarySubnet_To_v1beta2_InstancePoolP
 func autoConvert_v1beta2_InstancePoolPlacementPrimarySubnet_To_v1beta1_InstancePoolPlacementPrimarySubnet(in *v1beta2.InstancePoolPlacementPrimarySubnet, out *InstancePoolPlacementPrimarySubnet, s conversion.Scope) error {
 	out.SubnetId = (*string)(unsafe.Pointer(in.SubnetId))
 	out.IsAssignIpv6Ip = (*bool)(unsafe.Pointer(in.IsAssignIpv6Ip))
-	out.Ipv6AddressIpv6SubnetCidrPairDetails = *(*[]InstancePoolPlacementIpv6AddressIpv6SubnetCidrDetails)(unsafe.Pointer(&in.Ipv6AddressIpv6SubnetCidrPairDetails))
 	return nil
 }
 
@@ -861,7 +789,6 @@ func autoConvert_v1beta1_IntelIcelakeBmPlatformConfig_To_v1beta2_IntelIcelakeBmP
 	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
 	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
 	out.PercentageOfCoresEnabled = (*int)(unsafe.Pointer(in.PercentageOfCoresEnabled))
-	out.ConfigMap = *(*map[string]string)(unsafe.Pointer(&in.ConfigMap))
 	out.NumaNodesPerSocket = v1beta2.IntelIcelakeBmPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
 	return nil
 }
@@ -879,7 +806,6 @@ func autoConvert_v1beta2_IntelIcelakeBmPlatformConfig_To_v1beta1_IntelIcelakeBmP
 	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
 	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
 	out.PercentageOfCoresEnabled = (*int)(unsafe.Pointer(in.PercentageOfCoresEnabled))
-	out.ConfigMap = *(*map[string]string)(unsafe.Pointer(&in.ConfigMap))
 	out.NumaNodesPerSocket = IntelIcelakeBmPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
 	return nil
 }
@@ -897,7 +823,6 @@ func autoConvert_v1beta1_IntelSkylakeBmPlatformConfig_To_v1beta2_IntelSkylakeBmP
 	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
 	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
 	out.PercentageOfCoresEnabled = (*int)(unsafe.Pointer(in.PercentageOfCoresEnabled))
-	out.ConfigMap = *(*map[string]string)(unsafe.Pointer(&in.ConfigMap))
 	out.NumaNodesPerSocket = v1beta2.IntelSkylakeBmPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
 	return nil
 }
@@ -915,7 +840,6 @@ func autoConvert_v1beta2_IntelSkylakeBmPlatformConfig_To_v1beta1_IntelSkylakeBmP
 	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
 	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
 	out.PercentageOfCoresEnabled = (*int)(unsafe.Pointer(in.PercentageOfCoresEnabled))
-	out.ConfigMap = *(*map[string]string)(unsafe.Pointer(&in.ConfigMap))
 	out.NumaNodesPerSocket = IntelSkylakeBmPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
 	return nil
 }
@@ -1022,7 +946,6 @@ func Convert_v1beta2_LaunchInstanceLicensingConfig_To_v1beta1_LaunchInstanceLice
 func autoConvert_v1beta1_MachinePoolNetworkDetails_To_v1beta2_MachinePoolNetworkDetails(in *MachinePoolNetworkDetails, out *v1beta2.MachinePoolNetworkDetails, s conversion.Scope) error {
 	out.SubnetId = (*string)(unsafe.Pointer(in.SubnetId))
 	out.AssignIpv6Ip = in.AssignIpv6Ip
-	out.Ipv6AddressIpv6SubnetCidrPairDetails = *(*[]v1beta2.InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails)(unsafe.Pointer(&in.Ipv6AddressIpv6SubnetCidrPairDetails))
 	out.AssignPublicIp = in.AssignPublicIp
 	out.SubnetName = in.SubnetName
 	out.SkipSourceDestCheck = (*bool)(unsafe.Pointer(in.SkipSourceDestCheck))
@@ -1032,7 +955,6 @@ func autoConvert_v1beta1_MachinePoolNetworkDetails_To_v1beta2_MachinePoolNetwork
 	out.HostnameLabel = (*string)(unsafe.Pointer(in.HostnameLabel))
 	out.DisplayName = (*string)(unsafe.Pointer(in.DisplayName))
 	out.AssignPrivateDnsRecord = (*bool)(unsafe.Pointer(in.AssignPrivateDnsRecord))
-	out.SecurityAttributes = *(*map[string]map[string]v1.JSON)(unsafe.Pointer(&in.SecurityAttributes))
 	return nil
 }
 
@@ -1044,7 +966,6 @@ func Convert_v1beta1_MachinePoolNetworkDetails_To_v1beta2_MachinePoolNetworkDeta
 func autoConvert_v1beta2_MachinePoolNetworkDetails_To_v1beta1_MachinePoolNetworkDetails(in *v1beta2.MachinePoolNetworkDetails, out *MachinePoolNetworkDetails, s conversion.Scope) error {
 	out.SubnetId = (*string)(unsafe.Pointer(in.SubnetId))
 	out.AssignIpv6Ip = in.AssignIpv6Ip
-	out.Ipv6AddressIpv6SubnetCidrPairDetails = *(*[]InstanceConfigurationIpv6AddressIpv6SubnetCidrPairDetails)(unsafe.Pointer(&in.Ipv6AddressIpv6SubnetCidrPairDetails))
 	out.AssignPublicIp = in.AssignPublicIp
 	out.SubnetName = in.SubnetName
 	out.SkipSourceDestCheck = (*bool)(unsafe.Pointer(in.SkipSourceDestCheck))
@@ -1054,7 +975,6 @@ func autoConvert_v1beta2_MachinePoolNetworkDetails_To_v1beta1_MachinePoolNetwork
 	out.HostnameLabel = (*string)(unsafe.Pointer(in.HostnameLabel))
 	out.DisplayName = (*string)(unsafe.Pointer(in.DisplayName))
 	out.AssignPrivateDnsRecord = (*bool)(unsafe.Pointer(in.AssignPrivateDnsRecord))
-	out.SecurityAttributes = *(*map[string]map[string]v1.JSON)(unsafe.Pointer(&in.SecurityAttributes))
 	return nil
 }
 
