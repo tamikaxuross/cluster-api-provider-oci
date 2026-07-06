@@ -1069,8 +1069,7 @@ func (m *MachinePoolScope) InstancePoolUsesDesiredInstanceConfiguration(instance
 	}
 	desiredID := m.GetInstanceConfigurationId()
 	return desiredID != nil &&
-		instancePool.InstanceConfigurationId != nil &&
-		ptr.ToString(instancePool.InstanceConfigurationId) == ptr.ToString(desiredID) &&
+		ptr.StringEqual(desiredID, instancePool.InstanceConfigurationId) &&
 		reflect.DeepEqual(m.OCIMachinePool.Spec.InstanceDisplayNameFormatter, instancePool.InstanceDisplayNameFormatter) &&
 		reflect.DeepEqual(m.OCIMachinePool.Spec.InstanceHostnameFormatter, instancePool.InstanceHostnameFormatter)
 }
