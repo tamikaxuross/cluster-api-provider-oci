@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -988,11 +987,11 @@ func instancePoolNeedsUpdates(machinePoolScope *MachinePoolScope, instancePool *
 	}
 	if !annotations.ReplicasManagedByExternalAutoscaler(machinePoolScope.MachinePool) && machinePoolReplicas != instanePoolSize {
 		return true
-	} else if !(reflect.DeepEqual(machinePoolScope.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId, instancePool.InstanceConfigurationId)) {
+	} else if !ptr.StringEqual(machinePoolScope.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId, instancePool.InstanceConfigurationId) {
 		return true
-	} else if !reflect.DeepEqual(machinePoolScope.OCIMachinePool.Spec.InstanceDisplayNameFormatter, instancePool.InstanceDisplayNameFormatter) {
+	} else if !ptr.StringEqual(machinePoolScope.OCIMachinePool.Spec.InstanceDisplayNameFormatter, instancePool.InstanceDisplayNameFormatter) {
 		return true
-	} else if !reflect.DeepEqual(machinePoolScope.OCIMachinePool.Spec.InstanceHostnameFormatter, instancePool.InstanceHostnameFormatter) {
+	} else if !ptr.StringEqual(machinePoolScope.OCIMachinePool.Spec.InstanceHostnameFormatter, instancePool.InstanceHostnameFormatter) {
 		return true
 	}
 	return placementNeedsUpdate
@@ -1024,7 +1023,7 @@ func instancePoolPlacementNeedsUpdate(actual []core.InstancePoolPlacementConfigu
 		if !ok {
 			return true
 		}
-		if !reflect.DeepEqual(actualPlacement.PrimarySubnetId, desiredPlacement.PrimarySubnetId) {
+		if !ptr.StringEqual(actualPlacement.PrimarySubnetId, desiredPlacement.PrimarySubnetId) {
 			return true
 		}
 		if !samePrimaryVnicSubnets(actualPlacement.PrimaryVnicSubnets, desiredPlacement.PrimaryVnicSubnets) {
@@ -1070,8 +1069,8 @@ func (m *MachinePoolScope) InstancePoolUsesDesiredInstanceConfiguration(instance
 	desiredID := m.GetInstanceConfigurationId()
 	return desiredID != nil &&
 		ptr.StringEqual(desiredID, instancePool.InstanceConfigurationId) &&
-		reflect.DeepEqual(m.OCIMachinePool.Spec.InstanceDisplayNameFormatter, instancePool.InstanceDisplayNameFormatter) &&
-		reflect.DeepEqual(m.OCIMachinePool.Spec.InstanceHostnameFormatter, instancePool.InstanceHostnameFormatter)
+		ptr.StringEqual(m.OCIMachinePool.Spec.InstanceDisplayNameFormatter, instancePool.InstanceDisplayNameFormatter) &&
+		ptr.StringEqual(m.OCIMachinePool.Spec.InstanceHostnameFormatter, instancePool.InstanceHostnameFormatter)
 }
 
 func (m *MachinePoolScope) getAgentConfig() *core.InstanceConfigurationLaunchInstanceAgentConfigDetails {
