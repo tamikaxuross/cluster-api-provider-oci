@@ -146,12 +146,7 @@ spec:
     # licensingConfigs:
     #   - type: WINDOWS
     #     licenseType: BRING_YOUR_OWN_LICENSE
-    # securityAttributes requires an existing OCI security attribute namespace and key.
-    # securityAttributes:
-    #   Oracle-DataSecurity-ZPR:
-    #     MaxEgressCount:
-    #       value: "42"
-    #       mode: audit
+
     metadata:
       ssh_authorized_keys: "${OCI_SSH_KEY}"
 
