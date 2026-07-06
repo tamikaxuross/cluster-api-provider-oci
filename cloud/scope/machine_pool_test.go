@@ -1828,10 +1828,11 @@ func TestBootstrapTriggeredRotationUpdatesPoolBeforeCleanupEligibility(t *testin
 	computeMgmt.EXPECT().ListInstanceConfigurations(gomock.Any(), gomock.Any()).Times(0)
 	computeMgmt.EXPECT().DeleteInstanceConfiguration(gomock.Any(), gomock.Any()).Times(0)
 
-	updatedPool, err := ms.UpdatePool(context.Background(), activePool)
+	updateIssued, err := ms.UpdatePool(context.Background(), activePool)
 	g.Expect(err).To(BeNil())
-	g.Expect(ms.InstancePoolUsesDesiredInstanceConfiguration(updatedPool)).To(BeFalse())
-	err = ms.CleanupInstanceConfiguration(context.Background(), updatedPool)
+	g.Expect(updateIssued).To(BeTrue())
+	g.Expect(ms.InstancePoolUsesDesiredInstanceConfiguration(activePool)).To(BeFalse())
+	err = ms.CleanupInstanceConfiguration(context.Background(), activePool)
 	g.Expect(err).To(BeNil())
 
 	switchedPool := &core.InstancePool{
@@ -3417,9 +3418,9 @@ func TestInstancePoolUpdateSkipsDefaultPlacementDrift(t *testing.T) {
 		InstanceConfigurationId: common.String("config_id"),
 	}
 
-	updatedPool, err := ms.UpdatePool(context.Background(), instancePool)
+	updateIssued, err := ms.UpdatePool(context.Background(), instancePool)
 	g.Expect(err).To(BeNil())
-	g.Expect(updatedPool).To(Equal(instancePool))
+	g.Expect(updateIssued).To(BeFalse())
 }
 
 func TestInstancePoolUpdatePrimarySubnetPlacement(t *testing.T) {

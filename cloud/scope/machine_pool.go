@@ -919,15 +919,17 @@ func (m *MachinePoolScope) CreateInstancePool(ctx context.Context) (*core.Instan
 	return &instancePool.InstancePool, nil
 }
 
-// UpdatePool attempts to update the instance pool
-func (m *MachinePoolScope) UpdatePool(ctx context.Context, instancePool *core.InstancePool) (*core.InstancePool, error) {
+// UpdatePool attempts to update the instance pool and reports whether an
+// asynchronous OCI update was issued. Callers must use a fresh GetInstancePool
+// response on a later reconciliation before treating the update as complete.
+func (m *MachinePoolScope) UpdatePool(ctx context.Context, instancePool *core.InstancePool) (bool, error) {
 	var placementConfigurations []core.UpdateInstancePoolPlacementConfigurationDetails
 	placementNeedsUpdate := false
 	if len(m.OCIMachinePool.Spec.PlacementDetails) > 0 {
 		var err error
 		placementConfigurations, err = m.buildUpdateInstancePoolPlacement()
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to build instance pool placements")
+			return false, errors.Wrapf(err, "unable to build instance pool placements")
 		}
 		placementNeedsUpdate = instancePoolPlacementNeedsUpdate(instancePool.PlacementConfigurations, placementConfigurations)
 	}
@@ -954,14 +956,14 @@ func (m *MachinePoolScope) UpdatePool(ctx context.Context, instancePool *core.In
 		req := core.UpdateInstancePoolRequest{InstancePoolId: instancePool.Id,
 			UpdateInstancePoolDetails: updateDetails,
 		}
-		resp, err := m.ComputeManagementClient.UpdateInstancePool(ctx, req)
+		_, err := m.ComputeManagementClient.UpdateInstancePool(ctx, req)
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to update instance pool")
+			return false, errors.Wrap(err, "unable to update instance pool")
 		}
 		m.Info("Successfully updated instance pool")
-		return &resp.InstancePool, nil
+		return true, nil
 	}
-	return instancePool, nil
+	return false, nil
 }
 
 func (m *MachinePoolScope) TerminateInstancePool(ctx context.Context, instancePool *core.InstancePool) error {

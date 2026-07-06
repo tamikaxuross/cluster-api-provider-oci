@@ -391,11 +391,18 @@ func (r *OCIMachinePoolReconciler) reconcileNormal(ctx context.Context, logger l
 			return reconcile.Result{}, err
 		}
 
-		instancePool, err = machinePoolScope.UpdatePool(ctx, instancePool)
+		updateIssued, err := machinePoolScope.UpdatePool(ctx, instancePool)
 		if err != nil {
 			r.Recorder.Eventf(machinePoolScope.OCIMachinePool, corev1.EventTypeWarning, "FailedUpdate", "Failed to update instance pool: %v", err)
 			machinePoolScope.Error(err, "error updating OCIMachinePool")
 			return ctrl.Result{}, err
+		}
+		if updateIssued {
+			// OCI Instance Pool updates are asynchronous. The immediate update
+			// response may echo requested values before the backend has converged.
+			// Keep the current readiness condition and verify the update using a
+			// fresh GetInstancePool response on the next reconciliation.
+			return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 		if !machinePoolScope.InstancePoolUsesDesiredInstanceConfiguration(instancePool) {
 			machinePoolScope.Info("Instance pool has not switched to desired instance configuration",
