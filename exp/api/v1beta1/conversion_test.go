@@ -23,6 +23,8 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	infrastructurev1beta1 "github.com/oracle/cluster-api-provider-oci/api/v1beta1"
+	infrastructurev1beta2 "github.com/oracle/cluster-api-provider-oci/api/v1beta2"
 	"github.com/oracle/cluster-api-provider-oci/exp/api/v1beta2"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
@@ -86,11 +88,11 @@ func TestOCIMachinePoolDeferredAndOutOfScopeFieldsRemainAbsent(t *testing.T) {
 	}{
 		{OCIMachinePoolSpec{}, []string{"displayName", "loadBalancers", "placementConfigurations"}},
 		{InstanceConfiguration{}, []string{"availabilityDomain", "blockVolumes", "faultDomain", "instanceSourceImageFilterDetails", "secondaryVnics"}},
-		{MachinePoolNetworkDetails{}, []string{"privateIp"}},
+		{infrastructurev1beta1.NetworkDetails{}, []string{"privateIp"}},
 		{PlacementDetails{}, []string{"secondaryVnicSubnets"}},
 		{v1beta2.OCIMachinePoolSpec{}, []string{"displayName", "loadBalancers", "placementConfigurations"}},
 		{v1beta2.InstanceConfiguration{}, []string{"availabilityDomain", "blockVolumes", "faultDomain", "instanceSourceImageFilterDetails", "secondaryVnics"}},
-		{v1beta2.MachinePoolNetworkDetails{}, []string{"privateIp"}},
+		{infrastructurev1beta2.NetworkDetails{}, []string{"privateIp"}},
 		{v1beta2.PlacementDetails{}, []string{"secondaryVnicSubnets"}},
 	}
 	for _, check := range apiChecks {

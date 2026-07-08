@@ -1182,7 +1182,7 @@ func (m *MachinePoolScope) getPlatformConfig() core.PlatformConfig {
 	platformConfig := m.OCIMachinePool.Spec.InstanceConfiguration.PlatformConfig
 	if platformConfig != nil {
 		switch platformConfig.PlatformConfigType {
-		case infrav2exp.PlatformConfigTypeAmdRomeBmGpu:
+		case infrastructurev1beta2.PlatformConfigTypeAmdRomeBmGpu:
 			numaNodesPerSocket, _ := core.GetMappingAmdRomeBmGpuPlatformConfigNumaNodesPerSocketEnum(string(platformConfig.AmdRomeBmGpuPlatformConfig.NumaNodesPerSocket))
 			return core.AmdRomeBmGpuPlatformConfig{
 				IsSecureBootEnabled:                      platformConfig.AmdRomeBmGpuPlatformConfig.IsSecureBootEnabled,
@@ -1195,7 +1195,7 @@ func (m *MachinePoolScope) getPlatformConfig() core.PlatformConfig {
 				IsInputOutputMemoryManagementUnitEnabled: platformConfig.AmdRomeBmGpuPlatformConfig.IsInputOutputMemoryManagementUnitEnabled,
 				NumaNodesPerSocket:                       numaNodesPerSocket,
 			}
-		case infrav2exp.PlatformConfigTypeAmdRomeBm:
+		case infrastructurev1beta2.PlatformConfigTypeAmdRomeBm:
 			numaNodesPerSocket, _ := core.GetMappingAmdRomeBmPlatformConfigNumaNodesPerSocketEnum(string(platformConfig.AmdRomeBmPlatformConfig.NumaNodesPerSocket))
 			return core.AmdRomeBmPlatformConfig{
 				IsSecureBootEnabled:                      platformConfig.AmdRomeBmPlatformConfig.IsSecureBootEnabled,
@@ -1209,7 +1209,7 @@ func (m *MachinePoolScope) getPlatformConfig() core.PlatformConfig {
 				PercentageOfCoresEnabled:                 platformConfig.AmdRomeBmPlatformConfig.PercentageOfCoresEnabled,
 				NumaNodesPerSocket:                       numaNodesPerSocket,
 			}
-		case infrav2exp.PlatformConfigTypeIntelIcelakeBm:
+		case infrastructurev1beta2.PlatformConfigTypeIntelIcelakeBm:
 			numaNodesPerSocket, _ := core.GetMappingIntelIcelakeBmPlatformConfigNumaNodesPerSocketEnum(string(platformConfig.IntelIcelakeBmPlatformConfig.NumaNodesPerSocket))
 			return core.IntelIcelakeBmPlatformConfig{
 				IsSecureBootEnabled:                      platformConfig.IntelIcelakeBmPlatformConfig.IsSecureBootEnabled,
@@ -1221,7 +1221,7 @@ func (m *MachinePoolScope) getPlatformConfig() core.PlatformConfig {
 				IsInputOutputMemoryManagementUnitEnabled: platformConfig.IntelIcelakeBmPlatformConfig.IsInputOutputMemoryManagementUnitEnabled,
 				NumaNodesPerSocket:                       numaNodesPerSocket,
 			}
-		case infrav2exp.PlatformConfigTypeAmdvm:
+		case infrastructurev1beta2.PlatformConfigTypeAmdvm:
 			return core.AmdVmPlatformConfig{
 				IsSecureBootEnabled:              platformConfig.AmdVmPlatformConfig.IsSecureBootEnabled,
 				IsTrustedPlatformModuleEnabled:   platformConfig.AmdVmPlatformConfig.IsTrustedPlatformModuleEnabled,
@@ -1229,7 +1229,7 @@ func (m *MachinePoolScope) getPlatformConfig() core.PlatformConfig {
 				IsMemoryEncryptionEnabled:        platformConfig.AmdVmPlatformConfig.IsMemoryEncryptionEnabled,
 				IsSymmetricMultiThreadingEnabled: platformConfig.AmdVmPlatformConfig.IsSymmetricMultiThreadingEnabled,
 			}
-		case infrav2exp.PlatformConfigTypeIntelVm:
+		case infrastructurev1beta2.PlatformConfigTypeIntelVm:
 			return core.IntelVmPlatformConfig{
 				IsSecureBootEnabled:              platformConfig.IntelVmPlatformConfig.IsSecureBootEnabled,
 				IsTrustedPlatformModuleEnabled:   platformConfig.IntelVmPlatformConfig.IsTrustedPlatformModuleEnabled,
@@ -1237,7 +1237,7 @@ func (m *MachinePoolScope) getPlatformConfig() core.PlatformConfig {
 				IsMemoryEncryptionEnabled:        platformConfig.IntelVmPlatformConfig.IsMemoryEncryptionEnabled,
 				IsSymmetricMultiThreadingEnabled: platformConfig.IntelVmPlatformConfig.IsSymmetricMultiThreadingEnabled,
 			}
-		case infrav2exp.PlatformConfigTypeIntelSkylakeBm:
+		case infrastructurev1beta2.PlatformConfigTypeIntelSkylakeBm:
 			numaNodesPerSocket, _ := core.GetMappingIntelSkylakeBmPlatformConfigNumaNodesPerSocketEnum(string(platformConfig.IntelSkylakeBmPlatformConfig.NumaNodesPerSocket))
 			return core.IntelSkylakeBmPlatformConfig{
 				IsSecureBootEnabled:                      platformConfig.IntelSkylakeBmPlatformConfig.IsSecureBootEnabled,
@@ -1249,7 +1249,7 @@ func (m *MachinePoolScope) getPlatformConfig() core.PlatformConfig {
 				PercentageOfCoresEnabled:                 platformConfig.IntelSkylakeBmPlatformConfig.PercentageOfCoresEnabled,
 				NumaNodesPerSocket:                       numaNodesPerSocket,
 			}
-		case infrav2exp.PlatformConfigTypeAmdMilanBm:
+		case infrastructurev1beta2.PlatformConfigTypeAmdMilanBm:
 			numaNodesPerSocket, _ := core.GetMappingAmdMilanBmPlatformConfigNumaNodesPerSocketEnum(string(platformConfig.AmdMilanBmPlatformConfig.NumaNodesPerSocket))
 			return core.AmdMilanBmPlatformConfig{
 				IsSecureBootEnabled:                      platformConfig.AmdMilanBmPlatformConfig.IsSecureBootEnabled,

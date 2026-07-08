@@ -222,7 +222,7 @@ func TestInstanceConfigCreate(t *testing.T) {
 						BaselineOcpuUtilization: "BASELINE_1_1",
 						Nvmes:                   common.Int(5),
 					},
-					InstanceVnicConfiguration: &infrav2exp.MachinePoolNetworkDetails{
+					InstanceVnicConfiguration: &infrastructurev1beta2.NetworkDetails{
 						AssignPublicIp:         true,
 						SubnetName:             "worker-subnet",
 						SkipSourceDestCheck:    common.Bool(true),
@@ -231,9 +231,9 @@ func TestInstanceConfigCreate(t *testing.T) {
 						DisplayName:            common.String("test-display"),
 						AssignPrivateDnsRecord: common.Bool(true),
 					},
-					PlatformConfig: &infrav2exp.PlatformConfig{
-						PlatformConfigType: infrav2exp.PlatformConfigTypeAmdvm,
-						AmdVmPlatformConfig: infrav2exp.AmdVmPlatformConfig{
+					PlatformConfig: &infrastructurev1beta2.PlatformConfig{
+						PlatformConfigType: infrastructurev1beta2.PlatformConfigTypeAmdvm,
+						AmdVmPlatformConfig: infrastructurev1beta2.AmdVmPlatformConfig{
 							IsMeasuredBootEnabled:          common.Bool(false),
 							IsTrustedPlatformModuleEnabled: common.Bool(true),
 							IsSecureBootEnabled:            common.Bool(true),
@@ -339,7 +339,7 @@ func TestInstanceConfigCreate(t *testing.T) {
 						BaselineOcpuUtilization: "BASELINE_1_1",
 						Nvmes:                   common.Int(5),
 					},
-					InstanceVnicConfiguration: &infrav2exp.MachinePoolNetworkDetails{
+					InstanceVnicConfiguration: &infrastructurev1beta2.NetworkDetails{
 						AssignPublicIp:         true,
 						SubnetName:             "worker-subnet",
 						SkipSourceDestCheck:    common.Bool(true),
@@ -348,9 +348,9 @@ func TestInstanceConfigCreate(t *testing.T) {
 						DisplayName:            common.String("test-display"),
 						AssignPrivateDnsRecord: common.Bool(true),
 					},
-					PlatformConfig: &infrav2exp.PlatformConfig{
-						PlatformConfigType: infrav2exp.PlatformConfigTypeAmdvm,
-						AmdVmPlatformConfig: infrav2exp.AmdVmPlatformConfig{
+					PlatformConfig: &infrastructurev1beta2.PlatformConfig{
+						PlatformConfigType: infrastructurev1beta2.PlatformConfigTypeAmdvm,
+						AmdVmPlatformConfig: infrastructurev1beta2.AmdVmPlatformConfig{
 							IsMeasuredBootEnabled:          common.Bool(false),
 							IsTrustedPlatformModuleEnabled: common.Bool(true),
 							IsSecureBootEnabled:            common.Bool(true),
@@ -678,7 +678,7 @@ write_files:
 				ms.OCIMachinePool.Spec.InstanceConfiguration = infrav2exp.InstanceConfiguration{
 					Shape:                   common.String("test-shape"),
 					InstanceConfigurationId: common.String("test"),
-					InstanceVnicConfiguration: &infrav2exp.MachinePoolNetworkDetails{
+					InstanceVnicConfiguration: &infrastructurev1beta2.NetworkDetails{
 						NsgNames: []string{"worker-nsg-2", "worker-nsg"},
 					},
 				}
@@ -945,7 +945,7 @@ write_files:
 						BaselineOcpuUtilization: "BASELINE_1_1",
 						Nvmes:                   common.Int(5),
 					},
-					InstanceVnicConfiguration: &infrav2exp.MachinePoolNetworkDetails{
+					InstanceVnicConfiguration: &infrastructurev1beta2.NetworkDetails{
 						AssignPublicIp:         true,
 						SubnetName:             "worker-subnet",
 						SkipSourceDestCheck:    common.Bool(true),
@@ -954,9 +954,9 @@ write_files:
 						DisplayName:            common.String("test-display"),
 						AssignPrivateDnsRecord: common.Bool(true),
 					},
-					PlatformConfig: &infrav2exp.PlatformConfig{
-						PlatformConfigType: infrav2exp.PlatformConfigTypeAmdvm,
-						AmdVmPlatformConfig: infrav2exp.AmdVmPlatformConfig{
+					PlatformConfig: &infrastructurev1beta2.PlatformConfig{
+						PlatformConfigType: infrastructurev1beta2.PlatformConfigTypeAmdvm,
+						AmdVmPlatformConfig: infrastructurev1beta2.AmdVmPlatformConfig{
 							IsMeasuredBootEnabled:          common.Bool(false),
 							IsTrustedPlatformModuleEnabled: common.Bool(true),
 							IsSecureBootEnabled:            common.Bool(true),
@@ -2049,18 +2049,18 @@ func TestGetLaunchInstanceDetailsCopiesMetadataAndPropagatesSupportedFields(t *t
 			IsLiveMigrationPreferred: common.Bool(true),
 			RecoveryAction:           infrastructurev1beta2.LaunchInstanceAvailabilityConfigDetailsRecoveryActionRestoreInstance,
 		},
-		InstanceVnicConfiguration: &infrav2exp.MachinePoolNetworkDetails{
+		InstanceVnicConfiguration: &infrastructurev1beta2.NetworkDetails{
 			SubnetId:     common.String("explicit-subnet-id"),
 			NSGIds:       []string{"explicit-nsg-id"},
 			AssignIpv6Ip: true,
 		},
-		PlatformConfig: &infrav2exp.PlatformConfig{
-			PlatformConfigType: infrav2exp.PlatformConfigTypeIntelSkylakeBm,
-			IntelSkylakeBmPlatformConfig: infrav2exp.IntelSkylakeBmPlatformConfig{
+		PlatformConfig: &infrastructurev1beta2.PlatformConfig{
+			PlatformConfigType: infrastructurev1beta2.PlatformConfigTypeIntelSkylakeBm,
+			IntelSkylakeBmPlatformConfig: infrastructurev1beta2.IntelSkylakeBmPlatformConfig{
 				IsSymmetricMultiThreadingEnabled:         common.Bool(false),
 				IsInputOutputMemoryManagementUnitEnabled: common.Bool(true),
 				PercentageOfCoresEnabled:                 &percentage,
-				NumaNodesPerSocket:                       infrav2exp.IntelSkylakeBmPlatformConfigNumaNodesPerSocketNps2,
+				NumaNodesPerSocket:                       infrastructurev1beta2.IntelSkylakeBmPlatformConfigNumaNodesPerSocketNps2,
 			},
 		},
 	}
@@ -2282,19 +2282,19 @@ func TestGetLaunchInstanceDetailsAppliesEffectiveInstanceTagsToLaunchAndVnic(t *
 func TestGetLaunchInstanceDetailsMapsDeprecatedNSGIdFallback(t *testing.T) {
 	tests := []struct {
 		name     string
-		config   infrav2exp.MachinePoolNetworkDetails
+		config   infrastructurev1beta2.NetworkDetails
 		expected []string
 	}{
 		{
 			name: "uses deprecated nsgId when nsgIds is empty",
-			config: infrav2exp.MachinePoolNetworkDetails{
+			config: infrastructurev1beta2.NetworkDetails{
 				NSGId: common.String("legacy-nsg-id"),
 			},
 			expected: []string{"legacy-nsg-id"},
 		},
 		{
 			name: "prefers nsgIds over deprecated nsgId",
-			config: infrav2exp.MachinePoolNetworkDetails{
+			config: infrastructurev1beta2.NetworkDetails{
 				NSGId:  common.String("legacy-nsg-id"),
 				NSGIds: []string{"preferred-nsg-id"},
 			},
@@ -2403,14 +2403,14 @@ func TestGetPlatformConfigPropagatesApprovedPlatformFields(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		platformConfig *infrav2exp.PlatformConfig
+		platformConfig *infrastructurev1beta2.PlatformConfig
 		assert         func(g *WithT, platformConfig core.PlatformConfig)
 	}{
 		{
 			name: "AMD VM SMT",
-			platformConfig: &infrav2exp.PlatformConfig{
-				PlatformConfigType: infrav2exp.PlatformConfigTypeAmdvm,
-				AmdVmPlatformConfig: infrav2exp.AmdVmPlatformConfig{
+			platformConfig: &infrastructurev1beta2.PlatformConfig{
+				PlatformConfigType: infrastructurev1beta2.PlatformConfigTypeAmdvm,
+				AmdVmPlatformConfig: infrastructurev1beta2.AmdVmPlatformConfig{
 					IsSymmetricMultiThreadingEnabled: &falseValue,
 				},
 			},
@@ -2422,13 +2422,13 @@ func TestGetPlatformConfigPropagatesApprovedPlatformFields(t *testing.T) {
 		},
 		{
 			name: "Intel Skylake BM approved knobs",
-			platformConfig: &infrav2exp.PlatformConfig{
-				PlatformConfigType: infrav2exp.PlatformConfigTypeIntelSkylakeBm,
-				IntelSkylakeBmPlatformConfig: infrav2exp.IntelSkylakeBmPlatformConfig{
+			platformConfig: &infrastructurev1beta2.PlatformConfig{
+				PlatformConfigType: infrastructurev1beta2.PlatformConfigTypeIntelSkylakeBm,
+				IntelSkylakeBmPlatformConfig: infrastructurev1beta2.IntelSkylakeBmPlatformConfig{
 					IsSymmetricMultiThreadingEnabled:         &falseValue,
 					IsInputOutputMemoryManagementUnitEnabled: &trueValue,
 					PercentageOfCoresEnabled:                 &percentage,
-					NumaNodesPerSocket:                       infrav2exp.IntelSkylakeBmPlatformConfigNumaNodesPerSocketNps2,
+					NumaNodesPerSocket:                       infrastructurev1beta2.IntelSkylakeBmPlatformConfigNumaNodesPerSocketNps2,
 				},
 			},
 			assert: func(g *WithT, platformConfig core.PlatformConfig) {
@@ -2442,9 +2442,9 @@ func TestGetPlatformConfigPropagatesApprovedPlatformFields(t *testing.T) {
 		},
 		{
 			name: "Intel VM SMT",
-			platformConfig: &infrav2exp.PlatformConfig{
-				PlatformConfigType: infrav2exp.PlatformConfigTypeIntelVm,
-				IntelVmPlatformConfig: infrav2exp.IntelVmPlatformConfig{
+			platformConfig: &infrastructurev1beta2.PlatformConfig{
+				PlatformConfigType: infrastructurev1beta2.PlatformConfigTypeIntelVm,
+				IntelVmPlatformConfig: infrastructurev1beta2.IntelVmPlatformConfig{
 					IsSymmetricMultiThreadingEnabled: &trueValue,
 				},
 			},

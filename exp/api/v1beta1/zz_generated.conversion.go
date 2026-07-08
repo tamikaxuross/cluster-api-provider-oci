@@ -41,46 +41,6 @@ func init() {
 // RegisterConversions adds conversion functions to the given scheme.
 // Public to allow building arbitrary schemes.
 func RegisterConversions(s *runtime.Scheme) error {
-	if err := s.AddGeneratedConversionFunc((*AmdMilanBmPlatformConfig)(nil), (*v1beta2.AmdMilanBmPlatformConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_AmdMilanBmPlatformConfig_To_v1beta2_AmdMilanBmPlatformConfig(a.(*AmdMilanBmPlatformConfig), b.(*v1beta2.AmdMilanBmPlatformConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.AmdMilanBmPlatformConfig)(nil), (*AmdMilanBmPlatformConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_AmdMilanBmPlatformConfig_To_v1beta1_AmdMilanBmPlatformConfig(a.(*v1beta2.AmdMilanBmPlatformConfig), b.(*AmdMilanBmPlatformConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*AmdRomeBmGpuPlatformConfig)(nil), (*v1beta2.AmdRomeBmGpuPlatformConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_AmdRomeBmGpuPlatformConfig_To_v1beta2_AmdRomeBmGpuPlatformConfig(a.(*AmdRomeBmGpuPlatformConfig), b.(*v1beta2.AmdRomeBmGpuPlatformConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.AmdRomeBmGpuPlatformConfig)(nil), (*AmdRomeBmGpuPlatformConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_AmdRomeBmGpuPlatformConfig_To_v1beta1_AmdRomeBmGpuPlatformConfig(a.(*v1beta2.AmdRomeBmGpuPlatformConfig), b.(*AmdRomeBmGpuPlatformConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*AmdRomeBmPlatformConfig)(nil), (*v1beta2.AmdRomeBmPlatformConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_AmdRomeBmPlatformConfig_To_v1beta2_AmdRomeBmPlatformConfig(a.(*AmdRomeBmPlatformConfig), b.(*v1beta2.AmdRomeBmPlatformConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.AmdRomeBmPlatformConfig)(nil), (*AmdRomeBmPlatformConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_AmdRomeBmPlatformConfig_To_v1beta1_AmdRomeBmPlatformConfig(a.(*v1beta2.AmdRomeBmPlatformConfig), b.(*AmdRomeBmPlatformConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*AmdVmPlatformConfig)(nil), (*v1beta2.AmdVmPlatformConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_AmdVmPlatformConfig_To_v1beta2_AmdVmPlatformConfig(a.(*AmdVmPlatformConfig), b.(*v1beta2.AmdVmPlatformConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.AmdVmPlatformConfig)(nil), (*AmdVmPlatformConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_AmdVmPlatformConfig_To_v1beta1_AmdVmPlatformConfig(a.(*v1beta2.AmdVmPlatformConfig), b.(*AmdVmPlatformConfig), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*InstanceConfiguration)(nil), (*v1beta2.InstanceConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_InstanceConfiguration_To_v1beta2_InstanceConfiguration(a.(*InstanceConfiguration), b.(*v1beta2.InstanceConfiguration), scope)
 	}); err != nil {
@@ -111,36 +71,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*IntelIcelakeBmPlatformConfig)(nil), (*v1beta2.IntelIcelakeBmPlatformConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_IntelIcelakeBmPlatformConfig_To_v1beta2_IntelIcelakeBmPlatformConfig(a.(*IntelIcelakeBmPlatformConfig), b.(*v1beta2.IntelIcelakeBmPlatformConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.IntelIcelakeBmPlatformConfig)(nil), (*IntelIcelakeBmPlatformConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_IntelIcelakeBmPlatformConfig_To_v1beta1_IntelIcelakeBmPlatformConfig(a.(*v1beta2.IntelIcelakeBmPlatformConfig), b.(*IntelIcelakeBmPlatformConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*IntelSkylakeBmPlatformConfig)(nil), (*v1beta2.IntelSkylakeBmPlatformConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_IntelSkylakeBmPlatformConfig_To_v1beta2_IntelSkylakeBmPlatformConfig(a.(*IntelSkylakeBmPlatformConfig), b.(*v1beta2.IntelSkylakeBmPlatformConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.IntelSkylakeBmPlatformConfig)(nil), (*IntelSkylakeBmPlatformConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_IntelSkylakeBmPlatformConfig_To_v1beta1_IntelSkylakeBmPlatformConfig(a.(*v1beta2.IntelSkylakeBmPlatformConfig), b.(*IntelSkylakeBmPlatformConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*IntelVmPlatformConfig)(nil), (*v1beta2.IntelVmPlatformConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_IntelVmPlatformConfig_To_v1beta2_IntelVmPlatformConfig(a.(*IntelVmPlatformConfig), b.(*v1beta2.IntelVmPlatformConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.IntelVmPlatformConfig)(nil), (*IntelVmPlatformConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_IntelVmPlatformConfig_To_v1beta1_IntelVmPlatformConfig(a.(*v1beta2.IntelVmPlatformConfig), b.(*IntelVmPlatformConfig), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*KeyValue)(nil), (*v1beta2.KeyValue)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_KeyValue_To_v1beta2_KeyValue(a.(*KeyValue), b.(*v1beta2.KeyValue), scope)
 	}); err != nil {
@@ -168,16 +98,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.LaunchInstanceLicensingConfig)(nil), (*LaunchInstanceLicensingConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_LaunchInstanceLicensingConfig_To_v1beta1_LaunchInstanceLicensingConfig(a.(*v1beta2.LaunchInstanceLicensingConfig), b.(*LaunchInstanceLicensingConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*MachinePoolNetworkDetails)(nil), (*v1beta2.MachinePoolNetworkDetails)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_MachinePoolNetworkDetails_To_v1beta2_MachinePoolNetworkDetails(a.(*MachinePoolNetworkDetails), b.(*v1beta2.MachinePoolNetworkDetails), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.MachinePoolNetworkDetails)(nil), (*MachinePoolNetworkDetails)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_MachinePoolNetworkDetails_To_v1beta1_MachinePoolNetworkDetails(a.(*v1beta2.MachinePoolNetworkDetails), b.(*MachinePoolNetworkDetails), scope)
 	}); err != nil {
 		return err
 	}
@@ -446,16 +366,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*PlatformConfig)(nil), (*v1beta2.PlatformConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_PlatformConfig_To_v1beta2_PlatformConfig(a.(*PlatformConfig), b.(*v1beta2.PlatformConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.PlatformConfig)(nil), (*PlatformConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_PlatformConfig_To_v1beta1_PlatformConfig(a.(*v1beta2.PlatformConfig), b.(*PlatformConfig), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*PodConfig)(nil), (*v1beta2.PodConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_PodConfig_To_v1beta2_PodConfig(a.(*PodConfig), b.(*v1beta2.PodConfig), scope)
 	}); err != nil {
@@ -529,154 +439,22 @@ func RegisterConversions(s *runtime.Scheme) error {
 	return nil
 }
 
-func autoConvert_v1beta1_AmdMilanBmPlatformConfig_To_v1beta2_AmdMilanBmPlatformConfig(in *AmdMilanBmPlatformConfig, out *v1beta2.AmdMilanBmPlatformConfig, s conversion.Scope) error {
-	out.IsSecureBootEnabled = (*bool)(unsafe.Pointer(in.IsSecureBootEnabled))
-	out.IsTrustedPlatformModuleEnabled = (*bool)(unsafe.Pointer(in.IsTrustedPlatformModuleEnabled))
-	out.IsMeasuredBootEnabled = (*bool)(unsafe.Pointer(in.IsMeasuredBootEnabled))
-	out.IsMemoryEncryptionEnabled = (*bool)(unsafe.Pointer(in.IsMemoryEncryptionEnabled))
-	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
-	out.IsAccessControlServiceEnabled = (*bool)(unsafe.Pointer(in.IsAccessControlServiceEnabled))
-	out.AreVirtualInstructionsEnabled = (*bool)(unsafe.Pointer(in.AreVirtualInstructionsEnabled))
-	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
-	out.PercentageOfCoresEnabled = (*int)(unsafe.Pointer(in.PercentageOfCoresEnabled))
-	out.NumaNodesPerSocket = v1beta2.AmdMilanBmPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
-	return nil
-}
-
-// Convert_v1beta1_AmdMilanBmPlatformConfig_To_v1beta2_AmdMilanBmPlatformConfig is an autogenerated conversion function.
-func Convert_v1beta1_AmdMilanBmPlatformConfig_To_v1beta2_AmdMilanBmPlatformConfig(in *AmdMilanBmPlatformConfig, out *v1beta2.AmdMilanBmPlatformConfig, s conversion.Scope) error {
-	return autoConvert_v1beta1_AmdMilanBmPlatformConfig_To_v1beta2_AmdMilanBmPlatformConfig(in, out, s)
-}
-
-func autoConvert_v1beta2_AmdMilanBmPlatformConfig_To_v1beta1_AmdMilanBmPlatformConfig(in *v1beta2.AmdMilanBmPlatformConfig, out *AmdMilanBmPlatformConfig, s conversion.Scope) error {
-	out.IsSecureBootEnabled = (*bool)(unsafe.Pointer(in.IsSecureBootEnabled))
-	out.IsTrustedPlatformModuleEnabled = (*bool)(unsafe.Pointer(in.IsTrustedPlatformModuleEnabled))
-	out.IsMeasuredBootEnabled = (*bool)(unsafe.Pointer(in.IsMeasuredBootEnabled))
-	out.IsMemoryEncryptionEnabled = (*bool)(unsafe.Pointer(in.IsMemoryEncryptionEnabled))
-	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
-	out.IsAccessControlServiceEnabled = (*bool)(unsafe.Pointer(in.IsAccessControlServiceEnabled))
-	out.AreVirtualInstructionsEnabled = (*bool)(unsafe.Pointer(in.AreVirtualInstructionsEnabled))
-	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
-	out.PercentageOfCoresEnabled = (*int)(unsafe.Pointer(in.PercentageOfCoresEnabled))
-	out.NumaNodesPerSocket = AmdMilanBmPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
-	return nil
-}
-
-// Convert_v1beta2_AmdMilanBmPlatformConfig_To_v1beta1_AmdMilanBmPlatformConfig is an autogenerated conversion function.
-func Convert_v1beta2_AmdMilanBmPlatformConfig_To_v1beta1_AmdMilanBmPlatformConfig(in *v1beta2.AmdMilanBmPlatformConfig, out *AmdMilanBmPlatformConfig, s conversion.Scope) error {
-	return autoConvert_v1beta2_AmdMilanBmPlatformConfig_To_v1beta1_AmdMilanBmPlatformConfig(in, out, s)
-}
-
-func autoConvert_v1beta1_AmdRomeBmGpuPlatformConfig_To_v1beta2_AmdRomeBmGpuPlatformConfig(in *AmdRomeBmGpuPlatformConfig, out *v1beta2.AmdRomeBmGpuPlatformConfig, s conversion.Scope) error {
-	out.IsSecureBootEnabled = (*bool)(unsafe.Pointer(in.IsSecureBootEnabled))
-	out.IsTrustedPlatformModuleEnabled = (*bool)(unsafe.Pointer(in.IsTrustedPlatformModuleEnabled))
-	out.IsMeasuredBootEnabled = (*bool)(unsafe.Pointer(in.IsMeasuredBootEnabled))
-	out.IsMemoryEncryptionEnabled = (*bool)(unsafe.Pointer(in.IsMemoryEncryptionEnabled))
-	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
-	out.IsAccessControlServiceEnabled = (*bool)(unsafe.Pointer(in.IsAccessControlServiceEnabled))
-	out.AreVirtualInstructionsEnabled = (*bool)(unsafe.Pointer(in.AreVirtualInstructionsEnabled))
-	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
-	out.NumaNodesPerSocket = v1beta2.AmdRomeBmGpuPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
-	return nil
-}
-
-// Convert_v1beta1_AmdRomeBmGpuPlatformConfig_To_v1beta2_AmdRomeBmGpuPlatformConfig is an autogenerated conversion function.
-func Convert_v1beta1_AmdRomeBmGpuPlatformConfig_To_v1beta2_AmdRomeBmGpuPlatformConfig(in *AmdRomeBmGpuPlatformConfig, out *v1beta2.AmdRomeBmGpuPlatformConfig, s conversion.Scope) error {
-	return autoConvert_v1beta1_AmdRomeBmGpuPlatformConfig_To_v1beta2_AmdRomeBmGpuPlatformConfig(in, out, s)
-}
-
-func autoConvert_v1beta2_AmdRomeBmGpuPlatformConfig_To_v1beta1_AmdRomeBmGpuPlatformConfig(in *v1beta2.AmdRomeBmGpuPlatformConfig, out *AmdRomeBmGpuPlatformConfig, s conversion.Scope) error {
-	out.IsSecureBootEnabled = (*bool)(unsafe.Pointer(in.IsSecureBootEnabled))
-	out.IsTrustedPlatformModuleEnabled = (*bool)(unsafe.Pointer(in.IsTrustedPlatformModuleEnabled))
-	out.IsMeasuredBootEnabled = (*bool)(unsafe.Pointer(in.IsMeasuredBootEnabled))
-	out.IsMemoryEncryptionEnabled = (*bool)(unsafe.Pointer(in.IsMemoryEncryptionEnabled))
-	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
-	out.IsAccessControlServiceEnabled = (*bool)(unsafe.Pointer(in.IsAccessControlServiceEnabled))
-	out.AreVirtualInstructionsEnabled = (*bool)(unsafe.Pointer(in.AreVirtualInstructionsEnabled))
-	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
-	out.NumaNodesPerSocket = AmdRomeBmGpuPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
-	return nil
-}
-
-// Convert_v1beta2_AmdRomeBmGpuPlatformConfig_To_v1beta1_AmdRomeBmGpuPlatformConfig is an autogenerated conversion function.
-func Convert_v1beta2_AmdRomeBmGpuPlatformConfig_To_v1beta1_AmdRomeBmGpuPlatformConfig(in *v1beta2.AmdRomeBmGpuPlatformConfig, out *AmdRomeBmGpuPlatformConfig, s conversion.Scope) error {
-	return autoConvert_v1beta2_AmdRomeBmGpuPlatformConfig_To_v1beta1_AmdRomeBmGpuPlatformConfig(in, out, s)
-}
-
-func autoConvert_v1beta1_AmdRomeBmPlatformConfig_To_v1beta2_AmdRomeBmPlatformConfig(in *AmdRomeBmPlatformConfig, out *v1beta2.AmdRomeBmPlatformConfig, s conversion.Scope) error {
-	out.IsSecureBootEnabled = (*bool)(unsafe.Pointer(in.IsSecureBootEnabled))
-	out.IsTrustedPlatformModuleEnabled = (*bool)(unsafe.Pointer(in.IsTrustedPlatformModuleEnabled))
-	out.IsMeasuredBootEnabled = (*bool)(unsafe.Pointer(in.IsMeasuredBootEnabled))
-	out.IsMemoryEncryptionEnabled = (*bool)(unsafe.Pointer(in.IsMemoryEncryptionEnabled))
-	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
-	out.IsAccessControlServiceEnabled = (*bool)(unsafe.Pointer(in.IsAccessControlServiceEnabled))
-	out.AreVirtualInstructionsEnabled = (*bool)(unsafe.Pointer(in.AreVirtualInstructionsEnabled))
-	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
-	out.PercentageOfCoresEnabled = (*int)(unsafe.Pointer(in.PercentageOfCoresEnabled))
-	out.NumaNodesPerSocket = v1beta2.AmdRomeBmPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
-	return nil
-}
-
-// Convert_v1beta1_AmdRomeBmPlatformConfig_To_v1beta2_AmdRomeBmPlatformConfig is an autogenerated conversion function.
-func Convert_v1beta1_AmdRomeBmPlatformConfig_To_v1beta2_AmdRomeBmPlatformConfig(in *AmdRomeBmPlatformConfig, out *v1beta2.AmdRomeBmPlatformConfig, s conversion.Scope) error {
-	return autoConvert_v1beta1_AmdRomeBmPlatformConfig_To_v1beta2_AmdRomeBmPlatformConfig(in, out, s)
-}
-
-func autoConvert_v1beta2_AmdRomeBmPlatformConfig_To_v1beta1_AmdRomeBmPlatformConfig(in *v1beta2.AmdRomeBmPlatformConfig, out *AmdRomeBmPlatformConfig, s conversion.Scope) error {
-	out.IsSecureBootEnabled = (*bool)(unsafe.Pointer(in.IsSecureBootEnabled))
-	out.IsTrustedPlatformModuleEnabled = (*bool)(unsafe.Pointer(in.IsTrustedPlatformModuleEnabled))
-	out.IsMeasuredBootEnabled = (*bool)(unsafe.Pointer(in.IsMeasuredBootEnabled))
-	out.IsMemoryEncryptionEnabled = (*bool)(unsafe.Pointer(in.IsMemoryEncryptionEnabled))
-	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
-	out.IsAccessControlServiceEnabled = (*bool)(unsafe.Pointer(in.IsAccessControlServiceEnabled))
-	out.AreVirtualInstructionsEnabled = (*bool)(unsafe.Pointer(in.AreVirtualInstructionsEnabled))
-	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
-	out.PercentageOfCoresEnabled = (*int)(unsafe.Pointer(in.PercentageOfCoresEnabled))
-	out.NumaNodesPerSocket = AmdRomeBmPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
-	return nil
-}
-
-// Convert_v1beta2_AmdRomeBmPlatformConfig_To_v1beta1_AmdRomeBmPlatformConfig is an autogenerated conversion function.
-func Convert_v1beta2_AmdRomeBmPlatformConfig_To_v1beta1_AmdRomeBmPlatformConfig(in *v1beta2.AmdRomeBmPlatformConfig, out *AmdRomeBmPlatformConfig, s conversion.Scope) error {
-	return autoConvert_v1beta2_AmdRomeBmPlatformConfig_To_v1beta1_AmdRomeBmPlatformConfig(in, out, s)
-}
-
-func autoConvert_v1beta1_AmdVmPlatformConfig_To_v1beta2_AmdVmPlatformConfig(in *AmdVmPlatformConfig, out *v1beta2.AmdVmPlatformConfig, s conversion.Scope) error {
-	out.IsSecureBootEnabled = (*bool)(unsafe.Pointer(in.IsSecureBootEnabled))
-	out.IsTrustedPlatformModuleEnabled = (*bool)(unsafe.Pointer(in.IsTrustedPlatformModuleEnabled))
-	out.IsMeasuredBootEnabled = (*bool)(unsafe.Pointer(in.IsMeasuredBootEnabled))
-	out.IsMemoryEncryptionEnabled = (*bool)(unsafe.Pointer(in.IsMemoryEncryptionEnabled))
-	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
-	return nil
-}
-
-// Convert_v1beta1_AmdVmPlatformConfig_To_v1beta2_AmdVmPlatformConfig is an autogenerated conversion function.
-func Convert_v1beta1_AmdVmPlatformConfig_To_v1beta2_AmdVmPlatformConfig(in *AmdVmPlatformConfig, out *v1beta2.AmdVmPlatformConfig, s conversion.Scope) error {
-	return autoConvert_v1beta1_AmdVmPlatformConfig_To_v1beta2_AmdVmPlatformConfig(in, out, s)
-}
-
-func autoConvert_v1beta2_AmdVmPlatformConfig_To_v1beta1_AmdVmPlatformConfig(in *v1beta2.AmdVmPlatformConfig, out *AmdVmPlatformConfig, s conversion.Scope) error {
-	out.IsSecureBootEnabled = (*bool)(unsafe.Pointer(in.IsSecureBootEnabled))
-	out.IsTrustedPlatformModuleEnabled = (*bool)(unsafe.Pointer(in.IsTrustedPlatformModuleEnabled))
-	out.IsMeasuredBootEnabled = (*bool)(unsafe.Pointer(in.IsMeasuredBootEnabled))
-	out.IsMemoryEncryptionEnabled = (*bool)(unsafe.Pointer(in.IsMemoryEncryptionEnabled))
-	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
-	return nil
-}
-
-// Convert_v1beta2_AmdVmPlatformConfig_To_v1beta1_AmdVmPlatformConfig is an autogenerated conversion function.
-func Convert_v1beta2_AmdVmPlatformConfig_To_v1beta1_AmdVmPlatformConfig(in *v1beta2.AmdVmPlatformConfig, out *AmdVmPlatformConfig, s conversion.Scope) error {
-	return autoConvert_v1beta2_AmdVmPlatformConfig_To_v1beta1_AmdVmPlatformConfig(in, out, s)
-}
-
 func autoConvert_v1beta1_InstanceConfiguration_To_v1beta2_InstanceConfiguration(in *InstanceConfiguration, out *v1beta2.InstanceConfiguration, s conversion.Scope) error {
 	out.InstanceConfigurationId = (*string)(unsafe.Pointer(in.InstanceConfigurationId))
 	out.Shape = (*string)(unsafe.Pointer(in.Shape))
 	out.ShapeConfig = (*v1beta2.ShapeConfig)(unsafe.Pointer(in.ShapeConfig))
 	out.FreeformTags = *(*map[string]string)(unsafe.Pointer(&in.FreeformTags))
 	out.DefinedTags = *(*map[string]map[string]string)(unsafe.Pointer(&in.DefinedTags))
-	out.InstanceVnicConfiguration = (*v1beta2.MachinePoolNetworkDetails)(unsafe.Pointer(in.InstanceVnicConfiguration))
-	out.PlatformConfig = (*v1beta2.PlatformConfig)(unsafe.Pointer(in.PlatformConfig))
+	if in.InstanceVnicConfiguration != nil {
+		in, out := &in.InstanceVnicConfiguration, &out.InstanceVnicConfiguration
+		*out = new(apiv1beta2.NetworkDetails)
+		if err := apiv1beta1.Convert_v1beta1_NetworkDetails_To_v1beta2_NetworkDetails(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.InstanceVnicConfiguration = nil
+	}
+	out.PlatformConfig = (*apiv1beta2.PlatformConfig)(unsafe.Pointer(in.PlatformConfig))
 	out.AgentConfig = (*apiv1beta2.LaunchInstanceAgentConfig)(unsafe.Pointer(in.AgentConfig))
 	out.PreemptibleInstanceConfig = (*apiv1beta2.PreemptibleInstanceConfig)(unsafe.Pointer(in.PreemptibleInstanceConfig))
 	out.AvailabilityConfig = (*apiv1beta2.LaunchInstanceAvailabilityConfig)(unsafe.Pointer(in.AvailabilityConfig))
@@ -707,8 +485,16 @@ func autoConvert_v1beta2_InstanceConfiguration_To_v1beta1_InstanceConfiguration(
 	out.ShapeConfig = (*ShapeConfig)(unsafe.Pointer(in.ShapeConfig))
 	out.FreeformTags = *(*map[string]string)(unsafe.Pointer(&in.FreeformTags))
 	out.DefinedTags = *(*map[string]map[string]string)(unsafe.Pointer(&in.DefinedTags))
-	out.InstanceVnicConfiguration = (*MachinePoolNetworkDetails)(unsafe.Pointer(in.InstanceVnicConfiguration))
-	out.PlatformConfig = (*PlatformConfig)(unsafe.Pointer(in.PlatformConfig))
+	if in.InstanceVnicConfiguration != nil {
+		in, out := &in.InstanceVnicConfiguration, &out.InstanceVnicConfiguration
+		*out = new(apiv1beta1.NetworkDetails)
+		if err := Convert_v1beta2_NetworkDetails_To_v1beta1_NetworkDetails(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.InstanceVnicConfiguration = nil
+	}
+	out.PlatformConfig = (*apiv1beta1.PlatformConfig)(unsafe.Pointer(in.PlatformConfig))
 	out.AgentConfig = (*apiv1beta1.LaunchInstanceAgentConfig)(unsafe.Pointer(in.AgentConfig))
 	out.PreemptibleInstanceConfig = (*apiv1beta1.PreemptibleInstanceConfig)(unsafe.Pointer(in.PreemptibleInstanceConfig))
 	out.AvailabilityConfig = (*apiv1beta1.LaunchInstanceAvailabilityConfig)(unsafe.Pointer(in.AvailabilityConfig))
@@ -781,102 +567,6 @@ func Convert_v1beta2_InstanceSourceViaImageConfig_To_v1beta1_InstanceSourceViaIm
 	return autoConvert_v1beta2_InstanceSourceViaImageConfig_To_v1beta1_InstanceSourceViaImageConfig(in, out, s)
 }
 
-func autoConvert_v1beta1_IntelIcelakeBmPlatformConfig_To_v1beta2_IntelIcelakeBmPlatformConfig(in *IntelIcelakeBmPlatformConfig, out *v1beta2.IntelIcelakeBmPlatformConfig, s conversion.Scope) error {
-	out.IsSecureBootEnabled = (*bool)(unsafe.Pointer(in.IsSecureBootEnabled))
-	out.IsTrustedPlatformModuleEnabled = (*bool)(unsafe.Pointer(in.IsTrustedPlatformModuleEnabled))
-	out.IsMeasuredBootEnabled = (*bool)(unsafe.Pointer(in.IsMeasuredBootEnabled))
-	out.IsMemoryEncryptionEnabled = (*bool)(unsafe.Pointer(in.IsMemoryEncryptionEnabled))
-	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
-	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
-	out.PercentageOfCoresEnabled = (*int)(unsafe.Pointer(in.PercentageOfCoresEnabled))
-	out.NumaNodesPerSocket = v1beta2.IntelIcelakeBmPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
-	return nil
-}
-
-// Convert_v1beta1_IntelIcelakeBmPlatformConfig_To_v1beta2_IntelIcelakeBmPlatformConfig is an autogenerated conversion function.
-func Convert_v1beta1_IntelIcelakeBmPlatformConfig_To_v1beta2_IntelIcelakeBmPlatformConfig(in *IntelIcelakeBmPlatformConfig, out *v1beta2.IntelIcelakeBmPlatformConfig, s conversion.Scope) error {
-	return autoConvert_v1beta1_IntelIcelakeBmPlatformConfig_To_v1beta2_IntelIcelakeBmPlatformConfig(in, out, s)
-}
-
-func autoConvert_v1beta2_IntelIcelakeBmPlatformConfig_To_v1beta1_IntelIcelakeBmPlatformConfig(in *v1beta2.IntelIcelakeBmPlatformConfig, out *IntelIcelakeBmPlatformConfig, s conversion.Scope) error {
-	out.IsSecureBootEnabled = (*bool)(unsafe.Pointer(in.IsSecureBootEnabled))
-	out.IsTrustedPlatformModuleEnabled = (*bool)(unsafe.Pointer(in.IsTrustedPlatformModuleEnabled))
-	out.IsMeasuredBootEnabled = (*bool)(unsafe.Pointer(in.IsMeasuredBootEnabled))
-	out.IsMemoryEncryptionEnabled = (*bool)(unsafe.Pointer(in.IsMemoryEncryptionEnabled))
-	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
-	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
-	out.PercentageOfCoresEnabled = (*int)(unsafe.Pointer(in.PercentageOfCoresEnabled))
-	out.NumaNodesPerSocket = IntelIcelakeBmPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
-	return nil
-}
-
-// Convert_v1beta2_IntelIcelakeBmPlatformConfig_To_v1beta1_IntelIcelakeBmPlatformConfig is an autogenerated conversion function.
-func Convert_v1beta2_IntelIcelakeBmPlatformConfig_To_v1beta1_IntelIcelakeBmPlatformConfig(in *v1beta2.IntelIcelakeBmPlatformConfig, out *IntelIcelakeBmPlatformConfig, s conversion.Scope) error {
-	return autoConvert_v1beta2_IntelIcelakeBmPlatformConfig_To_v1beta1_IntelIcelakeBmPlatformConfig(in, out, s)
-}
-
-func autoConvert_v1beta1_IntelSkylakeBmPlatformConfig_To_v1beta2_IntelSkylakeBmPlatformConfig(in *IntelSkylakeBmPlatformConfig, out *v1beta2.IntelSkylakeBmPlatformConfig, s conversion.Scope) error {
-	out.IsSecureBootEnabled = (*bool)(unsafe.Pointer(in.IsSecureBootEnabled))
-	out.IsTrustedPlatformModuleEnabled = (*bool)(unsafe.Pointer(in.IsTrustedPlatformModuleEnabled))
-	out.IsMeasuredBootEnabled = (*bool)(unsafe.Pointer(in.IsMeasuredBootEnabled))
-	out.IsMemoryEncryptionEnabled = (*bool)(unsafe.Pointer(in.IsMemoryEncryptionEnabled))
-	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
-	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
-	out.PercentageOfCoresEnabled = (*int)(unsafe.Pointer(in.PercentageOfCoresEnabled))
-	out.NumaNodesPerSocket = v1beta2.IntelSkylakeBmPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
-	return nil
-}
-
-// Convert_v1beta1_IntelSkylakeBmPlatformConfig_To_v1beta2_IntelSkylakeBmPlatformConfig is an autogenerated conversion function.
-func Convert_v1beta1_IntelSkylakeBmPlatformConfig_To_v1beta2_IntelSkylakeBmPlatformConfig(in *IntelSkylakeBmPlatformConfig, out *v1beta2.IntelSkylakeBmPlatformConfig, s conversion.Scope) error {
-	return autoConvert_v1beta1_IntelSkylakeBmPlatformConfig_To_v1beta2_IntelSkylakeBmPlatformConfig(in, out, s)
-}
-
-func autoConvert_v1beta2_IntelSkylakeBmPlatformConfig_To_v1beta1_IntelSkylakeBmPlatformConfig(in *v1beta2.IntelSkylakeBmPlatformConfig, out *IntelSkylakeBmPlatformConfig, s conversion.Scope) error {
-	out.IsSecureBootEnabled = (*bool)(unsafe.Pointer(in.IsSecureBootEnabled))
-	out.IsTrustedPlatformModuleEnabled = (*bool)(unsafe.Pointer(in.IsTrustedPlatformModuleEnabled))
-	out.IsMeasuredBootEnabled = (*bool)(unsafe.Pointer(in.IsMeasuredBootEnabled))
-	out.IsMemoryEncryptionEnabled = (*bool)(unsafe.Pointer(in.IsMemoryEncryptionEnabled))
-	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
-	out.IsInputOutputMemoryManagementUnitEnabled = (*bool)(unsafe.Pointer(in.IsInputOutputMemoryManagementUnitEnabled))
-	out.PercentageOfCoresEnabled = (*int)(unsafe.Pointer(in.PercentageOfCoresEnabled))
-	out.NumaNodesPerSocket = IntelSkylakeBmPlatformConfigNumaNodesPerSocketEnum(in.NumaNodesPerSocket)
-	return nil
-}
-
-// Convert_v1beta2_IntelSkylakeBmPlatformConfig_To_v1beta1_IntelSkylakeBmPlatformConfig is an autogenerated conversion function.
-func Convert_v1beta2_IntelSkylakeBmPlatformConfig_To_v1beta1_IntelSkylakeBmPlatformConfig(in *v1beta2.IntelSkylakeBmPlatformConfig, out *IntelSkylakeBmPlatformConfig, s conversion.Scope) error {
-	return autoConvert_v1beta2_IntelSkylakeBmPlatformConfig_To_v1beta1_IntelSkylakeBmPlatformConfig(in, out, s)
-}
-
-func autoConvert_v1beta1_IntelVmPlatformConfig_To_v1beta2_IntelVmPlatformConfig(in *IntelVmPlatformConfig, out *v1beta2.IntelVmPlatformConfig, s conversion.Scope) error {
-	out.IsSecureBootEnabled = (*bool)(unsafe.Pointer(in.IsSecureBootEnabled))
-	out.IsTrustedPlatformModuleEnabled = (*bool)(unsafe.Pointer(in.IsTrustedPlatformModuleEnabled))
-	out.IsMeasuredBootEnabled = (*bool)(unsafe.Pointer(in.IsMeasuredBootEnabled))
-	out.IsMemoryEncryptionEnabled = (*bool)(unsafe.Pointer(in.IsMemoryEncryptionEnabled))
-	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
-	return nil
-}
-
-// Convert_v1beta1_IntelVmPlatformConfig_To_v1beta2_IntelVmPlatformConfig is an autogenerated conversion function.
-func Convert_v1beta1_IntelVmPlatformConfig_To_v1beta2_IntelVmPlatformConfig(in *IntelVmPlatformConfig, out *v1beta2.IntelVmPlatformConfig, s conversion.Scope) error {
-	return autoConvert_v1beta1_IntelVmPlatformConfig_To_v1beta2_IntelVmPlatformConfig(in, out, s)
-}
-
-func autoConvert_v1beta2_IntelVmPlatformConfig_To_v1beta1_IntelVmPlatformConfig(in *v1beta2.IntelVmPlatformConfig, out *IntelVmPlatformConfig, s conversion.Scope) error {
-	out.IsSecureBootEnabled = (*bool)(unsafe.Pointer(in.IsSecureBootEnabled))
-	out.IsTrustedPlatformModuleEnabled = (*bool)(unsafe.Pointer(in.IsTrustedPlatformModuleEnabled))
-	out.IsMeasuredBootEnabled = (*bool)(unsafe.Pointer(in.IsMeasuredBootEnabled))
-	out.IsMemoryEncryptionEnabled = (*bool)(unsafe.Pointer(in.IsMemoryEncryptionEnabled))
-	out.IsSymmetricMultiThreadingEnabled = (*bool)(unsafe.Pointer(in.IsSymmetricMultiThreadingEnabled))
-	return nil
-}
-
-// Convert_v1beta2_IntelVmPlatformConfig_To_v1beta1_IntelVmPlatformConfig is an autogenerated conversion function.
-func Convert_v1beta2_IntelVmPlatformConfig_To_v1beta1_IntelVmPlatformConfig(in *v1beta2.IntelVmPlatformConfig, out *IntelVmPlatformConfig, s conversion.Scope) error {
-	return autoConvert_v1beta2_IntelVmPlatformConfig_To_v1beta1_IntelVmPlatformConfig(in, out, s)
-}
-
 func autoConvert_v1beta1_KeyValue_To_v1beta2_KeyValue(in *KeyValue, out *v1beta2.KeyValue, s conversion.Scope) error {
 	out.Key = (*string)(unsafe.Pointer(in.Key))
 	out.Value = (*string)(unsafe.Pointer(in.Value))
@@ -941,46 +631,6 @@ func autoConvert_v1beta2_LaunchInstanceLicensingConfig_To_v1beta1_LaunchInstance
 // Convert_v1beta2_LaunchInstanceLicensingConfig_To_v1beta1_LaunchInstanceLicensingConfig is an autogenerated conversion function.
 func Convert_v1beta2_LaunchInstanceLicensingConfig_To_v1beta1_LaunchInstanceLicensingConfig(in *v1beta2.LaunchInstanceLicensingConfig, out *LaunchInstanceLicensingConfig, s conversion.Scope) error {
 	return autoConvert_v1beta2_LaunchInstanceLicensingConfig_To_v1beta1_LaunchInstanceLicensingConfig(in, out, s)
-}
-
-func autoConvert_v1beta1_MachinePoolNetworkDetails_To_v1beta2_MachinePoolNetworkDetails(in *MachinePoolNetworkDetails, out *v1beta2.MachinePoolNetworkDetails, s conversion.Scope) error {
-	out.SubnetId = (*string)(unsafe.Pointer(in.SubnetId))
-	out.AssignIpv6Ip = in.AssignIpv6Ip
-	out.AssignPublicIp = in.AssignPublicIp
-	out.SubnetName = in.SubnetName
-	out.SkipSourceDestCheck = (*bool)(unsafe.Pointer(in.SkipSourceDestCheck))
-	out.NSGId = (*string)(unsafe.Pointer(in.NSGId))
-	out.NSGIds = *(*[]string)(unsafe.Pointer(&in.NSGIds))
-	out.NsgNames = *(*[]string)(unsafe.Pointer(&in.NsgNames))
-	out.HostnameLabel = (*string)(unsafe.Pointer(in.HostnameLabel))
-	out.DisplayName = (*string)(unsafe.Pointer(in.DisplayName))
-	out.AssignPrivateDnsRecord = (*bool)(unsafe.Pointer(in.AssignPrivateDnsRecord))
-	return nil
-}
-
-// Convert_v1beta1_MachinePoolNetworkDetails_To_v1beta2_MachinePoolNetworkDetails is an autogenerated conversion function.
-func Convert_v1beta1_MachinePoolNetworkDetails_To_v1beta2_MachinePoolNetworkDetails(in *MachinePoolNetworkDetails, out *v1beta2.MachinePoolNetworkDetails, s conversion.Scope) error {
-	return autoConvert_v1beta1_MachinePoolNetworkDetails_To_v1beta2_MachinePoolNetworkDetails(in, out, s)
-}
-
-func autoConvert_v1beta2_MachinePoolNetworkDetails_To_v1beta1_MachinePoolNetworkDetails(in *v1beta2.MachinePoolNetworkDetails, out *MachinePoolNetworkDetails, s conversion.Scope) error {
-	out.SubnetId = (*string)(unsafe.Pointer(in.SubnetId))
-	out.AssignIpv6Ip = in.AssignIpv6Ip
-	out.AssignPublicIp = in.AssignPublicIp
-	out.SubnetName = in.SubnetName
-	out.SkipSourceDestCheck = (*bool)(unsafe.Pointer(in.SkipSourceDestCheck))
-	out.NSGId = (*string)(unsafe.Pointer(in.NSGId))
-	out.NSGIds = *(*[]string)(unsafe.Pointer(&in.NSGIds))
-	out.NsgNames = *(*[]string)(unsafe.Pointer(&in.NsgNames))
-	out.HostnameLabel = (*string)(unsafe.Pointer(in.HostnameLabel))
-	out.DisplayName = (*string)(unsafe.Pointer(in.DisplayName))
-	out.AssignPrivateDnsRecord = (*bool)(unsafe.Pointer(in.AssignPrivateDnsRecord))
-	return nil
-}
-
-// Convert_v1beta2_MachinePoolNetworkDetails_To_v1beta1_MachinePoolNetworkDetails is an autogenerated conversion function.
-func Convert_v1beta2_MachinePoolNetworkDetails_To_v1beta1_MachinePoolNetworkDetails(in *v1beta2.MachinePoolNetworkDetails, out *MachinePoolNetworkDetails, s conversion.Scope) error {
-	return autoConvert_v1beta2_MachinePoolNetworkDetails_To_v1beta1_MachinePoolNetworkDetails(in, out, s)
 }
 
 func autoConvert_v1beta1_NodeEvictionNodePoolSettings_To_v1beta2_NodeEvictionNodePoolSettings(in *NodeEvictionNodePoolSettings, out *v1beta2.NodeEvictionNodePoolSettings, s conversion.Scope) error {
@@ -1137,7 +787,17 @@ func Convert_v1beta2_OCIMachinePool_To_v1beta1_OCIMachinePool(in *v1beta2.OCIMac
 
 func autoConvert_v1beta1_OCIMachinePoolList_To_v1beta2_OCIMachinePoolList(in *OCIMachinePoolList, out *v1beta2.OCIMachinePoolList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.OCIMachinePool)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.OCIMachinePool, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_OCIMachinePool_To_v1beta2_OCIMachinePool(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1148,7 +808,17 @@ func Convert_v1beta1_OCIMachinePoolList_To_v1beta2_OCIMachinePoolList(in *OCIMac
 
 func autoConvert_v1beta2_OCIMachinePoolList_To_v1beta1_OCIMachinePoolList(in *v1beta2.OCIMachinePoolList, out *OCIMachinePoolList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]OCIMachinePool)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]OCIMachinePool, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_OCIMachinePool_To_v1beta1_OCIMachinePool(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1757,68 +1427,6 @@ func autoConvert_v1beta2_PlacementDetails_To_v1beta1_PlacementDetails(in *v1beta
 // Convert_v1beta2_PlacementDetails_To_v1beta1_PlacementDetails is an autogenerated conversion function.
 func Convert_v1beta2_PlacementDetails_To_v1beta1_PlacementDetails(in *v1beta2.PlacementDetails, out *PlacementDetails, s conversion.Scope) error {
 	return autoConvert_v1beta2_PlacementDetails_To_v1beta1_PlacementDetails(in, out, s)
-}
-
-func autoConvert_v1beta1_PlatformConfig_To_v1beta2_PlatformConfig(in *PlatformConfig, out *v1beta2.PlatformConfig, s conversion.Scope) error {
-	out.PlatformConfigType = v1beta2.PlatformConfigTypeEnum(in.PlatformConfigType)
-	if err := Convert_v1beta1_AmdMilanBmPlatformConfig_To_v1beta2_AmdMilanBmPlatformConfig(&in.AmdMilanBmPlatformConfig, &out.AmdMilanBmPlatformConfig, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta1_AmdRomeBmPlatformConfig_To_v1beta2_AmdRomeBmPlatformConfig(&in.AmdRomeBmPlatformConfig, &out.AmdRomeBmPlatformConfig, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta1_IntelSkylakeBmPlatformConfig_To_v1beta2_IntelSkylakeBmPlatformConfig(&in.IntelSkylakeBmPlatformConfig, &out.IntelSkylakeBmPlatformConfig, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta1_IntelIcelakeBmPlatformConfig_To_v1beta2_IntelIcelakeBmPlatformConfig(&in.IntelIcelakeBmPlatformConfig, &out.IntelIcelakeBmPlatformConfig, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta1_AmdRomeBmGpuPlatformConfig_To_v1beta2_AmdRomeBmGpuPlatformConfig(&in.AmdRomeBmGpuPlatformConfig, &out.AmdRomeBmGpuPlatformConfig, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta1_IntelVmPlatformConfig_To_v1beta2_IntelVmPlatformConfig(&in.IntelVmPlatformConfig, &out.IntelVmPlatformConfig, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta1_AmdVmPlatformConfig_To_v1beta2_AmdVmPlatformConfig(&in.AmdVmPlatformConfig, &out.AmdVmPlatformConfig, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1beta1_PlatformConfig_To_v1beta2_PlatformConfig is an autogenerated conversion function.
-func Convert_v1beta1_PlatformConfig_To_v1beta2_PlatformConfig(in *PlatformConfig, out *v1beta2.PlatformConfig, s conversion.Scope) error {
-	return autoConvert_v1beta1_PlatformConfig_To_v1beta2_PlatformConfig(in, out, s)
-}
-
-func autoConvert_v1beta2_PlatformConfig_To_v1beta1_PlatformConfig(in *v1beta2.PlatformConfig, out *PlatformConfig, s conversion.Scope) error {
-	out.PlatformConfigType = PlatformConfigTypeEnum(in.PlatformConfigType)
-	if err := Convert_v1beta2_AmdMilanBmPlatformConfig_To_v1beta1_AmdMilanBmPlatformConfig(&in.AmdMilanBmPlatformConfig, &out.AmdMilanBmPlatformConfig, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta2_AmdRomeBmPlatformConfig_To_v1beta1_AmdRomeBmPlatformConfig(&in.AmdRomeBmPlatformConfig, &out.AmdRomeBmPlatformConfig, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta2_IntelSkylakeBmPlatformConfig_To_v1beta1_IntelSkylakeBmPlatformConfig(&in.IntelSkylakeBmPlatformConfig, &out.IntelSkylakeBmPlatformConfig, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta2_IntelIcelakeBmPlatformConfig_To_v1beta1_IntelIcelakeBmPlatformConfig(&in.IntelIcelakeBmPlatformConfig, &out.IntelIcelakeBmPlatformConfig, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta2_AmdRomeBmGpuPlatformConfig_To_v1beta1_AmdRomeBmGpuPlatformConfig(&in.AmdRomeBmGpuPlatformConfig, &out.AmdRomeBmGpuPlatformConfig, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta2_IntelVmPlatformConfig_To_v1beta1_IntelVmPlatformConfig(&in.IntelVmPlatformConfig, &out.IntelVmPlatformConfig, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta2_AmdVmPlatformConfig_To_v1beta1_AmdVmPlatformConfig(&in.AmdVmPlatformConfig, &out.AmdVmPlatformConfig, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1beta2_PlatformConfig_To_v1beta1_PlatformConfig is an autogenerated conversion function.
-func Convert_v1beta2_PlatformConfig_To_v1beta1_PlatformConfig(in *v1beta2.PlatformConfig, out *PlatformConfig, s conversion.Scope) error {
-	return autoConvert_v1beta2_PlatformConfig_To_v1beta1_PlatformConfig(in, out, s)
 }
 
 func autoConvert_v1beta1_PodConfig_To_v1beta2_PodConfig(in *PodConfig, out *v1beta2.PodConfig, s conversion.Scope) error {

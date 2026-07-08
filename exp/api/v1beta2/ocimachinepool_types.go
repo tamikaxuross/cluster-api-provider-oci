@@ -79,10 +79,10 @@ type InstanceConfiguration struct {
 	// +optional
 	DefinedTags map[string]map[string]string `json:"definedTags,omitempty"`
 
-	InstanceVnicConfiguration *MachinePoolNetworkDetails `json:"instanceVnicConfiguration,omitempty"`
+	InstanceVnicConfiguration *infrastructurev1beta2.NetworkDetails `json:"instanceVnicConfiguration,omitempty"`
 
 	// PlatformConfig defines the platform config parameters
-	PlatformConfig *PlatformConfig `json:"platformConfig,omitempty"`
+	PlatformConfig *infrastructurev1beta2.PlatformConfig `json:"platformConfig,omitempty"`
 
 	// AgentConfig defines the options for the Oracle Cloud Agent software running on the instance.
 	AgentConfig *infrastructurev1beta2.LaunchInstanceAgentConfig `json:"agentConfig,omitempty"`
@@ -194,45 +194,6 @@ type ShapeConfig struct {
 	Nvmes *int `json:"nvmes,omitempty"`
 }
 
-// MachinePoolNetworkDetails defines the configuration options for the MachinePool primary VNIC.
-type MachinePoolNetworkDetails struct {
-	// SubnetId defines the ID of the subnet to use. This parameter takes priority over SubnetName.
-	SubnetId *string `json:"subnetId,omitempty"`
-
-	// AssignIPv6 determines whether to assign an IPv6 address to the instance.
-	// +optional
-	AssignIpv6Ip bool `json:"assignIpv6Ip,omitempty"`
-
-	// AssignPublicIp defines whether the instance should have a public IP address.
-	AssignPublicIp bool `json:"assignPublicIp,omitempty"`
-
-	// SubnetName defines the subnet name to use for the VNIC.
-	SubnetName string `json:"subnetName,omitempty"`
-
-	// SkipSourceDestCheck defines whether the source/destination check is disabled on the VNIC.
-	SkipSourceDestCheck *bool `json:"skipSourceDestCheck,omitempty"`
-
-	// NSGId defines the ID of the NSG to use. This parameter takes priority over NsgNames.
-	// Deprecated, please use MachinePoolNetworkDetails.NSGIds.
-	NSGId *string `json:"nsgId,omitempty"`
-
-	// NSGIds defines the list of NSG IDs to use. This parameter takes priority over NsgNames.
-	NSGIds []string `json:"nsgIds,omitempty"`
-
-	// NsgNames defines a list of the nsg names of the network security groups (NSGs) to add the VNIC to.
-	NsgNames []string `json:"nsgNames,omitempty"`
-
-	// HostnameLabel defines the hostname for the VNIC's primary private IP. Used for DNS.
-	HostnameLabel *string `json:"hostnameLabel,omitempty"`
-
-	// DisplayName defines a user-friendly name. Does not have to be unique, and it's changeable.
-	// Avoid entering confidential information.
-	DisplayName *string `json:"displayName,omitempty"`
-
-	// AssignPrivateDnsRecord defines whether the VNIC should be assigned a DNS record.
-	AssignPrivateDnsRecord *bool `json:"assignPrivateDnsRecord,omitempty"`
-}
-
 // InstancePoolPlacementPrimarySubnet defines primary VNIC subnet placement details.
 type InstancePoolPlacementPrimarySubnet struct {
 	// SubnetId defines the subnet OCID for the primary VNIC.
@@ -242,167 +203,6 @@ type InstancePoolPlacementPrimarySubnet struct {
 	// IsAssignIpv6Ip determines whether to assign an IPv6 address at instance and VNIC creation.
 	// +optional
 	IsAssignIpv6Ip *bool `json:"isAssignIpv6Ip,omitempty"`
-}
-
-// PlatformConfigTypeEnum defines the type of platform configuration.
-type PlatformConfigTypeEnum string
-
-const (
-	PlatformConfigTypeAmdRomeBmGpu   PlatformConfigTypeEnum = "AMD_ROME_BM_GPU"
-	PlatformConfigTypeAmdRomeBm      PlatformConfigTypeEnum = "AMD_ROME_BM"
-	PlatformConfigTypeIntelIcelakeBm PlatformConfigTypeEnum = "INTEL_ICELAKE_BM"
-	PlatformConfigTypeAmdvm          PlatformConfigTypeEnum = "AMD_VM"
-	PlatformConfigTypeIntelVm        PlatformConfigTypeEnum = "INTEL_VM"
-	PlatformConfigTypeIntelSkylakeBm PlatformConfigTypeEnum = "INTEL_SKYLAKE_BM"
-	PlatformConfigTypeAmdMilanBm     PlatformConfigTypeEnum = "AMD_MILAN_BM"
-)
-
-// PlatformConfig defines the platform config parameters.
-type PlatformConfig struct {
-	PlatformConfigType PlatformConfigTypeEnum `json:"platformConfigType,omitempty"`
-
-	AmdMilanBmPlatformConfig AmdMilanBmPlatformConfig `json:"amdMilanBmPlatformConfig,omitempty"`
-
-	AmdRomeBmPlatformConfig AmdRomeBmPlatformConfig `json:"amdRomeBmPlatformConfig,omitempty"`
-
-	IntelSkylakeBmPlatformConfig IntelSkylakeBmPlatformConfig `json:"intelSkylakeBmPlatformConfig,omitempty"`
-
-	IntelIcelakeBmPlatformConfig IntelIcelakeBmPlatformConfig `json:"intelIcelakeBmPlatformConfig,omitempty"`
-
-	AmdRomeBmGpuPlatformConfig AmdRomeBmGpuPlatformConfig `json:"amdRomeBmGpuPlatformConfig,omitempty"`
-
-	IntelVmPlatformConfig IntelVmPlatformConfig `json:"intelVmPlatformConfig,omitempty"`
-
-	AmdVmPlatformConfig AmdVmPlatformConfig `json:"amdVmPlatformConfig,omitempty"`
-}
-
-// AmdMilanBmPlatformConfigNumaNodesPerSocketEnum defines AMD Milan NUMA node options.
-type AmdMilanBmPlatformConfigNumaNodesPerSocketEnum string
-
-const (
-	AmdMilanBmPlatformConfigNumaNodesPerSocketNps0 AmdMilanBmPlatformConfigNumaNodesPerSocketEnum = "NPS0"
-	AmdMilanBmPlatformConfigNumaNodesPerSocketNps1 AmdMilanBmPlatformConfigNumaNodesPerSocketEnum = "NPS1"
-	AmdMilanBmPlatformConfigNumaNodesPerSocketNps2 AmdMilanBmPlatformConfigNumaNodesPerSocketEnum = "NPS2"
-	AmdMilanBmPlatformConfigNumaNodesPerSocketNps4 AmdMilanBmPlatformConfigNumaNodesPerSocketEnum = "NPS4"
-)
-
-// AmdMilanBmPlatformConfig describes AMD Milan BM platform configuration.
-type AmdMilanBmPlatformConfig struct {
-	IsSecureBootEnabled                      *bool                                          `json:"isSecureBootEnabled,omitempty"`
-	IsTrustedPlatformModuleEnabled           *bool                                          `json:"isTrustedPlatformModuleEnabled,omitempty"`
-	IsMeasuredBootEnabled                    *bool                                          `json:"isMeasuredBootEnabled,omitempty"`
-	IsMemoryEncryptionEnabled                *bool                                          `json:"isMemoryEncryptionEnabled,omitempty"`
-	IsSymmetricMultiThreadingEnabled         *bool                                          `json:"isSymmetricMultiThreadingEnabled,omitempty"`
-	IsAccessControlServiceEnabled            *bool                                          `json:"isAccessControlServiceEnabled,omitempty"`
-	AreVirtualInstructionsEnabled            *bool                                          `json:"areVirtualInstructionsEnabled,omitempty"`
-	IsInputOutputMemoryManagementUnitEnabled *bool                                          `json:"isInputOutputMemoryManagementUnitEnabled,omitempty"`
-	PercentageOfCoresEnabled                 *int                                           `json:"percentageOfCoresEnabled,omitempty"`
-	NumaNodesPerSocket                       AmdMilanBmPlatformConfigNumaNodesPerSocketEnum `json:"numaNodesPerSocket,omitempty"`
-}
-
-// AmdRomeBmPlatformConfigNumaNodesPerSocketEnum defines AMD Rome NUMA node options.
-type AmdRomeBmPlatformConfigNumaNodesPerSocketEnum string
-
-const (
-	AmdRomeBmPlatformConfigNumaNodesPerSocketNps0 AmdRomeBmPlatformConfigNumaNodesPerSocketEnum = "NPS0"
-	AmdRomeBmPlatformConfigNumaNodesPerSocketNps1 AmdRomeBmPlatformConfigNumaNodesPerSocketEnum = "NPS1"
-	AmdRomeBmPlatformConfigNumaNodesPerSocketNps2 AmdRomeBmPlatformConfigNumaNodesPerSocketEnum = "NPS2"
-	AmdRomeBmPlatformConfigNumaNodesPerSocketNps4 AmdRomeBmPlatformConfigNumaNodesPerSocketEnum = "NPS4"
-)
-
-// AmdRomeBmPlatformConfig describes AMD Rome BM platform configuration.
-type AmdRomeBmPlatformConfig struct {
-	IsSecureBootEnabled                      *bool                                         `json:"isSecureBootEnabled,omitempty"`
-	IsTrustedPlatformModuleEnabled           *bool                                         `json:"isTrustedPlatformModuleEnabled,omitempty"`
-	IsMeasuredBootEnabled                    *bool                                         `json:"isMeasuredBootEnabled,omitempty"`
-	IsMemoryEncryptionEnabled                *bool                                         `json:"isMemoryEncryptionEnabled,omitempty"`
-	IsSymmetricMultiThreadingEnabled         *bool                                         `json:"isSymmetricMultiThreadingEnabled,omitempty"`
-	IsAccessControlServiceEnabled            *bool                                         `json:"isAccessControlServiceEnabled,omitempty"`
-	AreVirtualInstructionsEnabled            *bool                                         `json:"areVirtualInstructionsEnabled,omitempty"`
-	IsInputOutputMemoryManagementUnitEnabled *bool                                         `json:"isInputOutputMemoryManagementUnitEnabled,omitempty"`
-	PercentageOfCoresEnabled                 *int                                          `json:"percentageOfCoresEnabled,omitempty"`
-	NumaNodesPerSocket                       AmdRomeBmPlatformConfigNumaNodesPerSocketEnum `json:"numaNodesPerSocket,omitempty"`
-}
-
-// IntelSkylakeBmPlatformConfigNumaNodesPerSocketEnum defines Intel Skylake NUMA node options.
-type IntelSkylakeBmPlatformConfigNumaNodesPerSocketEnum string
-
-const (
-	IntelSkylakeBmPlatformConfigNumaNodesPerSocketNps1 IntelSkylakeBmPlatformConfigNumaNodesPerSocketEnum = "NPS1"
-	IntelSkylakeBmPlatformConfigNumaNodesPerSocketNps2 IntelSkylakeBmPlatformConfigNumaNodesPerSocketEnum = "NPS2"
-)
-
-// IntelSkylakeBmPlatformConfig describes Intel Skylake BM platform configuration.
-type IntelSkylakeBmPlatformConfig struct {
-	IsSecureBootEnabled                      *bool                                              `json:"isSecureBootEnabled,omitempty"`
-	IsTrustedPlatformModuleEnabled           *bool                                              `json:"isTrustedPlatformModuleEnabled,omitempty"`
-	IsMeasuredBootEnabled                    *bool                                              `json:"isMeasuredBootEnabled,omitempty"`
-	IsMemoryEncryptionEnabled                *bool                                              `json:"isMemoryEncryptionEnabled,omitempty"`
-	IsSymmetricMultiThreadingEnabled         *bool                                              `json:"isSymmetricMultiThreadingEnabled,omitempty"`
-	IsInputOutputMemoryManagementUnitEnabled *bool                                              `json:"isInputOutputMemoryManagementUnitEnabled,omitempty"`
-	PercentageOfCoresEnabled                 *int                                               `json:"percentageOfCoresEnabled,omitempty"`
-	NumaNodesPerSocket                       IntelSkylakeBmPlatformConfigNumaNodesPerSocketEnum `json:"numaNodesPerSocket,omitempty"`
-}
-
-// AmdRomeBmGpuPlatformConfigNumaNodesPerSocketEnum defines AMD Rome GPU NUMA node options.
-type AmdRomeBmGpuPlatformConfigNumaNodesPerSocketEnum string
-
-const (
-	AmdRomeBmGpuPlatformConfigNumaNodesPerSocketNps0 AmdRomeBmGpuPlatformConfigNumaNodesPerSocketEnum = "NPS0"
-	AmdRomeBmGpuPlatformConfigNumaNodesPerSocketNps1 AmdRomeBmGpuPlatformConfigNumaNodesPerSocketEnum = "NPS1"
-	AmdRomeBmGpuPlatformConfigNumaNodesPerSocketNps2 AmdRomeBmGpuPlatformConfigNumaNodesPerSocketEnum = "NPS2"
-	AmdRomeBmGpuPlatformConfigNumaNodesPerSocketNps4 AmdRomeBmGpuPlatformConfigNumaNodesPerSocketEnum = "NPS4"
-)
-
-// AmdRomeBmGpuPlatformConfig describes AMD Rome BM GPU platform configuration.
-type AmdRomeBmGpuPlatformConfig struct {
-	IsSecureBootEnabled                      *bool                                            `json:"isSecureBootEnabled,omitempty"`
-	IsTrustedPlatformModuleEnabled           *bool                                            `json:"isTrustedPlatformModuleEnabled,omitempty"`
-	IsMeasuredBootEnabled                    *bool                                            `json:"isMeasuredBootEnabled,omitempty"`
-	IsMemoryEncryptionEnabled                *bool                                            `json:"isMemoryEncryptionEnabled,omitempty"`
-	IsSymmetricMultiThreadingEnabled         *bool                                            `json:"isSymmetricMultiThreadingEnabled,omitempty"`
-	IsAccessControlServiceEnabled            *bool                                            `json:"isAccessControlServiceEnabled,omitempty"`
-	AreVirtualInstructionsEnabled            *bool                                            `json:"areVirtualInstructionsEnabled,omitempty"`
-	IsInputOutputMemoryManagementUnitEnabled *bool                                            `json:"isInputOutputMemoryManagementUnitEnabled,omitempty"`
-	NumaNodesPerSocket                       AmdRomeBmGpuPlatformConfigNumaNodesPerSocketEnum `json:"numaNodesPerSocket,omitempty"`
-}
-
-// IntelIcelakeBmPlatformConfigNumaNodesPerSocketEnum defines Intel Icelake NUMA node options.
-type IntelIcelakeBmPlatformConfigNumaNodesPerSocketEnum string
-
-const (
-	IntelIcelakeBmPlatformConfigNumaNodesPerSocketNps1 IntelIcelakeBmPlatformConfigNumaNodesPerSocketEnum = "NPS1"
-	IntelIcelakeBmPlatformConfigNumaNodesPerSocketNps2 IntelIcelakeBmPlatformConfigNumaNodesPerSocketEnum = "NPS2"
-)
-
-// IntelIcelakeBmPlatformConfig describes Intel Icelake BM platform configuration.
-type IntelIcelakeBmPlatformConfig struct {
-	IsSecureBootEnabled                      *bool                                              `json:"isSecureBootEnabled,omitempty"`
-	IsTrustedPlatformModuleEnabled           *bool                                              `json:"isTrustedPlatformModuleEnabled,omitempty"`
-	IsMeasuredBootEnabled                    *bool                                              `json:"isMeasuredBootEnabled,omitempty"`
-	IsMemoryEncryptionEnabled                *bool                                              `json:"isMemoryEncryptionEnabled,omitempty"`
-	IsSymmetricMultiThreadingEnabled         *bool                                              `json:"isSymmetricMultiThreadingEnabled,omitempty"`
-	IsInputOutputMemoryManagementUnitEnabled *bool                                              `json:"isInputOutputMemoryManagementUnitEnabled,omitempty"`
-	PercentageOfCoresEnabled                 *int                                               `json:"percentageOfCoresEnabled,omitempty"`
-	NumaNodesPerSocket                       IntelIcelakeBmPlatformConfigNumaNodesPerSocketEnum `json:"numaNodesPerSocket,omitempty"`
-}
-
-// IntelVmPlatformConfig describes Intel VM platform configuration.
-type IntelVmPlatformConfig struct {
-	IsSecureBootEnabled              *bool `json:"isSecureBootEnabled,omitempty"`
-	IsTrustedPlatformModuleEnabled   *bool `json:"isTrustedPlatformModuleEnabled,omitempty"`
-	IsMeasuredBootEnabled            *bool `json:"isMeasuredBootEnabled,omitempty"`
-	IsMemoryEncryptionEnabled        *bool `json:"isMemoryEncryptionEnabled,omitempty"`
-	IsSymmetricMultiThreadingEnabled *bool `json:"isSymmetricMultiThreadingEnabled,omitempty"`
-}
-
-// AmdVmPlatformConfig describes AMD VM platform configuration.
-type AmdVmPlatformConfig struct {
-	IsSecureBootEnabled              *bool `json:"isSecureBootEnabled,omitempty"`
-	IsTrustedPlatformModuleEnabled   *bool `json:"isTrustedPlatformModuleEnabled,omitempty"`
-	IsMeasuredBootEnabled            *bool `json:"isMeasuredBootEnabled,omitempty"`
-	IsMemoryEncryptionEnabled        *bool `json:"isMemoryEncryptionEnabled,omitempty"`
-	IsSymmetricMultiThreadingEnabled *bool `json:"isSymmetricMultiThreadingEnabled,omitempty"`
 }
 
 // LaunchModeEnum defines the launch mode.

@@ -33,6 +33,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	infrastructurev1beta1 "github.com/oracle/cluster-api-provider-oci/api/v1beta1"
+	infrastructurev1beta2 "github.com/oracle/cluster-api-provider-oci/api/v1beta2"
 	oci_config "github.com/oracle/cluster-api-provider-oci/cloud/config"
 	"github.com/oracle/cluster-api-provider-oci/cloud/scope"
 	"github.com/oracle/cluster-api-provider-oci/cloud/services/computemanagement"
@@ -746,9 +747,9 @@ var _ = Describe("Workload cluster creation", func() {
 
 		patchHelper, err := v1beta1patch.NewHelper(initialOMP, bootstrapClusterProxy.GetClient())
 		Expect(err).ToNot(HaveOccurred())
-		initialOMP.Spec.InstanceConfiguration.PlatformConfig = &infrav2exp.PlatformConfig{
-			PlatformConfigType: infrav2exp.PlatformConfigTypeAmdvm,
-			AmdVmPlatformConfig: infrav2exp.AmdVmPlatformConfig{
+		initialOMP.Spec.InstanceConfiguration.PlatformConfig = &infrastructurev1beta2.PlatformConfig{
+			PlatformConfigType: infrastructurev1beta2.PlatformConfigTypeAmdvm,
+			AmdVmPlatformConfig: infrastructurev1beta2.AmdVmPlatformConfig{
 				IsSymmetricMultiThreadingEnabled: common.Bool(true),
 			},
 		}
@@ -760,7 +761,7 @@ var _ = Describe("Workload cluster creation", func() {
 			updatedOMP := &infrav2exp.OCIMachinePool{}
 			g.Expect(bootstrapClusterProxy.GetClient().Get(ctx, mpKey, updatedOMP)).To(Succeed())
 			g.Expect(updatedOMP.Spec.InstanceConfiguration.PlatformConfig).ToNot(BeNil())
-			g.Expect(updatedOMP.Spec.InstanceConfiguration.PlatformConfig.PlatformConfigType).To(Equal(infrav2exp.PlatformConfigTypeAmdvm))
+			g.Expect(updatedOMP.Spec.InstanceConfiguration.PlatformConfig.PlatformConfigType).To(Equal(infrastructurev1beta2.PlatformConfigTypeAmdvm))
 			g.Expect(updatedOMP.Spec.InstanceConfiguration.PlatformConfig.AmdVmPlatformConfig.IsSymmetricMultiThreadingEnabled).ToNot(BeNil())
 			g.Expect(*updatedOMP.Spec.InstanceConfiguration.PlatformConfig.AmdVmPlatformConfig.IsSymmetricMultiThreadingEnabled).To(BeTrue())
 			g.Expect(updatedOMP.Spec.InstanceConfiguration.InstanceConfigurationId).ToNot(BeNil())

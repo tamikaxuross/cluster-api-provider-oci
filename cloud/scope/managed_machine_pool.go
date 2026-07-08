@@ -397,7 +397,6 @@ func (m *ManagedMachinePoolScope) setNodepoolImageId(ctx context.Context) error 
 		return errors.New(fmt.Sprintf("invalid/nil kubernetes version is set in OCIManagedMachinePool Spec"))
 	}
 	k8sVersion := (*specVersion)[1:]
-	k8sVersionImageSegment := fmt.Sprintf("-OKE-%s-", k8sVersion)
 	shape := m.OCIManagedMachinePool.Spec.NodeShape
 	armShapeRegex := regexp.MustCompile(`Standard\.A\d+`)
 	isArmShape := armShapeRegex.MatchString(shape)
@@ -410,7 +409,7 @@ func (m *ManagedMachinePoolScope) setNodepoolImageId(ctx context.Context) error 
 				if strings.Contains(sourceName, "aarch64") && !isArmShape {
 					continue
 				}
-				if strings.Contains(sourceName, k8sVersionImageSegment) {
+				if strings.Contains(sourceName, k8sVersion) {
 					m.Info("Image being used", "Name", sourceName, "OCID", *image.ImageId)
 					m.OCIManagedMachinePool.Spec.NodeSourceViaImage.ImageId = image.ImageId
 					return nil
