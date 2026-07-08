@@ -734,16 +734,16 @@ func (m *MachinePoolScope) getLaunchInstanceDetails(instanceConfigurationSpec in
 		launchDetails.IsPvEncryptionInTransitEnabled = instanceConfigurationSpec.IsPvEncryptionInTransitEnabled
 	}
 	if instanceConfigurationSpec.LaunchMode != "" {
-		launchMode, err := mapInstanceConfigurationLaunchMode(instanceConfigurationSpec.LaunchMode)
-		if err != nil {
-			return nil, err
+		launchMode, ok := core.GetMappingInstanceConfigurationLaunchInstanceDetailsLaunchModeEnum(string(instanceConfigurationSpec.LaunchMode))
+		if !ok {
+			return nil, errors.Errorf("unsupported launch mode %q", instanceConfigurationSpec.LaunchMode)
 		}
 		launchDetails.LaunchMode = launchMode
 	}
 	if instanceConfigurationSpec.PreferredMaintenanceAction != "" {
-		preferredMaintenanceAction, err := mapInstanceConfigurationPreferredMaintenanceAction(instanceConfigurationSpec.PreferredMaintenanceAction)
-		if err != nil {
-			return nil, err
+		preferredMaintenanceAction, ok := core.GetMappingInstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionEnum(string(instanceConfigurationSpec.PreferredMaintenanceAction))
+		if !ok {
+			return nil, errors.Errorf("unsupported preferred maintenance action %q", instanceConfigurationSpec.PreferredMaintenanceAction)
 		}
 		launchDetails.PreferredMaintenanceAction = preferredMaintenanceAction
 	}
@@ -770,31 +770,6 @@ func (m *MachinePoolScope) getLaunchInstanceDetails(instanceConfigurationSpec in
 		launchDetails.ShapeConfig = &shapeConfig
 	}
 	return launchDetails, nil
-}
-
-func mapInstanceConfigurationLaunchMode(mode infrav2exp.LaunchModeEnum) (core.InstanceConfigurationLaunchInstanceDetailsLaunchModeEnum, error) {
-	if mode == "" {
-		return "", nil
-	}
-	if mode == infrav2exp.LaunchModeAcceleratedPV {
-		return core.InstanceConfigurationLaunchInstanceDetailsLaunchModeEnum(infrav2exp.LaunchModeAcceleratedPV), nil
-	}
-	launchMode, ok := core.GetMappingInstanceConfigurationLaunchInstanceDetailsLaunchModeEnum(string(mode))
-	if !ok {
-		return "", errors.Errorf("unsupported launch mode %q", mode)
-	}
-	return launchMode, nil
-}
-
-func mapInstanceConfigurationPreferredMaintenanceAction(action infrav2exp.PreferredMaintenanceActionEnum) (core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionEnum, error) {
-	if action == "" {
-		return "", nil
-	}
-	preferredMaintenanceAction, ok := core.GetMappingInstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionEnum(string(action))
-	if !ok {
-		return "", errors.Errorf("unsupported preferred maintenance action %q", action)
-	}
-	return preferredMaintenanceAction, nil
 }
 
 // ListInstancePoolSummaries list the core.InstancePoolSummary for the given core.ListInstancePoolsRequest

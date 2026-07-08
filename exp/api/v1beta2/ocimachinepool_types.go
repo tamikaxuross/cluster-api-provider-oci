@@ -213,7 +213,6 @@ const (
 	LaunchModeEmulated        LaunchModeEnum = "EMULATED"
 	LaunchModeParavirtualized LaunchModeEnum = "PARAVIRTUALIZED"
 	LaunchModeCustom          LaunchModeEnum = "CUSTOM"
-	LaunchModeAcceleratedPV   LaunchModeEnum = "ACCELERATEDPV"
 )
 
 // PreferredMaintenanceActionEnum defines the preferred maintenance action.

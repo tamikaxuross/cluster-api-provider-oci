@@ -2320,20 +2320,6 @@ func TestGetLaunchInstanceDetailsMapsDeprecatedNSGIdFallback(t *testing.T) {
 	}
 }
 
-func TestGetLaunchInstanceDetailsSupportsAcceleratedPVLaunchMode(t *testing.T) {
-	g := NewWithT(t)
-	ms, _ := newInstanceConfigurationOrderingScope(t, "test")
-	spec := infrav2exp.InstanceConfiguration{
-		Shape:      common.String("test-shape"),
-		LaunchMode: infrav2exp.LaunchModeAcceleratedPV,
-	}
-	ms.OCIMachinePool.Spec.InstanceConfiguration = spec
-
-	launchDetails, err := ms.getLaunchInstanceDetails(spec, nil, nil)
-	g.Expect(err).To(BeNil())
-	g.Expect(launchDetails.LaunchMode).To(Equal(core.InstanceConfigurationLaunchInstanceDetailsLaunchModeEnum("ACCELERATEDPV")))
-}
-
 func TestGetLaunchInstanceDetailsRejectsUnknownLaunchMode(t *testing.T) {
 	g := NewWithT(t)
 	ms, _ := newInstanceConfigurationOrderingScope(t, "test")
