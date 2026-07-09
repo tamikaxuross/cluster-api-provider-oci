@@ -382,8 +382,10 @@ func (s *MachinePoolScope) BuildInstancePoolPlacement() ([]core.CreateInstancePo
 					FaultDomains:       faultDomains,
 				}
 				if specPlacment.PrimaryVnicSubnets != nil {
-					placement.PrimarySubnetId = nil
-					placement.PrimaryVnicSubnets = buildPrimaryVnicSubnets(specPlacment.PrimaryVnicSubnets, s.GetWorkerMachineSubnet())
+					if primaryVnicSubnets := buildPrimaryVnicSubnets(specPlacment.PrimaryVnicSubnets, s.GetWorkerMachineSubnet()); primaryVnicSubnets != nil {
+						placement.PrimarySubnetId = nil
+						placement.PrimaryVnicSubnets = primaryVnicSubnets
+					}
 				}
 				s.Info("Adding machine placement for AD", "AD", ad.Name)
 				placements = append(placements, placement)
@@ -429,8 +431,11 @@ func buildPrimaryVnicSubnets(spec *infrav2exp.InstancePoolPlacementPrimarySubnet
 		return nil
 	}
 	subnetID := spec.SubnetId
-	if subnetID == nil {
+	if subnetID == nil && defaultSubnetID != nil {
 		subnetID = defaultSubnetID
+	}
+	if subnetID == nil {
+		return nil
 	}
 	return &core.InstancePoolPlacementPrimarySubnet{
 		SubnetId:       subnetID,
@@ -736,14 +741,16 @@ func (m *MachinePoolScope) getLaunchInstanceDetails(instanceConfigurationSpec in
 	if instanceConfigurationSpec.LaunchMode != "" {
 		launchMode, ok := core.GetMappingInstanceConfigurationLaunchInstanceDetailsLaunchModeEnum(string(instanceConfigurationSpec.LaunchMode))
 		if !ok {
-			return nil, errors.Errorf("unsupported launch mode %q", instanceConfigurationSpec.LaunchMode)
+			return nil, errors.Errorf("unsupported launch mode %q, valid values: %s", instanceConfigurationSpec.LaunchMode,
+				strings.Join(core.GetInstanceConfigurationLaunchInstanceDetailsLaunchModeEnumStringValues(), ", "))
 		}
 		launchDetails.LaunchMode = launchMode
 	}
 	if instanceConfigurationSpec.PreferredMaintenanceAction != "" {
 		preferredMaintenanceAction, ok := core.GetMappingInstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionEnum(string(instanceConfigurationSpec.PreferredMaintenanceAction))
 		if !ok {
-			return nil, errors.Errorf("unsupported preferred maintenance action %q", instanceConfigurationSpec.PreferredMaintenanceAction)
+			return nil, errors.Errorf("unsupported preferred maintenance action %q, valid values: %s", instanceConfigurationSpec.PreferredMaintenanceAction,
+				strings.Join(core.GetInstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionEnumStringValues(), ", "))
 		}
 		launchDetails.PreferredMaintenanceAction = preferredMaintenanceAction
 	}
@@ -966,9 +973,9 @@ func instancePoolNeedsUpdates(machinePoolScope *MachinePoolScope, instancePool *
 		return true
 	} else if !ptr.StringEqual(machinePoolScope.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId, instancePool.InstanceConfigurationId) {
 		return true
-	} else if !ptr.StringEqual(machinePoolScope.OCIMachinePool.Spec.InstanceDisplayNameFormatter, instancePool.InstanceDisplayNameFormatter) {
+	} else if machinePoolScope.OCIMachinePool.Spec.InstanceDisplayNameFormatter != nil && !ptr.StringEqual(machinePoolScope.OCIMachinePool.Spec.InstanceDisplayNameFormatter, instancePool.InstanceDisplayNameFormatter) {
 		return true
-	} else if !ptr.StringEqual(machinePoolScope.OCIMachinePool.Spec.InstanceHostnameFormatter, instancePool.InstanceHostnameFormatter) {
+	} else if machinePoolScope.OCIMachinePool.Spec.InstanceHostnameFormatter != nil && !ptr.StringEqual(machinePoolScope.OCIMachinePool.Spec.InstanceHostnameFormatter, instancePool.InstanceHostnameFormatter) {
 		return true
 	}
 	return placementNeedsUpdate
@@ -1000,7 +1007,7 @@ func instancePoolPlacementNeedsUpdate(actual []core.InstancePoolPlacementConfigu
 		if !ok {
 			return true
 		}
-		if !ptr.StringEqual(actualPlacement.PrimarySubnetId, desiredPlacement.PrimarySubnetId) {
+		if desiredPlacement.PrimarySubnetId != nil && !ptr.StringEqual(actualPlacement.PrimarySubnetId, desiredPlacement.PrimarySubnetId) {
 			return true
 		}
 		if !samePrimaryVnicSubnets(actualPlacement.PrimaryVnicSubnets, desiredPlacement.PrimaryVnicSubnets) {

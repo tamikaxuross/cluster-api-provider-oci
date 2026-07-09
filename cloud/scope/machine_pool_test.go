@@ -2330,7 +2330,7 @@ func TestGetLaunchInstanceDetailsRejectsUnknownLaunchMode(t *testing.T) {
 	ms.OCIMachinePool.Spec.InstanceConfiguration = spec
 
 	launchDetails, err := ms.getLaunchInstanceDetails(spec, nil, nil)
-	g.Expect(err).To(MatchError(`unsupported launch mode "UNKNOWN_MODE"`))
+	g.Expect(err).To(MatchError(ContainSubstring(`unsupported launch mode "UNKNOWN_MODE"`)))
 	g.Expect(launchDetails).To(BeNil())
 }
 
@@ -2344,7 +2344,7 @@ func TestGetLaunchInstanceDetailsRejectsUnknownPreferredMaintenanceAction(t *tes
 	ms.OCIMachinePool.Spec.InstanceConfiguration = spec
 
 	launchDetails, err := ms.getLaunchInstanceDetails(spec, nil, nil)
-	g.Expect(err).To(MatchError(`unsupported preferred maintenance action "POWER_CYCLE"`))
+	g.Expect(err).To(MatchError(ContainSubstring(`unsupported preferred maintenance action "POWER_CYCLE"`)))
 	g.Expect(launchDetails).To(BeNil())
 }
 

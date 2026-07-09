@@ -125,7 +125,7 @@ type InstanceConfiguration struct {
 	IpxeScript *string `json:"ipxeScript,omitempty"`
 
 	// LaunchMode specifies the configuration mode for launching virtual machine instances.
-	// Supported values are NATIVE, EMULATED, PARAVIRTUALIZED, CUSTOM, and ACCELERATEDPV.
+	// +kubebuilder:validation:Enum=NATIVE;EMULATED;PARAVIRTUALIZED;CUSTOM
 	// +optional
 	LaunchMode LaunchModeEnum `json:"launchMode,omitempty"`
 
@@ -134,6 +134,7 @@ type InstanceConfiguration struct {
 	LicensingConfigs []LaunchInstanceLicensingConfig `json:"licensingConfigs,omitempty"`
 
 	// PreferredMaintenanceAction defines the preferred maintenance action for an instance.
+	// +kubebuilder:validation:Enum=LIVE_MIGRATE;REBOOT
 	// +optional
 	PreferredMaintenanceAction PreferredMaintenanceActionEnum `json:"preferredMaintenanceAction,omitempty"`
 
@@ -157,6 +158,7 @@ type PlacementDetails struct {
 	FaultDomains []string `json:"faultDomains,omitempty"`
 
 	// PrimaryVnicSubnets defines primary VNIC subnet placement details.
+	// When set, overrides the cluster-level default worker subnet for this availability domain.
 	// +optional
 	PrimaryVnicSubnets *InstancePoolPlacementPrimarySubnet `json:"primaryVnicSubnets,omitempty"`
 }
@@ -178,6 +180,8 @@ type ShapeConfig struct {
 	Ocpus *string `json:"ocpus,omitempty"`
 
 	// The total number of VCPUs available to the instance.
+	// +kubebuilder:validation:Minimum=2
+	// +kubebuilder:validation:MultipleOf=2
 	Vcpus *int `json:"vcpus,omitempty"`
 
 	// The total amount of memory available to the instance, in gigabytes.

@@ -398,17 +398,13 @@ func (r *OCIMachinePoolReconciler) reconcileNormal(ctx context.Context, logger l
 			return ctrl.Result{}, err
 		}
 		if updateIssued {
-			// OCI Instance Pool updates are asynchronous. The immediate update
-			// response may echo requested values before the backend has converged.
-			// Keep the current readiness condition and verify the update using a
-			// fresh GetInstancePool response on the next reconciliation.
+			// OCI instance pool updates are asynchronous; requeue to verify on the next reconciliation.
 			return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 		if !machinePoolScope.InstancePoolUsesDesiredInstanceConfiguration(instancePool) {
 			machinePoolScope.Info("Instance pool has not switched to desired instance configuration",
 				"desiredInstanceConfigurationId", ptr.ToString(machinePoolScope.GetInstanceConfigurationId()),
 				"actualInstanceConfigurationId", ptr.ToString(instancePool.InstanceConfigurationId))
-			v1beta1conditions.MarkFalse(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition, infrav2exp.InstancePoolNotReadyReason, clusterv1beta1.ConditionSeverityInfo, "waiting for instance pool to switch to desired instance configuration")
 			return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 		err = machinePoolScope.CleanupInstanceConfiguration(ctx, instancePool)
