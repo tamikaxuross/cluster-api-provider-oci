@@ -174,16 +174,9 @@ func projectLaunchDetails(in, mask *core.InstanceConfigurationLaunchInstanceDeta
 		Metadata:                normalizeMetadata(pickMetadata(in.Metadata, mask.Metadata)),
 		ExtendedMetadata:        pickExtendedMetadata(in.ExtendedMetadata, mask.ExtendedMetadata),
 		IpxeScript:              pickStringDetectRemoval(in.IpxeScript, mask.IpxeScript),
-		LaunchMode: pickEnumDetectRemoval(string(in.LaunchMode), string(mask.LaunchMode),
-			string(core.InstanceConfigurationLaunchInstanceDetailsLaunchModeNative),
-			string(core.InstanceConfigurationLaunchInstanceDetailsLaunchModeParavirtualized),
-			string(core.InstanceConfigurationLaunchInstanceDetailsLaunchModeEmulated),
-		),
-		LicensingConfigs: projectLicensingConfigs(in.LicensingConfigs, mask.LicensingConfigs),
-		PreferredMaintenanceAction: pickEnumDetectRemoval(string(in.PreferredMaintenanceAction), string(mask.PreferredMaintenanceAction),
-			string(core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionLiveMigrate),
-			string(core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionReboot),
-		),
+		LaunchMode:                 pickEnum(string(in.LaunchMode), string(mask.LaunchMode)),
+		LicensingConfigs:           projectLicensingConfigs(in.LicensingConfigs, mask.LicensingConfigs),
+		PreferredMaintenanceAction: pickEnum(string(in.PreferredMaintenanceAction), string(mask.PreferredMaintenanceAction)),
 		Shape:                          pickString(in.Shape, mask.Shape),
 		ShapeConfig:                    projectShapeConfig(in.ShapeConfig, mask.ShapeConfig),
 		PlatformConfig:                 projectPlatformConfig(in.PlatformConfig, mask.PlatformConfig),
@@ -884,17 +877,3 @@ func pickEnum(actual, mask string) string {
 	return actual
 }
 
-func pickEnumDetectRemoval(actual, mask string, defaultValues ...string) string {
-	if mask != "" {
-		return actual
-	}
-	if actual == "" {
-		return ""
-	}
-	for _, dv := range defaultValues {
-		if actual == dv {
-			return ""
-		}
-	}
-	return actual
-}

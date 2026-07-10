@@ -1350,12 +1350,10 @@ func TestComputeComparableHash_DetectsSetToUnsetOptionalLaunchFields(t *testing.
 				IpxeScript: common.String("#!ipxe"),
 			},
 		},
-		{
-			name: "launch mode",
-			actual: &core.InstanceConfigurationLaunchInstanceDetails{
-				LaunchMode: core.InstanceConfigurationLaunchInstanceDetailsLaunchModeCustom,
-			},
-		},
+		// Note: launch mode is intentionally excluded here.
+		// OCI can return any launch mode value (including CUSTOM) as a service default,
+		// so we cannot safely distinguish "user removed the field" from "OCI returned its default."
+		// Removal of this field is therefore not detectable, consistent with preferred maintenance action.
 		{
 			name: "licensing configs",
 			actual: &core.InstanceConfigurationLaunchInstanceDetails{
@@ -1791,6 +1789,7 @@ func TestComputeComparableHash_OciEnumDefaultsDoNotCauseDrift(t *testing.T) {
 		{"NATIVE launch mode not drift", core.InstanceConfigurationLaunchInstanceDetailsLaunchModeNative, ""},
 		{"PARAVIRTUALIZED launch mode not drift", core.InstanceConfigurationLaunchInstanceDetailsLaunchModeParavirtualized, ""},
 		{"EMULATED launch mode not drift", core.InstanceConfigurationLaunchInstanceDetailsLaunchModeEmulated, ""},
+		{"CUSTOM launch mode not drift", core.InstanceConfigurationLaunchInstanceDetailsLaunchModeCustom, ""},
 		{"LIVE_MIGRATE maintenance not drift", "", core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionLiveMigrate},
 		{"REBOOT maintenance not drift", "", core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionReboot},
 	}

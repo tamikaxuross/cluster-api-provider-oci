@@ -2361,7 +2361,7 @@ func TestGetLaunchInstanceDetailsRejectsUnknownLicensingConfigType(t *testing.T)
 	ms.OCIMachinePool.Spec.InstanceConfiguration = spec
 
 	launchDetails, err := ms.getLaunchInstanceDetails(spec, nil, nil)
-	g.Expect(err).To(MatchError(`unsupported licensing config type "LINUX"`))
+	g.Expect(err).To(MatchError(ContainSubstring(`unsupported licensing config type "LINUX"`)))
 	g.Expect(launchDetails).To(BeNil())
 }
 
@@ -2378,7 +2378,7 @@ func TestGetLaunchInstanceDetailsRejectsUnknownLicensingConfigLicenseType(t *tes
 	ms.OCIMachinePool.Spec.InstanceConfiguration = spec
 
 	launchDetails, err := ms.getLaunchInstanceDetails(spec, nil, nil)
-	g.Expect(err).To(MatchError(`unsupported licensing config license type "RENTED"`))
+	g.Expect(err).To(MatchError(ContainSubstring(`unsupported licensing config license type "RENTED"`)))
 	g.Expect(launchDetails).To(BeNil())
 }
 

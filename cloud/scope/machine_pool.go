@@ -1422,13 +1422,15 @@ func buildLaunchInstanceLicensingConfigs(spec []infrav2exp.LaunchInstanceLicensi
 		case infrav2exp.LaunchInstanceLicensingConfigTypeEnum(core.LaunchInstanceLicensingConfigTypeWindows):
 			licenseType, ok := core.GetMappingLaunchInstanceLicensingConfigLicenseTypeEnum(string(licensingConfig.LicenseType))
 			if !ok {
-				return nil, errors.Errorf("unsupported licensing config license type %q", licensingConfig.LicenseType)
+				return nil, errors.Errorf("unsupported licensing config license type %q, valid values: %s", licensingConfig.LicenseType,
+					strings.Join(core.GetLaunchInstanceLicensingConfigLicenseTypeEnumStringValues(), ", "))
 			}
 			configs = append(configs, core.LaunchInstanceWindowsLicensingConfig{
 				LicenseType: licenseType,
 			})
 		default:
-			return nil, errors.Errorf("unsupported licensing config type %q", licensingConfig.Type)
+			return nil, errors.Errorf("unsupported licensing config type %q, valid values: %s", licensingConfig.Type,
+				strings.Join(core.GetLaunchInstanceLicensingConfigTypeEnumStringValues(), ", "))
 		}
 	}
 	return configs, nil
