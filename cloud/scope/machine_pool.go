@@ -754,11 +754,7 @@ func (m *MachinePoolScope) getLaunchInstanceDetails(instanceConfigurationSpec in
 		}
 		launchDetails.PreferredMaintenanceAction = preferredMaintenanceAction
 	}
-	createVnicDetails, err := m.getVnicDetails(instanceConfigurationSpec, freeFormTags, definedTags)
-	if err != nil {
-		return nil, err
-	}
-	launchDetails.CreateVnicDetails = createVnicDetails
+	launchDetails.CreateVnicDetails = m.getVnicDetails(instanceConfigurationSpec, freeFormTags, definedTags)
 	launchDetails.SourceDetails = m.getInstanceConfigurationInstanceSourceViaImageDetail()
 	launchDetails.AgentConfig = m.getAgentConfig()
 	launchDetails.LaunchOptions = m.getLaunchOptions()
@@ -1053,8 +1049,8 @@ func (m *MachinePoolScope) InstancePoolUsesDesiredInstanceConfiguration(instance
 	desiredID := m.GetInstanceConfigurationId()
 	return desiredID != nil &&
 		ptr.StringEqual(desiredID, instancePool.InstanceConfigurationId) &&
-		ptr.StringEqual(m.OCIMachinePool.Spec.InstanceDisplayNameFormatter, instancePool.InstanceDisplayNameFormatter) &&
-		ptr.StringEqual(m.OCIMachinePool.Spec.InstanceHostnameFormatter, instancePool.InstanceHostnameFormatter)
+		(m.OCIMachinePool.Spec.InstanceDisplayNameFormatter == nil || ptr.StringEqual(m.OCIMachinePool.Spec.InstanceDisplayNameFormatter, instancePool.InstanceDisplayNameFormatter)) &&
+		(m.OCIMachinePool.Spec.InstanceHostnameFormatter == nil || ptr.StringEqual(m.OCIMachinePool.Spec.InstanceHostnameFormatter, instancePool.InstanceHostnameFormatter))
 }
 
 func (m *MachinePoolScope) getAgentConfig() *core.InstanceConfigurationLaunchInstanceAgentConfigDetails {
@@ -1384,7 +1380,7 @@ func (m *MachinePoolScope) getInstanceConfigurationsFromDisplayNameSortedTimeCre
 	return ids, nil
 }
 
-func (m *MachinePoolScope) getVnicDetails(instanceConfigurationSpec infrav2exp.InstanceConfiguration, freeFormTags map[string]string, definedTags map[string]map[string]interface{}) (*core.InstanceConfigurationCreateVnicDetails, error) {
+func (m *MachinePoolScope) getVnicDetails(instanceConfigurationSpec infrav2exp.InstanceConfiguration, freeFormTags map[string]string, definedTags map[string]map[string]interface{}) *core.InstanceConfigurationCreateVnicDetails {
 	subnetId := m.GetWorkerMachineSubnet()
 	nsgIDs := m.getWorkerMachineNSGs()
 	createVnicDetails := core.InstanceConfigurationCreateVnicDetails{
@@ -1409,7 +1405,7 @@ func (m *MachinePoolScope) getVnicDetails(instanceConfigurationSpec infrav2exp.I
 		createVnicDetails.AssignPrivateDnsRecord = instanceConfigurationSpec.InstanceVnicConfiguration.AssignPrivateDnsRecord
 		createVnicDetails.DisplayName = instanceConfigurationSpec.InstanceVnicConfiguration.DisplayName
 	}
-	return &createVnicDetails, nil
+	return &createVnicDetails
 }
 
 func buildLaunchInstanceLicensingConfigs(spec []infrav2exp.LaunchInstanceLicensingConfig) ([]core.LaunchInstanceLicensingConfig, error) {

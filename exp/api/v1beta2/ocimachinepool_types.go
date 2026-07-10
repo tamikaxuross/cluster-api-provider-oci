@@ -230,9 +230,11 @@ const (
 // LaunchInstanceLicensingConfig defines a launch licensing configuration.
 type LaunchInstanceLicensingConfig struct {
 	// Type identifies the licensing config type.
+	// +kubebuilder:validation:Enum=WINDOWS
 	Type LaunchInstanceLicensingConfigTypeEnum `json:"type,omitempty"`
 
 	// LicenseType defines the OS license type.
+	// +kubebuilder:validation:Enum=OCI_PROVIDED;BRING_YOUR_OWN_LICENSE
 	LicenseType LaunchInstanceLicensingConfigLicenseTypeEnum `json:"licenseType,omitempty"`
 }
 

@@ -380,6 +380,8 @@ func projectLicensingConfigs(in, mask []core.LaunchInstanceLicensingConfig) []co
 		}
 		return configs
 	}
+	// Truncates to mask length by design: WINDOWS is the only supported type today,
+	// so a list longer than 1 cannot legitimately occur in practice.
 	configs := make([]comparableLicensingConfig, 0, len(in))
 	for i, config := range in {
 		if i >= len(mask) {
