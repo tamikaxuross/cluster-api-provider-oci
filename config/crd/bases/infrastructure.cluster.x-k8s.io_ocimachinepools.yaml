@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: ocimachinepools.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -761,8 +761,7 @@ spec:
                     primaryVnicSubnets:
                       description: |-
                         PrimaryVnicSubnets defines primary VNIC subnet placement details.
-                        When set, it takes precedence over the cluster-level default worker subnet.
-                        PrimaryVnicSubnets and the default PrimarySubnetId path are mutually exclusive per OCI API semantics.
+                        When set, overrides the cluster-level default worker subnet for this availability domain.
                       properties:
                         isAssignIpv6Ip:
                           description: IsAssignIpv6Ip determines whether to assign
@@ -1616,8 +1615,7 @@ spec:
                     primaryVnicSubnets:
                       description: |-
                         PrimaryVnicSubnets defines primary VNIC subnet placement details.
-                        When set, it takes precedence over the cluster-level default worker subnet.
-                        PrimaryVnicSubnets and the default PrimarySubnetId path are mutually exclusive per OCI API semantics.
+                        When set, overrides the cluster-level default worker subnet for this availability domain.
                       properties:
                         isAssignIpv6Ip:
                           description: IsAssignIpv6Ip determines whether to assign
