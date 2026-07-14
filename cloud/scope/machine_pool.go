@@ -542,6 +542,8 @@ func (m *MachinePoolScope) ReconcileInstanceConfiguration(ctx context.Context, _
 
 	// Backfill annotations on first reconciliation
 	storedConfigHash := m.getInstanceConfigurationHashAnnotation()
+	hadStoredConfigHash := storedConfigHash != ""
+	hadStoredBootstrapHash := storedBootstrapHash != ""
 	needsAnnotationPatch := false
 	if storedConfigHash == "" {
 		m.Info("No stored config hash annotation, backfilling", "actualConfigHash", actualConfigHash)
@@ -583,7 +585,10 @@ func (m *MachinePoolScope) ReconcileInstanceConfiguration(ctx context.Context, _
 	// user_data hash for observability and upgrade backfill.
 	desiredBootstrapHashIgnoringToken := hash.ComputeUserDataHashIgnoringKubeadmToken(desiredLaunch.Metadata)
 	actualBootstrapHashIgnoringToken := hash.ComputeUserDataHashIgnoringKubeadmToken(actualLaunch.Metadata)
-	configChanged := desiredConfigHash != actualConfigHash
+	// Existing annotations mean storedConfigHash is the last desired hash, so
+	// this catches removals of fields comparable hashing ignores as OCI defaults.
+	desiredConfigChanged := hadStoredConfigHash && hadStoredBootstrapHash && storedConfigHash != desiredConfigHash
+	configChanged := desiredConfigHash != actualConfigHash || desiredConfigChanged
 	bootstrapChanged := desiredBootstrapHash != actualBootstrapHash
 	tokenOnlyBootstrapChanged := bootstrapChanged && desiredBootstrapHashIgnoringToken == actualBootstrapHashIgnoringToken
 
@@ -903,7 +908,7 @@ func (m *MachinePoolScope) CreateInstancePool(ctx context.Context) (*core.Instan
 func (m *MachinePoolScope) UpdatePool(ctx context.Context, instancePool *core.InstancePool) (bool, error) {
 	var placementConfigurations []core.UpdateInstancePoolPlacementConfigurationDetails
 	placementNeedsUpdate := false
-	if len(m.OCIMachinePool.Spec.PlacementDetails) > 0 {
+	if len(m.OCIMachinePool.Spec.PlacementDetails) > 0 || instancePoolHasPrimaryVnicSubnets(instancePool.PlacementConfigurations) {
 		var err error
 		placementConfigurations, err = m.buildUpdateInstancePoolPlacement()
 		if err != nil {
@@ -944,6 +949,15 @@ func (m *MachinePoolScope) UpdatePool(ctx context.Context, instancePool *core.In
 	return false, nil
 }
 
+func instancePoolHasPrimaryVnicSubnets(placements []core.InstancePoolPlacementConfiguration) bool {
+	for _, placement := range placements {
+		if placement.PrimaryVnicSubnets != nil {
+			return true
+		}
+	}
+	return false
+}
+
 func (m *MachinePoolScope) TerminateInstancePool(ctx context.Context, instancePool *core.InstancePool) error {
 	m.Info("Terminating instance pool", "id", instancePool.Id, "lifecycleState", instancePool.LifecycleState)
 	req := core.TerminateInstancePoolRequest{InstancePoolId: instancePool.Id}
@@ -969,9 +983,9 @@ func instancePoolNeedsUpdates(machinePoolScope *MachinePoolScope, instancePool *
 		return true
 	} else if !ptr.StringEqual(machinePoolScope.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId, instancePool.InstanceConfigurationId) {
 		return true
-	} else if machinePoolScope.OCIMachinePool.Spec.InstanceDisplayNameFormatter != nil && !ptr.StringEqual(machinePoolScope.OCIMachinePool.Spec.InstanceDisplayNameFormatter, instancePool.InstanceDisplayNameFormatter) {
+	} else if !ptr.StringEqual(machinePoolScope.OCIMachinePool.Spec.InstanceDisplayNameFormatter, instancePool.InstanceDisplayNameFormatter) {
 		return true
-	} else if machinePoolScope.OCIMachinePool.Spec.InstanceHostnameFormatter != nil && !ptr.StringEqual(machinePoolScope.OCIMachinePool.Spec.InstanceHostnameFormatter, instancePool.InstanceHostnameFormatter) {
+	} else if !ptr.StringEqual(machinePoolScope.OCIMachinePool.Spec.InstanceHostnameFormatter, instancePool.InstanceHostnameFormatter) {
 		return true
 	}
 	return placementNeedsUpdate
@@ -1049,8 +1063,8 @@ func (m *MachinePoolScope) InstancePoolUsesDesiredInstanceConfiguration(instance
 	desiredID := m.GetInstanceConfigurationId()
 	return desiredID != nil &&
 		ptr.StringEqual(desiredID, instancePool.InstanceConfigurationId) &&
-		(m.OCIMachinePool.Spec.InstanceDisplayNameFormatter == nil || ptr.StringEqual(m.OCIMachinePool.Spec.InstanceDisplayNameFormatter, instancePool.InstanceDisplayNameFormatter)) &&
-		(m.OCIMachinePool.Spec.InstanceHostnameFormatter == nil || ptr.StringEqual(m.OCIMachinePool.Spec.InstanceHostnameFormatter, instancePool.InstanceHostnameFormatter))
+		ptr.StringEqual(m.OCIMachinePool.Spec.InstanceDisplayNameFormatter, instancePool.InstanceDisplayNameFormatter) &&
+		ptr.StringEqual(m.OCIMachinePool.Spec.InstanceHostnameFormatter, instancePool.InstanceHostnameFormatter)
 }
 
 func (m *MachinePoolScope) getAgentConfig() *core.InstanceConfigurationLaunchInstanceAgentConfigDetails {

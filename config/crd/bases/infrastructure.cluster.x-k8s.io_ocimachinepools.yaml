@@ -336,8 +336,13 @@ spec:
                     items:
                       properties:
                         licenseType:
+                          enum:
+                          - OCI_PROVIDED
+                          - BRING_YOUR_OWN_LICENSE
                           type: string
                         type:
+                          enum:
+                          - WINDOWS
                           type: string
                       type: object
                     type: array
@@ -1189,9 +1194,14 @@ spec:
                       properties:
                         licenseType:
                           description: LicenseType defines the OS license type.
+                          enum:
+                          - OCI_PROVIDED
+                          - BRING_YOUR_OWN_LICENSE
                           type: string
                         type:
                           description: Type identifies the licensing config type.
+                          enum:
+                          - WINDOWS
                           type: string
                       type: object
                     type: array

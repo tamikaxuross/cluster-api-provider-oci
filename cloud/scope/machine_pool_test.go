@@ -1071,18 +1071,26 @@ write_files:
 			},
 		},
 		{
-			name:          "instance config recreated when config changes but bootstrap unchanged",
+			name:          "instance config recreated when managed defaults are removed but bootstrap unchanged",
 			errorExpected: false,
 			testSpecificSetup: func(ms *MachinePoolScope, g *WithT) {
 				ms.OCIMachinePool.Spec.InstanceConfiguration = infrav2exp.InstanceConfiguration{
 					Shape:                   common.String("new-shape"),
 					InstanceConfigurationId: common.String("test"),
+					PlatformConfig: &infrastructurev1beta2.PlatformConfig{
+						PlatformConfigType: infrastructurev1beta2.PlatformConfigTypeAmdvm,
+					},
 				}
-				// Pre-populate both annotations to simulate a previously reconciled cluster.
-				// Bootstrap hash matches current secret ("test" → "dGVzdA=="), so bootstrap is unchanged.
+				oldLaunch, err := ms.getLaunchInstanceDetails(ms.OCIMachinePool.Spec.InstanceConfiguration, tags, definedTagsInterface)
+				g.Expect(err).To(BeNil())
+				oldLaunch.LaunchMode = core.InstanceConfigurationLaunchInstanceDetailsLaunchModeNative
+				oldLaunch.PreferredMaintenanceAction = core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionReboot
+				oldLaunch.PlatformConfig = core.AmdVmPlatformConfig{IsSymmetricMultiThreadingEnabled: common.Bool(false)}
+				oldConfigHash, err := hash.ComputeHash(oldLaunch)
+				g.Expect(err).To(BeNil())
 				currentBootstrapHash := hash.ComputeUserDataHash(map[string]string{"user_data": "dGVzdA=="})
 				ms.OCIMachinePool.Annotations = map[string]string{
-					InstanceConfigurationHashAnnotation: "previous-config-hash",
+					InstanceConfigurationHashAnnotation: oldConfigHash,
 					BootstrapDataHashAnnotation:         currentBootstrapHash,
 				}
 
@@ -1093,19 +1101,7 @@ write_files:
 						InstanceConfiguration: core.InstanceConfiguration{
 							Id: common.String("test"),
 							InstanceDetails: core.ComputeInstanceDetails{
-								LaunchDetails: &core.InstanceConfigurationLaunchInstanceDetails{
-									DefinedTags:   definedTagsInterface,
-									FreeformTags:  tags,
-									CompartmentId: common.String("test-compartment"),
-									Shape:         common.String("old-shape"),
-									CreateVnicDetails: &core.InstanceConfigurationCreateVnicDetails{
-										FreeformTags: tags,
-										NsgIds:       []string{"nsg-id"},
-										SubnetId:     common.String("subnet-id"),
-									},
-									SourceDetails: core.InstanceConfigurationInstanceSourceViaImageDetails{},
-									Metadata:      map[string]string{"user_data": "dGVzdA=="},
-								},
+								LaunchDetails: oldLaunch,
 							},
 						},
 					}, nil)
@@ -1653,12 +1649,10 @@ func TestCleanupInstanceConfigurationDeletesOnlyAfterSuccessfulSwitch(t *testing
 	g.Expect(err).To(BeNil())
 }
 
-func TestCleanupInstanceConfigurationDefersWhenFormatterUpdateStalls(t *testing.T) {
+func TestCleanupInstanceConfigurationDefersWhenFormatterRemovalStalls(t *testing.T) {
 	g := NewWithT(t)
 	ms, computeMgmt := newInstanceConfigurationOrderingScope(t, "test")
 
-	ms.OCIMachinePool.Spec.InstanceDisplayNameFormatter = common.String("new-${launchCount}")
-	ms.OCIMachinePool.Spec.InstanceHostnameFormatter = common.String("new-host-${launchCount}")
 	ms.OCIMachinePool.Spec.InstanceConfiguration = infrav2exp.InstanceConfiguration{
 		InstanceConfigurationId: common.String("new-id"),
 	}
@@ -3266,7 +3260,7 @@ func TestInstancePoolUpdate(t *testing.T) {
 			},
 		},
 		{
-			name:          "instance pool formatter update",
+			name:          "instance pool formatter removal update",
 			errorExpected: false,
 			instancepool: &core.InstancePool{
 				Size:                         common.Int(3),
@@ -3276,8 +3270,6 @@ func TestInstancePoolUpdate(t *testing.T) {
 			},
 			testSpecificSetup: func(ms *MachinePoolScope) {
 				ms.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId = common.String("config_id")
-				ms.OCIMachinePool.Spec.InstanceDisplayNameFormatter = common.String("new-display-${launchCount}")
-				ms.OCIMachinePool.Spec.InstanceHostnameFormatter = common.String("new-host-${launchCount}")
 				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
 					UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
 						Size:                    common.Int(3),
@@ -3286,8 +3278,6 @@ func TestInstancePoolUpdate(t *testing.T) {
 							ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
 							ociutil.ClusterResourceIdentifier: "resource_uid",
 						},
-						InstanceDisplayNameFormatter: common.String("new-display-${launchCount}"),
-						InstanceHostnameFormatter:    common.String("new-host-${launchCount}"),
 					},
 				})).
 					Return(core.UpdateInstancePoolResponse{
@@ -3409,7 +3399,7 @@ func TestInstancePoolUpdateSkipsDefaultPlacementDrift(t *testing.T) {
 	g.Expect(updateIssued).To(BeFalse())
 }
 
-func TestInstancePoolUpdatePrimarySubnetPlacement(t *testing.T) {
+func TestInstancePoolUpdateClearsStalePrimaryVnicSubnetPlacement(t *testing.T) {
 	g := NewWithT(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -3422,12 +3412,6 @@ func TestInstancePoolUpdatePrimarySubnetPlacement(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: infrav2exp.OCIMachinePoolSpec{
-			PlacementDetails: []infrav2exp.PlacementDetails{
-				{
-					AvailabilityDomain: 1,
-					FaultDomains:       []string{"fd-5"},
-				},
-			},
 			InstanceConfiguration: infrav2exp.InstanceConfiguration{
 				InstanceConfigurationId: common.String("config_id"),
 			},
@@ -3475,8 +3459,11 @@ func TestInstancePoolUpdatePrimarySubnetPlacement(t *testing.T) {
 		PlacementConfigurations: []core.InstancePoolPlacementConfiguration{
 			{
 				AvailabilityDomain: common.String("ad-1"),
-				PrimarySubnetId:    common.String("old-subnet-id"),
 				FaultDomains:       []string{"fd-5"},
+				PrimaryVnicSubnets: &core.InstancePoolPlacementPrimarySubnet{
+					SubnetId:       common.String("old-subnet-id"),
+					IsAssignIpv6Ip: common.Bool(true),
+				},
 			},
 		},
 	}
