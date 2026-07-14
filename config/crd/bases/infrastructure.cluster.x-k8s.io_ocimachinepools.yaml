@@ -345,6 +345,7 @@ spec:
                           - WINDOWS
                           type: string
                       type: object
+                    maxItems: 1
                     type: array
                   metadata:
                     additionalProperties:
@@ -1204,6 +1205,7 @@ spec:
                           - WINDOWS
                           type: string
                       type: object
+                    maxItems: 1
                     type: array
                   metadata:
                     additionalProperties:

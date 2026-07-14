@@ -468,7 +468,7 @@ func TestReconciliationFunction(t *testing.T) {
 		{
 			name:                 "instance pool update response echoing desired values still defers cleanup and requeues",
 			errorExpected:        false,
-			conditionAssertion:   []conditionAssertion{{infrav2exp.LaunchTemplateReadyCondition, corev1.ConditionTrue, "", ""}, {infrav2exp.InstancePoolReadyCondition, corev1.ConditionTrue, "", ""}},
+			conditionAssertion:   []conditionAssertion{{infrav2exp.LaunchTemplateReadyCondition, corev1.ConditionTrue, "", ""}, {infrav2exp.InstancePoolReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, infrav2exp.InstancePoolNotReadyReason}},
 			expectedRequeueAfter: 10 * time.Second,
 			testSpecificSetup: func(t *test, machinePoolScope *scope.MachinePoolScope, computeManagementClient *mock_computemanagement.MockClient) {
 				ms.OCIMachinePool.Spec.InstanceConfiguration = infrav2exp.InstanceConfiguration{

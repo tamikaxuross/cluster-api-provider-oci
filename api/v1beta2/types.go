@@ -393,16 +393,16 @@ type IntelSkylakeBmPlatformConfig struct {
 	// Whether the instance is a confidential instance. If this value is `true`, the instance is a confidential instance. The default value is `false`.
 	IsMemoryEncryptionEnabled *bool `json:"isMemoryEncryptionEnabled,omitempty"`
 
-	// Whether symmetric multithreading is enabled on the instance. Only supported in MachinePool.
+	// Whether symmetric multithreading is enabled on the instance.
 	IsSymmetricMultiThreadingEnabled *bool `json:"isSymmetricMultiThreadingEnabled,omitempty"`
 
-	// Whether the input-output memory management unit is enabled. Only supported in MachinePool.
+	// Whether the input-output memory management unit is enabled.
 	IsInputOutputMemoryManagementUnitEnabled *bool `json:"isInputOutputMemoryManagementUnitEnabled,omitempty"`
 
-	// The percentage of cores enabled. Only supported in MachinePool.
+	// The percentage of cores enabled.
 	PercentageOfCoresEnabled *int `json:"percentageOfCoresEnabled,omitempty"`
 
-	// The number of NUMA nodes per socket (NPS). Only supported in MachinePool.
+	// The number of NUMA nodes per socket (NPS).
 	NumaNodesPerSocket IntelSkylakeBmPlatformConfigNumaNodesPerSocketEnum `json:"numaNodesPerSocket,omitempty"`
 }
 
@@ -524,7 +524,7 @@ type IntelVmPlatformConfig struct {
 	// Whether the instance is a confidential instance. If this value is `true`, the instance is a confidential instance. The default value is `false`.
 	IsMemoryEncryptionEnabled *bool `json:"isMemoryEncryptionEnabled,omitempty"`
 
-	// Whether symmetric multithreading is enabled on the instance. Only supported in MachinePool.
+	// Whether symmetric multithreading is enabled on the instance.
 	IsSymmetricMultiThreadingEnabled *bool `json:"isSymmetricMultiThreadingEnabled,omitempty"`
 }
 
@@ -542,7 +542,7 @@ type AmdVmPlatformConfig struct {
 	// Whether the instance is a confidential instance. If this value is `true`, the instance is a confidential instance. The default value is `false`.
 	IsMemoryEncryptionEnabled *bool `json:"isMemoryEncryptionEnabled,omitempty"`
 
-	// Whether symmetric multithreading is enabled on the instance. Only supported in MachinePool.
+	// Whether symmetric multithreading is enabled on the instance.
 	IsSymmetricMultiThreadingEnabled *bool `json:"isSymmetricMultiThreadingEnabled,omitempty"`
 }
 

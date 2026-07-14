@@ -588,8 +588,8 @@ func (m *MachinePoolScope) ReconcileInstanceConfiguration(ctx context.Context, _
 	// user_data hash for observability and upgrade backfill.
 	desiredBootstrapHashIgnoringToken := hash.ComputeUserDataHashIgnoringKubeadmToken(desiredLaunch.Metadata)
 	actualBootstrapHashIgnoringToken := hash.ComputeUserDataHashIgnoringKubeadmToken(actualLaunch.Metadata)
-	// Existing annotations mean storedConfigHash is the last desired hash, so
-	// this catches removals of fields comparable hashing ignores as OCI defaults.
+	// Trust the stored desired config hash only after both hash annotations exist;
+	// partial backfill can otherwise force a recreate unrelated to a spec change.
 	desiredConfigChanged := hadStoredConfigHash && hadStoredBootstrapHash && storedConfigHash != desiredConfigHash
 	configChanged := desiredConfigHash != actualConfigHash || desiredConfigChanged
 	bootstrapChanged := desiredBootstrapHash != actualBootstrapHash

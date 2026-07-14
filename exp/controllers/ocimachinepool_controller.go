@@ -362,11 +362,6 @@ func (r *OCIMachinePoolReconciler) reconcileNormal(ctx context.Context, logger l
 	case core.InstancePoolLifecycleStateRunning:
 		machinePoolScope.Info("Instance pool is active")
 
-		// record the event only when pool goes from not ready to ready state
-		r.Recorder.Eventf(machinePoolScope.OCIMachinePool, corev1.EventTypeNormal, "InstancePoolReady",
-			"Instance pool is in ready state")
-		v1beta1conditions.MarkTrue(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition)
-
 		machines, err := machinePoolScope.SetListandSetMachinePoolInstances(ctx)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -399,12 +394,14 @@ func (r *OCIMachinePoolReconciler) reconcileNormal(ctx context.Context, logger l
 		}
 		if updateIssued {
 			// OCI instance pool updates are asynchronous; requeue to verify on the next reconciliation.
+			v1beta1conditions.MarkFalse(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition, infrav2exp.InstancePoolNotReadyReason, clusterv1beta1.ConditionSeverityInfo, "")
 			return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 		if !machinePoolScope.InstancePoolUsesDesiredInstanceConfiguration(instancePool) {
 			machinePoolScope.Info("Instance pool has not switched to desired instance configuration",
 				"desiredInstanceConfigurationId", ptr.ToString(machinePoolScope.GetInstanceConfigurationId()),
 				"actualInstanceConfigurationId", ptr.ToString(instancePool.InstanceConfigurationId))
+			v1beta1conditions.MarkFalse(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition, infrav2exp.InstancePoolNotReadyReason, clusterv1beta1.ConditionSeverityInfo, "")
 			return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 		err = machinePoolScope.CleanupInstanceConfiguration(ctx, instancePool)
@@ -413,6 +410,10 @@ func (r *OCIMachinePoolReconciler) reconcileNormal(ctx context.Context, logger l
 		}
 		machinePoolScope.SetReplicaCount(int32(len(providerIDList)))
 		machinePoolScope.SetReady()
+		// record the event only when pool goes from not ready to ready state
+		r.Recorder.Eventf(machinePoolScope.OCIMachinePool, corev1.EventTypeNormal, "InstancePoolReady",
+			"Instance pool is in ready state")
+		v1beta1conditions.MarkTrue(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition)
 	default:
 		v1beta1conditions.MarkFalse(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition, infrav2exp.InstancePoolProvisionFailedReason, clusterv1beta1.ConditionSeverityError, "")
 		machinePoolScope.SetFailureReason(cloudutil.CreateError)

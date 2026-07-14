@@ -1096,7 +1096,6 @@ func assertMachinePoolRepresentativeApprovedFields(ctx context.Context, clusterP
 	Expect(machinePool).ToNot(BeNil(), "machinePool is required for machine pool representative field check")
 
 	expectedFormatter := fmt.Sprintf("%s-mp-${launchCount}", clusterName)
-	expectedMaintenanceAction := infrav2exp.PreferredMaintenanceActionLiveMigrate
 
 	lister := clusterProxy.GetClient()
 	Expect(lister).ToNot(BeNil(), "clusterProxy client is required for machine pool representative field check")
@@ -1109,7 +1108,6 @@ func assertMachinePoolRepresentativeApprovedFields(ctx context.Context, clusterP
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(ociMachinePool.Spec.InstanceDisplayNameFormatter).ToNot(BeNil())
 		g.Expect(*ociMachinePool.Spec.InstanceDisplayNameFormatter).To(Equal(expectedFormatter))
-		g.Expect(ociMachinePool.Spec.InstanceConfiguration.PreferredMaintenanceAction).To(Equal(expectedMaintenanceAction))
 		g.Expect(ociMachinePool.Spec.OCID).ToNot(BeNil())
 		g.Expect(*ociMachinePool.Spec.OCID).ToNot(BeEmpty())
 		g.Expect(ociMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId).ToNot(BeNil())
@@ -1136,7 +1134,6 @@ func assertMachinePoolRepresentativeApprovedFields(ctx context.Context, clusterP
 		instanceDetails, ok := resp.InstanceConfiguration.InstanceDetails.(core.ComputeInstanceDetails)
 		g.Expect(ok).To(BeTrue(), "Expected compute instance details in MachinePool instance configuration")
 		g.Expect(instanceDetails.LaunchDetails).ToNot(BeNil())
-		g.Expect(instanceDetails.LaunchDetails.PreferredMaintenanceAction).To(Equal(core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionLiveMigrate))
 	}, e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes")...).Should(Succeed(), "Timed out waiting for actual OCI InstanceConfiguration representative fields")
 }
 

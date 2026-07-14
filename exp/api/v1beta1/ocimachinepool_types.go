@@ -130,6 +130,7 @@ type InstanceConfiguration struct {
 	LaunchMode LaunchModeEnum `json:"launchMode,omitempty"`
 
 	// LicensingConfigs defines licensing configurations associated with target launch values.
+	// +kubebuilder:validation:MaxItems=1
 	// +optional
 	LicensingConfigs []LaunchInstanceLicensingConfig `json:"licensingConfigs,omitempty"`
 
