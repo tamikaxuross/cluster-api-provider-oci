@@ -743,7 +743,12 @@ var _ = Describe("Workload cluster creation", func() {
 		initialOMP := &infrav2exp.OCIMachinePool{}
 		Expect(bootstrapClusterProxy.GetClient().Get(ctx, mpKey, initialOMP)).To(Succeed())
 		Expect(initialOMP.Spec.InstanceConfiguration.InstanceConfigurationId).ToNot(BeNil())
+		Expect(initialOMP.Spec.InstanceConfiguration.Shape).ToNot(BeNil())
 		initialICID := *initialOMP.Spec.InstanceConfiguration.InstanceConfigurationId
+		nodeShape := *initialOMP.Spec.InstanceConfiguration.Shape
+		if !isAMDVMShape(nodeShape) {
+			Skip(fmt.Sprintf("AMD VM platform config test requires an AMD VM shape, got %q", nodeShape))
+		}
 
 		patchHelper, err := v1beta1patch.NewHelper(initialOMP, bootstrapClusterProxy.GetClient())
 		Expect(err).ToNot(HaveOccurred())
@@ -1379,6 +1384,13 @@ func assertMachinePoolInstanceConfigurationAmdVMSMT(ctx context.Context, instanc
 		}
 		g.Expect(actual).To(Equal(expected))
 	}, e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes")...).Should(Succeed(), "Timed out waiting for actual OCI InstanceConfiguration AMD VM SMT platform config")
+}
+
+func isAMDVMShape(shape string) bool {
+	return strings.HasPrefix(shape, "VM.Standard.E3.") ||
+		strings.HasPrefix(shape, "VM.Standard.E4.") ||
+		strings.HasPrefix(shape, "VM.Standard.E5.") ||
+		strings.HasPrefix(shape, "VM.Standard.E6.")
 }
 
 func newE2EComputeManagementClient() computemanagement.Client {
