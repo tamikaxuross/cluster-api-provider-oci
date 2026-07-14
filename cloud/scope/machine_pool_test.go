@@ -1801,17 +1801,14 @@ func TestBootstrapTriggeredRotationUpdatesPoolBeforeCleanupEligibility(t *testin
 	g.Expect(err).To(BeNil())
 	g.Expect(ms.GetInstanceConfigurationId()).To(Equal(common.String("new-id")))
 
-	computeMgmt.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
-		InstancePoolId: common.String("pool-id"),
-		UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
-			Size:                    common.Int(3),
-			InstanceConfigurationId: common.String("new-id"),
-			FreeformTags: map[string]string{
-				ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
-				ociutil.ClusterResourceIdentifier: "resource_uid",
-			},
+	computeMgmt.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(expectedUpdateInstancePoolRequest(ms, common.String("pool-id"), core.UpdateInstancePoolDetails{
+		Size:                    common.Int(3),
+		InstanceConfigurationId: common.String("new-id"),
+		FreeformTags: map[string]string{
+			ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+			ociutil.ClusterResourceIdentifier: "resource_uid",
 		},
-	})).
+	}))).
 		Return(core.UpdateInstancePoolResponse{
 			InstancePool: core.InstancePool{
 				Id:                      common.String("pool-id"),
@@ -1942,6 +1939,14 @@ func orderingLaunchDetails(shape, bootstrapData string) *core.InstanceConfigurat
 		Metadata: map[string]string{
 			"user_data": base64.StdEncoding.EncodeToString([]byte(bootstrapData)),
 		},
+	}
+}
+
+func expectedUpdateInstancePoolRequest(ms *MachinePoolScope, instancePoolID *string, details core.UpdateInstancePoolDetails) core.UpdateInstancePoolRequest {
+	return core.UpdateInstancePoolRequest{
+		InstancePoolId:            instancePoolID,
+		UpdateInstancePoolDetails: details,
+		OpcRetryToken:             InstancePoolUpdateRetryToken(ms.OCIMachinePool, instancePoolID, details),
 	}
 }
 
@@ -3107,13 +3112,11 @@ func TestInstancePoolUpdate(t *testing.T) {
 			},
 			testSpecificSetup: func(ms *MachinePoolScope) {
 				ms.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId = common.String("config_id_new")
-				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
-					UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
-						Size:                    common.Int(3),
-						InstanceConfigurationId: common.String("config_id_new"),
-						FreeformTags:            tags,
-					},
-				})).
+				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(expectedUpdateInstancePoolRequest(ms, nil, core.UpdateInstancePoolDetails{
+					Size:                    common.Int(3),
+					InstanceConfigurationId: common.String("config_id_new"),
+					FreeformTags:            tags,
+				}))).
 					Return(core.UpdateInstancePoolResponse{
 						InstancePool: core.InstancePool{
 							Id: common.String("id"),
@@ -3143,20 +3146,18 @@ func TestInstancePoolUpdate(t *testing.T) {
 						FaultDomains:       []string{"fd-7"},
 					},
 				}
-				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
-					UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
-						Size:                    common.Int(3),
-						InstanceConfigurationId: common.String("config_id"),
-						FreeformTags:            tags,
-						PlacementConfigurations: []core.UpdateInstancePoolPlacementConfigurationDetails{
-							{
-								AvailabilityDomain: common.String("ad-2"),
-								PrimarySubnetId:    common.String("subnet-id"),
-								FaultDomains:       []string{"fd-7"},
-							},
+				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(expectedUpdateInstancePoolRequest(ms, nil, core.UpdateInstancePoolDetails{
+					Size:                    common.Int(3),
+					InstanceConfigurationId: common.String("config_id"),
+					FreeformTags:            tags,
+					PlacementConfigurations: []core.UpdateInstancePoolPlacementConfigurationDetails{
+						{
+							AvailabilityDomain: common.String("ad-2"),
+							PrimarySubnetId:    common.String("subnet-id"),
+							FaultDomains:       []string{"fd-7"},
 						},
 					},
-				})).
+				}))).
 					Return(core.UpdateInstancePoolResponse{
 						InstancePool: core.InstancePool{
 							Id: common.String("id"),
@@ -3189,19 +3190,17 @@ func TestInstancePoolUpdate(t *testing.T) {
 						FaultDomains:       []string{"fd-7"},
 					},
 				}
-				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
-					UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
-						InstanceConfigurationId: common.String("config_id"),
-						FreeformTags:            tags,
-						PlacementConfigurations: []core.UpdateInstancePoolPlacementConfigurationDetails{
-							{
-								AvailabilityDomain: common.String("ad-2"),
-								PrimarySubnetId:    common.String("subnet-id"),
-								FaultDomains:       []string{"fd-7"},
-							},
+				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(expectedUpdateInstancePoolRequest(ms, nil, core.UpdateInstancePoolDetails{
+					InstanceConfigurationId: common.String("config_id"),
+					FreeformTags:            tags,
+					PlacementConfigurations: []core.UpdateInstancePoolPlacementConfigurationDetails{
+						{
+							AvailabilityDomain: common.String("ad-2"),
+							PrimarySubnetId:    common.String("subnet-id"),
+							FaultDomains:       []string{"fd-7"},
 						},
 					},
-				})).
+				}))).
 					Return(core.UpdateInstancePoolResponse{
 						InstancePool: core.InstancePool{
 							Id: common.String("id"),
@@ -3235,23 +3234,21 @@ func TestInstancePoolUpdate(t *testing.T) {
 						},
 					},
 				}
-				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
-					UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
-						Size:                    common.Int(3),
-						InstanceConfigurationId: common.String("config_id"),
-						FreeformTags:            tags,
-						PlacementConfigurations: []core.UpdateInstancePoolPlacementConfigurationDetails{
-							{
-								AvailabilityDomain: common.String("ad-1"),
-								FaultDomains:       []string{"fd-5", "fd-6"},
-								PrimaryVnicSubnets: &core.InstancePoolPlacementPrimarySubnet{
-									SubnetId:       common.String("primary-subnet-id"),
-									IsAssignIpv6Ip: common.Bool(true),
-								},
+				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(expectedUpdateInstancePoolRequest(ms, nil, core.UpdateInstancePoolDetails{
+					Size:                    common.Int(3),
+					InstanceConfigurationId: common.String("config_id"),
+					FreeformTags:            tags,
+					PlacementConfigurations: []core.UpdateInstancePoolPlacementConfigurationDetails{
+						{
+							AvailabilityDomain: common.String("ad-1"),
+							FaultDomains:       []string{"fd-5", "fd-6"},
+							PrimaryVnicSubnets: &core.InstancePoolPlacementPrimarySubnet{
+								SubnetId:       common.String("primary-subnet-id"),
+								IsAssignIpv6Ip: common.Bool(true),
 							},
 						},
 					},
-				})).
+				}))).
 					Return(core.UpdateInstancePoolResponse{
 						InstancePool: core.InstancePool{
 							Id: common.String("id"),
@@ -3270,16 +3267,14 @@ func TestInstancePoolUpdate(t *testing.T) {
 			},
 			testSpecificSetup: func(ms *MachinePoolScope) {
 				ms.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId = common.String("config_id")
-				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
-					UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
-						Size:                    common.Int(3),
-						InstanceConfigurationId: common.String("config_id"),
-						FreeformTags: map[string]string{
-							ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
-							ociutil.ClusterResourceIdentifier: "resource_uid",
-						},
+				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(expectedUpdateInstancePoolRequest(ms, nil, core.UpdateInstancePoolDetails{
+					Size:                    common.Int(3),
+					InstanceConfigurationId: common.String("config_id"),
+					FreeformTags: map[string]string{
+						ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+						ociutil.ClusterResourceIdentifier: "resource_uid",
 					},
-				})).
+				}))).
 					Return(core.UpdateInstancePoolResponse{
 						InstancePool: core.InstancePool{
 							Id: common.String("id"),
@@ -3303,17 +3298,15 @@ func TestInstancePoolUpdate(t *testing.T) {
 				ms.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId = common.String("config_id")
 				ms.OCIMachinePool.Spec.InstanceDisplayNameFormatter = common.String("new-display-${launchCount}")
 				ms.OCIMachinePool.Spec.InstanceHostnameFormatter = common.String("new-host-${launchCount}")
-				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
-					UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
-						InstanceConfigurationId: common.String("config_id"),
-						FreeformTags: map[string]string{
-							ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
-							ociutil.ClusterResourceIdentifier: "resource_uid",
-						},
-						InstanceDisplayNameFormatter: common.String("new-display-${launchCount}"),
-						InstanceHostnameFormatter:    common.String("new-host-${launchCount}"),
+				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(expectedUpdateInstancePoolRequest(ms, nil, core.UpdateInstancePoolDetails{
+					InstanceConfigurationId: common.String("config_id"),
+					FreeformTags: map[string]string{
+						ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+						ociutil.ClusterResourceIdentifier: "resource_uid",
 					},
-				})).
+					InstanceDisplayNameFormatter: common.String("new-display-${launchCount}"),
+					InstanceHostnameFormatter:    common.String("new-host-${launchCount}"),
+				}))).
 					Return(core.UpdateInstancePoolResponse{
 						InstancePool: core.InstancePool{
 							Id: common.String("id"),
@@ -3467,24 +3460,21 @@ func TestInstancePoolUpdateClearsStalePrimaryVnicSubnetPlacement(t *testing.T) {
 			},
 		},
 	}
-	computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
-		InstancePoolId: common.String("pool-id"),
-		UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
-			Size:                    common.Int(3),
-			InstanceConfigurationId: common.String("config_id"),
-			FreeformTags: map[string]string{
-				ociutil.ClusterResourceIdentifier: "",
-				ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
-			},
-			PlacementConfigurations: []core.UpdateInstancePoolPlacementConfigurationDetails{
-				{
-					AvailabilityDomain: common.String("ad-1"),
-					PrimarySubnetId:    common.String("new-subnet-id"),
-					FaultDomains:       []string{"fd-5"},
-				},
+	computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(expectedUpdateInstancePoolRequest(ms, common.String("pool-id"), core.UpdateInstancePoolDetails{
+		Size:                    common.Int(3),
+		InstanceConfigurationId: common.String("config_id"),
+		FreeformTags: map[string]string{
+			ociutil.ClusterResourceIdentifier: "",
+			ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+		},
+		PlacementConfigurations: []core.UpdateInstancePoolPlacementConfigurationDetails{
+			{
+				AvailabilityDomain: common.String("ad-1"),
+				PrimarySubnetId:    common.String("new-subnet-id"),
+				FaultDomains:       []string{"fd-5"},
 			},
 		},
-	})).Return(core.UpdateInstancePoolResponse{
+	}))).Return(core.UpdateInstancePoolResponse{
 		InstancePool: core.InstancePool{
 			Id: common.String("pool-id"),
 		},

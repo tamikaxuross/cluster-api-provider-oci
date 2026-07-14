@@ -18,7 +18,10 @@ package scope
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -938,6 +941,7 @@ func (m *MachinePoolScope) UpdatePool(ctx context.Context, instancePool *core.In
 
 		req := core.UpdateInstancePoolRequest{InstancePoolId: instancePool.Id,
 			UpdateInstancePoolDetails: updateDetails,
+			OpcRetryToken:             InstancePoolUpdateRetryToken(m.OCIMachinePool, instancePool.Id, updateDetails),
 		}
 		_, err := m.ComputeManagementClient.UpdateInstancePool(ctx, req)
 		if err != nil {
@@ -947,6 +951,29 @@ func (m *MachinePoolScope) UpdatePool(ctx context.Context, instancePool *core.In
 		return true, nil
 	}
 	return false, nil
+}
+
+// InstancePoolUpdateRetryToken returns a stable retry token for the same desired update.
+func InstancePoolUpdateRetryToken(machinePool *infrav2exp.OCIMachinePool, instancePoolID *string, updateDetails core.UpdateInstancePoolDetails) *string {
+	payload := struct {
+		UID            string                         `json:"uid,omitempty"`
+		Namespace      string                         `json:"namespace,omitempty"`
+		Name           string                         `json:"name,omitempty"`
+		InstancePoolID string                         `json:"instancePoolId,omitempty"`
+		UpdateDetails  core.UpdateInstancePoolDetails `json:"updateDetails"`
+	}{
+		UID:            string(machinePool.UID),
+		Namespace:      machinePool.Namespace,
+		Name:           machinePool.Name,
+		InstancePoolID: ptr.ToString(instancePoolID),
+		UpdateDetails:  updateDetails,
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return ociutil.GetOPCRetryToken("update-instance-pool-%s-%s", string(machinePool.UID), ptr.ToString(instancePoolID))
+	}
+	sum := sha256.Sum256(data)
+	return ociutil.GetOPCRetryToken("update-instance-pool-%s", hex.EncodeToString(sum[:])[:32])
 }
 
 func instancePoolHasPrimaryVnicSubnets(placements []core.InstancePoolPlacementConfiguration) bool {

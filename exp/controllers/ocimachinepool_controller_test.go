@@ -529,16 +529,18 @@ func TestReconciliationFunction(t *testing.T) {
 							DisplayName: common.String("name-1"),
 						}},
 					}, nil)
-				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
-					InstancePoolId: common.String("pool-id"),
-					UpdateInstancePoolDetails: core.UpdateInstancePoolDetails{
-						Size:                    common.Int(3),
-						InstanceConfigurationId: common.String("new-id"),
-						FreeformTags: map[string]string{
-							ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
-							ociutil.ClusterResourceIdentifier: "resource_uid",
-						},
+				updateDetails := core.UpdateInstancePoolDetails{
+					Size:                    common.Int(3),
+					InstanceConfigurationId: common.String("new-id"),
+					FreeformTags: map[string]string{
+						ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+						ociutil.ClusterResourceIdentifier: "resource_uid",
 					},
+				}
+				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
+					InstancePoolId:            common.String("pool-id"),
+					UpdateInstancePoolDetails: updateDetails,
+					OpcRetryToken:             scope.InstancePoolUpdateRetryToken(ms.OCIMachinePool, common.String("pool-id"), updateDetails),
 				})).
 					Return(core.UpdateInstancePoolResponse{
 						InstancePool: core.InstancePool{
