@@ -165,18 +165,18 @@ func projectLaunchDetails(in, mask *core.InstanceConfigurationLaunchInstanceDeta
 	}
 
 	return &comparableLaunchDetails{
-		CapacityReservationID:   pickString(in.CapacityReservationId, mask.CapacityReservationId),
-		ClusterPlacementGroupID: pickStringDetectRemoval(in.ClusterPlacementGroupId, mask.ClusterPlacementGroupId),
-		CompartmentID:           pickString(in.CompartmentId, mask.CompartmentId),
-		CreateVnicDetails:       projectCreateVnicDetails(in.CreateVnicDetails, mask.CreateVnicDetails),
-		FreeformTags:            normalizeFreeformTags(in.FreeformTags),
-		DefinedTags:             normalizeDefinedTags(in.DefinedTags),
-		Metadata:                normalizeMetadata(pickMetadata(in.Metadata, mask.Metadata)),
-		ExtendedMetadata:        pickExtendedMetadata(in.ExtendedMetadata, mask.ExtendedMetadata),
-		IpxeScript:              pickStringDetectRemoval(in.IpxeScript, mask.IpxeScript),
-		LaunchMode:                 pickEnum(string(in.LaunchMode), string(mask.LaunchMode)),
-		LicensingConfigs:           projectLicensingConfigs(in.LicensingConfigs, mask.LicensingConfigs),
-		PreferredMaintenanceAction: pickEnum(string(in.PreferredMaintenanceAction), string(mask.PreferredMaintenanceAction)),
+		CapacityReservationID:          pickString(in.CapacityReservationId, mask.CapacityReservationId),
+		ClusterPlacementGroupID:        pickStringDetectRemoval(in.ClusterPlacementGroupId, mask.ClusterPlacementGroupId),
+		CompartmentID:                  pickString(in.CompartmentId, mask.CompartmentId),
+		CreateVnicDetails:              projectCreateVnicDetails(in.CreateVnicDetails, mask.CreateVnicDetails),
+		FreeformTags:                   normalizeFreeformTags(in.FreeformTags),
+		DefinedTags:                    normalizeDefinedTags(in.DefinedTags),
+		Metadata:                       normalizeMetadata(pickMetadata(in.Metadata, mask.Metadata)),
+		ExtendedMetadata:               pickExtendedMetadata(in.ExtendedMetadata, mask.ExtendedMetadata),
+		IpxeScript:                     pickStringDetectRemoval(in.IpxeScript, mask.IpxeScript),
+		LaunchMode:                     pickEnum(string(in.LaunchMode), string(mask.LaunchMode)),
+		LicensingConfigs:               projectLicensingConfigs(in.LicensingConfigs, mask.LicensingConfigs),
+		PreferredMaintenanceAction:     pickEnum(string(in.PreferredMaintenanceAction), string(mask.PreferredMaintenanceAction)),
 		Shape:                          pickString(in.Shape, mask.Shape),
 		ShapeConfig:                    projectShapeConfig(in.ShapeConfig, mask.ShapeConfig),
 		PlatformConfig:                 projectPlatformConfig(in.PlatformConfig, mask.PlatformConfig),
@@ -878,4 +878,3 @@ func pickEnum(actual, mask string) string {
 	}
 	return actual
 }
-
