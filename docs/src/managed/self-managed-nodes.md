@@ -83,7 +83,7 @@ spec:
     shape: "${OCI_NODE_MACHINE_TYPE=VM.Standard.E4.Flex}"
     shapeConfig:
       ocpus: "1"
-    preferredMaintenanceAction: LIVE_MIGRATE
+    # preferredMaintenanceAction: LIVE_MIGRATE
 ```
 
 The formatter examples use OCI's `${launchCount}` token. In clusterctl-style
