@@ -392,9 +392,8 @@ func (r *OCIMachinePoolReconciler) reconcileNormal(ctx context.Context, logger l
 			machinePoolScope.Error(err, "error updating OCIMachinePool")
 			return ctrl.Result{}, err
 		}
-		if updateIssued && !machinePoolScope.InstancePoolUsesDesiredInstanceConfiguration(instancePool) {
+		if updateIssued {
 			// OCI instance pool updates are asynchronous; requeue to verify on the next reconciliation.
-			// Only block readiness when the instance configuration itself changed, not for size-only updates.
 			v1beta1conditions.MarkFalse(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition, infrav2exp.InstancePoolNotReadyReason, clusterv1beta1.ConditionSeverityInfo, "")
 			return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 		}
