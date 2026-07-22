@@ -408,6 +408,16 @@ func (r *OCIMachinePoolReconciler) reconcileNormal(ctx context.Context, logger l
 		r.Recorder.Eventf(machinePoolScope.OCIMachinePool, corev1.EventTypeNormal, "InstancePoolReady",
 			"Instance pool is in ready state")
 		v1beta1conditions.MarkTrue(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition)
+
+		desiredReplicas := 0
+		if machinePoolScope.MachinePool.Spec.Replicas != nil {
+			desiredReplicas = int(*machinePoolScope.MachinePool.Spec.Replicas)
+		}
+		if updateIssued || len(providerIDList) != desiredReplicas {
+			// Pool hasn't settled at the desired count yet; poll fast instead of
+			// waiting out the steady-state interval below.
+			return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+		}
 	default:
 		v1beta1conditions.MarkFalse(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition, infrav2exp.InstancePoolProvisionFailedReason, clusterv1beta1.ConditionSeverityError, "")
 		machinePoolScope.SetFailureReason(cloudutil.CreateError)
