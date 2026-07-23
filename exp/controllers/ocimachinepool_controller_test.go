@@ -540,7 +540,11 @@ func TestReconciliationFunction(t *testing.T) {
 				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
 					InstancePoolId:            common.String("pool-id"),
 					UpdateInstancePoolDetails: updateDetails,
-					OpcRetryToken:             scope.InstancePoolUpdateRetryToken(ms.OCIMachinePool, common.String("pool-id"), updateDetails),
+					OpcRetryToken: scope.InstancePoolUpdateRetryToken(ms.OCIMachinePool, &core.InstancePool{
+						Id:                      common.String("pool-id"),
+						InstanceConfigurationId: common.String("old-id"),
+						Size:                    common.Int(3),
+					}, updateDetails),
 				})).
 					Return(core.UpdateInstancePoolResponse{
 						InstancePool: core.InstancePool{

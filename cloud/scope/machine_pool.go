@@ -941,7 +941,7 @@ func (m *MachinePoolScope) UpdatePool(ctx context.Context, instancePool *core.In
 
 		req := core.UpdateInstancePoolRequest{InstancePoolId: instancePool.Id,
 			UpdateInstancePoolDetails: updateDetails,
-			OpcRetryToken:             InstancePoolUpdateRetryToken(m.OCIMachinePool, instancePool.Id, updateDetails),
+			OpcRetryToken:             InstancePoolUpdateRetryToken(m.OCIMachinePool, instancePool, updateDetails),
 		}
 		_, err := m.ComputeManagementClient.UpdateInstancePool(ctx, req)
 		if err != nil {
@@ -953,24 +953,35 @@ func (m *MachinePoolScope) UpdatePool(ctx context.Context, instancePool *core.In
 	return false, nil
 }
 
-// InstancePoolUpdateRetryToken returns a stable retry token for the same desired update.
-func InstancePoolUpdateRetryToken(machinePool *infrav2exp.OCIMachinePool, instancePoolID *string, updateDetails core.UpdateInstancePoolDetails) *string {
+// InstancePoolUpdateRetryToken folds the pool's observed size and instance configuration into the
+// token, not just the desired payload. Otherwise a request that targets the same end state as an
+// earlier one (e.g. scaling back to a size the pool already passed through) hashes identically, and
+// OCI treats it as a duplicate of the stale request instead of applying it.
+func InstancePoolUpdateRetryToken(machinePool *infrav2exp.OCIMachinePool, instancePool *core.InstancePool, updateDetails core.UpdateInstancePoolDetails) *string {
+	observedSize := 0
+	if instancePool.Size != nil {
+		observedSize = *instancePool.Size
+	}
 	payload := struct {
-		UID            string                         `json:"uid,omitempty"`
-		Namespace      string                         `json:"namespace,omitempty"`
-		Name           string                         `json:"name,omitempty"`
-		InstancePoolID string                         `json:"instancePoolId,omitempty"`
-		UpdateDetails  core.UpdateInstancePoolDetails `json:"updateDetails"`
+		UID                     string                         `json:"uid,omitempty"`
+		Namespace               string                         `json:"namespace,omitempty"`
+		Name                    string                         `json:"name,omitempty"`
+		InstancePoolID          string                         `json:"instancePoolId,omitempty"`
+		ObservedSize            int                            `json:"observedSize"`
+		ObservedConfigurationID string                         `json:"observedConfigurationId,omitempty"`
+		UpdateDetails           core.UpdateInstancePoolDetails `json:"updateDetails"`
 	}{
-		UID:            string(machinePool.UID),
-		Namespace:      machinePool.Namespace,
-		Name:           machinePool.Name,
-		InstancePoolID: ptr.ToString(instancePoolID),
-		UpdateDetails:  updateDetails,
+		UID:                     string(machinePool.UID),
+		Namespace:               machinePool.Namespace,
+		Name:                    machinePool.Name,
+		InstancePoolID:          ptr.ToString(instancePool.Id),
+		ObservedSize:            observedSize,
+		ObservedConfigurationID: ptr.ToString(instancePool.InstanceConfigurationId),
+		UpdateDetails:           updateDetails,
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
-		return ociutil.GetOPCRetryToken("update-instance-pool-%s-%s", string(machinePool.UID), ptr.ToString(instancePoolID))
+		return ociutil.GetOPCRetryToken("update-instance-pool-%s-%s", string(machinePool.UID), ptr.ToString(instancePool.Id))
 	}
 	sum := sha256.Sum256(data)
 	return ociutil.GetOPCRetryToken("update-instance-pool-%s", hex.EncodeToString(sum[:])[:32])
