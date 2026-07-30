@@ -21,6 +21,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -1942,11 +1943,14 @@ func orderingLaunchDetails(shape, bootstrapData string) *core.InstanceConfigurat
 	}
 }
 
+// expectedUpdateInstancePoolRequest computes the retry token using the current time, matching the
+// production call in UpdatePool; callers must invoke UpdatePool in the same minute (the tests below
+// do, synchronously).
 func expectedUpdateInstancePoolRequest(ms *MachinePoolScope, instancePool *core.InstancePool, details core.UpdateInstancePoolDetails) core.UpdateInstancePoolRequest {
 	return core.UpdateInstancePoolRequest{
 		InstancePoolId:            instancePool.Id,
 		UpdateInstancePoolDetails: details,
-		OpcRetryToken:             InstancePoolUpdateRetryToken(ms.OCIMachinePool, instancePool, details),
+		OpcRetryToken:             InstancePoolUpdateRetryToken(ms.OCIMachinePool, instancePool, details, time.Now()),
 	}
 }
 
@@ -3526,6 +3530,41 @@ func TestInstancePoolUpdateClearsStalePrimaryVnicSubnetPlacement(t *testing.T) {
 
 	_, err = ms.UpdatePool(context.Background(), instancePool)
 	g.Expect(err).To(BeNil())
+}
+
+func TestInstancePoolUpdateRetryTokenDiffersAcrossRepeatedTransitions(t *testing.T) {
+	g := NewWithT(t)
+
+	machinePool := &infrav2exp.OCIMachinePool{
+		ObjectMeta: metav1.ObjectMeta{UID: "pool-uid", Name: "test", Namespace: "default"},
+	}
+	// A pool observed at size 0 being asked to scale to 1, with the same instance
+	// configuration and tags both times: this is the exact shape of a scale-down/scale-up
+	// cycle repeating (e.g. 1 -> 0 -> 1 -> 0 -> 1), which is a normal operation, not a retry.
+	observed := &core.InstancePool{
+		Id:                      common.String("pool-id"),
+		Size:                    common.Int(0),
+		InstanceConfigurationId: common.String("config-id"),
+	}
+	desired := core.UpdateInstancePoolDetails{
+		Size:                    common.Int(1),
+		InstanceConfigurationId: common.String("config-id"),
+	}
+
+	t0 := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	tLater := t0.Add(2 * time.Minute)
+
+	first := InstancePoolUpdateRetryToken(machinePool, observed, desired, t0)
+	second := InstancePoolUpdateRetryToken(machinePool, observed, desired, tLater)
+	g.Expect(*first).ToNot(Equal(*second),
+		"a repeated scale-down/up transition minutes apart must not reuse a stale retry token")
+
+	// Two calls within the same bucket (e.g. a genuine client-side retry of the same
+	// attempt, seconds apart) should still dedupe to the same token.
+	tRetry := t0.Add(5 * time.Second)
+	retry := InstancePoolUpdateRetryToken(machinePool, observed, desired, tRetry)
+	g.Expect(*retry).To(Equal(*first),
+		"a same-attempt retry within the token bucket should still dedupe")
 }
 
 func TestSyncReplicasFromInstancePool(t *testing.T) {

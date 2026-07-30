@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
@@ -941,7 +942,7 @@ func (m *MachinePoolScope) UpdatePool(ctx context.Context, instancePool *core.In
 
 		req := core.UpdateInstancePoolRequest{InstancePoolId: instancePool.Id,
 			UpdateInstancePoolDetails: updateDetails,
-			OpcRetryToken:             InstancePoolUpdateRetryToken(m.OCIMachinePool, instancePool, updateDetails),
+			OpcRetryToken:             InstancePoolUpdateRetryToken(m.OCIMachinePool, instancePool, updateDetails, time.Now()),
 		}
 		_, err := m.ComputeManagementClient.UpdateInstancePool(ctx, req)
 		if err != nil {
@@ -953,11 +954,11 @@ func (m *MachinePoolScope) UpdatePool(ctx context.Context, instancePool *core.In
 	return false, nil
 }
 
-// InstancePoolUpdateRetryToken folds the pool's observed size and instance configuration into the
-// token, not just the desired payload. Otherwise a request that targets the same end state as an
-// earlier one (e.g. scaling back to a size the pool already passed through) hashes identically, and
-// OCI treats it as a duplicate of the stale request instead of applying it.
-func InstancePoolUpdateRetryToken(machinePool *infrav2exp.OCIMachinePool, instancePool *core.InstancePool, updateDetails core.UpdateInstancePoolDetails) *string {
+// InstancePoolUpdateRetryToken folds the pool's observed size, instance configuration, and a
+// minute-granularity timestamp into the token, not just the desired payload. Content alone isn't
+// enough: a repeated scale-down/up cycle passes through the same observed/desired state every time,
+// hashing identically and causing OCI to silently no-op the later request as a duplicate.
+func InstancePoolUpdateRetryToken(machinePool *infrav2exp.OCIMachinePool, instancePool *core.InstancePool, updateDetails core.UpdateInstancePoolDetails, now time.Time) *string {
 	observedSize := 0
 	if instancePool.Size != nil {
 		observedSize = *instancePool.Size
@@ -969,6 +970,7 @@ func InstancePoolUpdateRetryToken(machinePool *infrav2exp.OCIMachinePool, instan
 		InstancePoolID          string                         `json:"instancePoolId,omitempty"`
 		ObservedSize            int                            `json:"observedSize"`
 		ObservedConfigurationID string                         `json:"observedConfigurationId,omitempty"`
+		TimeBucket              int64                          `json:"timeBucket"`
 		UpdateDetails           core.UpdateInstancePoolDetails `json:"updateDetails"`
 	}{
 		UID:                     string(machinePool.UID),
@@ -977,6 +979,7 @@ func InstancePoolUpdateRetryToken(machinePool *infrav2exp.OCIMachinePool, instan
 		InstancePoolID:          ptr.ToString(instancePool.Id),
 		ObservedSize:            observedSize,
 		ObservedConfigurationID: ptr.ToString(instancePool.InstanceConfigurationId),
+		TimeBucket:              now.UTC().Truncate(time.Minute).Unix(),
 		UpdateDetails:           updateDetails,
 	}
 	data, err := json.Marshal(payload)

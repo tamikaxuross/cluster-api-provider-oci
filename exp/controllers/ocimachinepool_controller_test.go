@@ -544,7 +544,7 @@ func TestReconciliationFunction(t *testing.T) {
 						Id:                      common.String("pool-id"),
 						InstanceConfigurationId: common.String("old-id"),
 						Size:                    common.Int(3),
-					}, updateDetails),
+					}, updateDetails, time.Now()),
 				})).
 					Return(core.UpdateInstancePoolResponse{
 						InstancePool: core.InstancePool{
