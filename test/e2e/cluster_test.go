@@ -845,6 +845,17 @@ var _ = Describe("Workload cluster creation", func() {
 		By("Verifying the actual OCI InstancePool carries the updated MachinePool formatter")
 		assertMachinePoolActualInstancePoolFormatters(ctx, bootstrapClusterProxy, result.Cluster, result.MachinePools[0], common.String("updated-worker-${launchCount}"), nil, specName)
 
+		By("Clearing the MachinePool formatter")
+		updatedOMP := &infrav2exp.OCIMachinePool{}
+		Expect(bootstrapClusterProxy.GetClient().Get(ctx, mpKey, updatedOMP)).To(Succeed())
+		patchHelper, err = v1beta1patch.NewHelper(updatedOMP, bootstrapClusterProxy.GetClient())
+		Expect(err).ToNot(HaveOccurred())
+		updatedOMP.Spec.InstanceDisplayNameFormatter = nil
+		Expect(patchHelper.Patch(ctx, updatedOMP)).To(Succeed())
+
+		By("Verifying the actual OCI InstancePool clears the MachinePool formatter")
+		assertMachinePoolActualInstancePoolFormatters(ctx, bootstrapClusterProxy, result.Cluster, result.MachinePools[0], nil, nil, specName)
+
 		By("Verifying the actual OCI InstanceConfiguration carries the updated iPXE script")
 		assertMachinePoolInstanceConfigurationIpxeScript(ctx, desiredICID, common.String("#!ipxe"), specName)
 	})
@@ -1315,13 +1326,13 @@ func assertMachinePoolActualInstancePoolFormatters(ctx context.Context, clusterP
 		})
 		g.Expect(err).NotTo(HaveOccurred())
 		if expectedDisplayNameFormatter == nil {
-			g.Expect(resp.InstancePool.InstanceDisplayNameFormatter).To(BeNil())
+			g.Expect(resp.InstancePool.InstanceDisplayNameFormatter == nil || *resp.InstancePool.InstanceDisplayNameFormatter == "").To(BeTrue())
 		} else {
 			g.Expect(resp.InstancePool.InstanceDisplayNameFormatter).ToNot(BeNil())
 			g.Expect(*resp.InstancePool.InstanceDisplayNameFormatter).To(Equal(*expectedDisplayNameFormatter))
 		}
 		if expectedHostnameFormatter == nil {
-			g.Expect(resp.InstancePool.InstanceHostnameFormatter).To(BeNil())
+			g.Expect(resp.InstancePool.InstanceHostnameFormatter == nil || *resp.InstancePool.InstanceHostnameFormatter == "").To(BeTrue())
 		} else {
 			g.Expect(resp.InstancePool.InstanceHostnameFormatter).ToNot(BeNil())
 			g.Expect(*resp.InstancePool.InstanceHostnameFormatter).To(Equal(*expectedHostnameFormatter))

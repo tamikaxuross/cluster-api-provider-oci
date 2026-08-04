@@ -317,9 +317,10 @@ func TestReconciliationFunction(t *testing.T) {
 			},
 		},
 		{
-			name:               "instance pool running",
-			errorExpected:      false,
-			conditionAssertion: []conditionAssertion{{infrav2exp.LaunchTemplateReadyCondition, corev1.ConditionTrue, "", ""}, {infrav2exp.InstancePoolReadyCondition, corev1.ConditionTrue, "", ""}},
+			name:                 "instance pool running with one non-running member",
+			errorExpected:        false,
+			conditionAssertion:   []conditionAssertion{{infrav2exp.LaunchTemplateReadyCondition, corev1.ConditionTrue, "", ""}, {infrav2exp.InstancePoolReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, infrav2exp.InstancePoolNotReadyReason}},
+			expectedRequeueAfter: 300 * time.Second,
 			testSpecificSetup: func(t *test, machinePoolScope *scope.MachinePoolScope, computeManagementClient *mock_computemanagement.MockClient) {
 				ms.OCIMachinePool.Spec.InstanceConfiguration = infrav2exp.InstanceConfiguration{
 					Shape:                   common.String("test-shape"),
@@ -370,22 +371,36 @@ func TestReconciliationFunction(t *testing.T) {
 					}, nil)
 				computeManagementClient.EXPECT().ListInstancePoolInstances(gomock.Any(), gomock.Any()).
 					Return(core.ListInstancePoolInstancesResponse{
-						Items: []core.InstanceSummary{{
-							Id:          common.String("id-1"),
-							State:       common.String("Running"),
-							DisplayName: common.String("name-1"),
-						}},
+						Items: []core.InstanceSummary{
+							{
+								Id:          common.String("id-1"),
+								State:       common.String("Running"),
+								DisplayName: common.String("name-1"),
+							},
+							{
+								Id:          common.String("id-2"),
+								State:       common.String("Running"),
+								DisplayName: common.String("name-2"),
+							},
+							{
+								Id:          common.String("id-3"),
+								State:       common.String("Stopped"),
+								DisplayName: common.String("name-3"),
+							},
+						},
 					}, nil)
 				computeManagementClient.EXPECT().ListInstanceConfigurations(gomock.Any(), gomock.Any()).
 					Return(core.ListInstanceConfigurationsResponse{}, nil)
 			},
 			validate: func(g *WithT, t *test) {
-				g.Expect(len(t.createPoolMachines)).To(Equal(1))
+				g.Expect(len(t.createPoolMachines)).To(Equal(3))
 				machine := t.createPoolMachines[0]
 				g.Expect(machine.Spec.MachineType).To(Equal(infrav2exp.SelfManaged))
 				g.Expect(*machine.Spec.InstanceName).To(Equal("name-1"))
 				g.Expect(*machine.Spec.ProviderID).To(Equal("oci://id-1"))
 				g.Expect(*machine.Spec.OCID).To(Equal("id-1"))
+				g.Expect(ms.OCIMachinePool.Status.Ready).To(BeFalse())
+				g.Expect(ms.OCIMachinePool.Status.Replicas).To(Equal(int32(2)))
 			},
 		},
 		{
@@ -446,17 +461,20 @@ func TestReconciliationFunction(t *testing.T) {
 					}, nil)
 				computeManagementClient.EXPECT().ListInstancePoolInstances(gomock.Any(), gomock.Any()).
 					Return(core.ListInstancePoolInstancesResponse{
-						Items: []core.InstanceSummary{{
-							Id:          common.String("id-1"),
-							State:       common.String("Running"),
-							DisplayName: common.String("name-1"),
-						}},
+						Items: []core.InstanceSummary{
+							{Id: common.String("id-1"), State: common.String("Running"), DisplayName: common.String("name-1")},
+							{Id: common.String("id-2"), State: common.String("Running"), DisplayName: common.String("name-2")},
+							{Id: common.String("id-3"), State: common.String("Running"), DisplayName: common.String("name-3")},
+							{Id: common.String("id-4"), State: common.String("Running"), DisplayName: common.String("name-4")},
+						},
 					}, nil)
 				computeManagementClient.EXPECT().ListInstanceConfigurations(gomock.Any(), gomock.Any()).
 					Return(core.ListInstanceConfigurationsResponse{}, nil)
 			},
 			validate: func(g *WithT, t *test) {
-				g.Expect(len(t.createPoolMachines)).To(Equal(1))
+				g.Expect(len(t.createPoolMachines)).To(Equal(4))
+				g.Expect(ms.OCIMachinePool.Status.Ready).To(BeTrue())
+				g.Expect(ms.OCIMachinePool.Status.Replicas).To(Equal(int32(4)))
 
 				updatedMachinePool := &clusterv1.MachinePool{}
 				err := ms.Client.Get(context.Background(), client.ObjectKey{Name: ms.MachinePool.Name, Namespace: ms.MachinePool.Namespace}, updatedMachinePool)
@@ -537,14 +555,25 @@ func TestReconciliationFunction(t *testing.T) {
 						ociutil.ClusterResourceIdentifier: "resource_uid",
 					},
 				}
+				observedPool := &core.InstancePool{
+					Id:                      common.String("pool-id"),
+					InstanceConfigurationId: common.String("old-id"),
+					Size:                    common.Int(3),
+				}
+				fingerprint, err := scope.InstancePoolUpdateFingerprint(ms.OCIMachinePool, observedPool, updateDetails)
+				if err != nil {
+					panic(err)
+				}
+				retryToken := ociutil.GetOPCRetryToken("test-update-instance-pool-%s", fingerprint)
+				if ms.OCIMachinePool.Annotations == nil {
+					ms.OCIMachinePool.Annotations = map[string]string{}
+				}
+				ms.OCIMachinePool.Annotations[scope.InstancePoolUpdateFingerprintAnnotation] = fingerprint
+				ms.OCIMachinePool.Annotations[scope.InstancePoolUpdateRetryTokenAnnotation] = *retryToken
 				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
 					InstancePoolId:            common.String("pool-id"),
 					UpdateInstancePoolDetails: updateDetails,
-					OpcRetryToken: scope.InstancePoolUpdateRetryToken(ms.OCIMachinePool, &core.InstancePool{
-						Id:                      common.String("pool-id"),
-						InstanceConfigurationId: common.String("old-id"),
-						Size:                    common.Int(3),
-					}, updateDetails, time.Now()),
+					OpcRetryToken:             retryToken,
 				})).
 					Return(core.UpdateInstancePoolResponse{
 						InstancePool: core.InstancePool{
@@ -565,7 +594,7 @@ func TestReconciliationFunction(t *testing.T) {
 		{
 			name:               "delete unwanted machinepool machine",
 			errorExpected:      false,
-			conditionAssertion: []conditionAssertion{{infrav2exp.LaunchTemplateReadyCondition, corev1.ConditionTrue, "", ""}, {infrav2exp.InstancePoolReadyCondition, corev1.ConditionTrue, "", ""}},
+			conditionAssertion: []conditionAssertion{{infrav2exp.LaunchTemplateReadyCondition, corev1.ConditionTrue, "", ""}, {infrav2exp.InstancePoolReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, infrav2exp.InstancePoolNotReadyReason}},
 			testSpecificSetup: func(t *test, machinePoolScope *scope.MachinePoolScope, computeManagementClient *mock_computemanagement.MockClient) {
 				ms.OCIMachinePool.Spec.InstanceConfiguration = infrav2exp.InstanceConfiguration{
 					Shape:                   common.String("test-shape"),

@@ -419,7 +419,7 @@ func projectShapeConfig(in, mask *core.InstanceConfigurationLaunchInstanceShapeC
 	result := &comparableShapeConfig{
 		OCPUs:                   pickFloat32(in.Ocpus, mask.Ocpus),
 		MemoryInGBs:             pickFloat32(in.MemoryInGBs, mask.MemoryInGBs),
-		VCPUs:                   pickIntDetectRemoval(in.Vcpus, mask.Vcpus),
+		VCPUs:                   pickInt(in.Vcpus, mask.Vcpus),
 		NVMEs:                   pickInt(in.Nvmes, mask.Nvmes),
 		BaselineOCPUUtilization: pickEnum(string(in.BaselineOcpuUtilization), string(mask.BaselineOcpuUtilization)),
 	}
@@ -853,13 +853,6 @@ func pickFloat32(actual, mask *float32) *float32 {
 
 func pickInt(actual, mask *int) *int {
 	if mask == nil {
-		return nil
-	}
-	return actual
-}
-
-func pickIntDetectRemoval(actual, mask *int) *int {
-	if mask == nil && actual == nil {
 		return nil
 	}
 	return actual

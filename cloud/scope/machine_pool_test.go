@@ -19,9 +19,11 @@ package scope
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -1072,7 +1074,7 @@ write_files:
 			},
 		},
 		{
-			name:          "instance config recreated when managed defaults are removed but bootstrap unchanged",
+			name:          "instance config recreated once when optional fields including vcpus are removed",
 			errorExpected: false,
 			testSpecificSetup: func(ms *MachinePoolScope, g *WithT) {
 				ms.OCIMachinePool.Spec.InstanceConfiguration = infrav2exp.InstanceConfiguration{
@@ -1087,6 +1089,7 @@ write_files:
 				oldLaunch.LaunchMode = core.InstanceConfigurationLaunchInstanceDetailsLaunchModeNative
 				oldLaunch.PreferredMaintenanceAction = core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionReboot
 				oldLaunch.PlatformConfig = core.AmdVmPlatformConfig{IsSymmetricMultiThreadingEnabled: common.Bool(false)}
+				oldLaunch.ShapeConfig = &core.InstanceConfigurationLaunchInstanceShapeConfigDetails{Vcpus: common.Int(4)}
 				oldConfigHash, err := hash.ComputeHash(oldLaunch)
 				g.Expect(err).To(BeNil())
 				currentBootstrapHash := hash.ComputeUserDataHash(map[string]string{"user_data": "dGVzdA=="})
@@ -1106,6 +1109,17 @@ write_files:
 							},
 						},
 					}, nil)
+				computeManagementClient.EXPECT().GetInstanceConfiguration(gomock.Any(), gomock.Eq(core.GetInstanceConfigurationRequest{
+					InstanceConfigurationId: common.String("id"),
+				})).
+					Return(core.GetInstanceConfigurationResponse{
+						InstanceConfiguration: core.InstanceConfiguration{
+							Id: common.String("id"),
+							InstanceDetails: core.ComputeInstanceDetails{
+								LaunchDetails: oldLaunch,
+							},
+						},
+					}, nil)
 
 				computeManagementClient.EXPECT().CreateInstanceConfiguration(gomock.Any(), gomock.Any()).
 					Return(core.CreateInstanceConfigurationResponse{
@@ -1113,6 +1127,12 @@ write_files:
 							Id: common.String("id"),
 						},
 					}, nil)
+
+				// The first reconciliation detects the desired-hash change and creates one
+				// replacement. The table runner reconciles again against OCI readback that
+				// still includes VCPUs; that second pass must converge without another create.
+				err = ms.ReconcileInstanceConfiguration(context.Background(), nil)
+				g.Expect(err).To(BeNil())
 			},
 		},
 		{
@@ -1670,6 +1690,10 @@ func TestCleanupInstanceConfigurationDefersWhenFormatterRemovalStalls(t *testing
 	g.Expect(ms.InstancePoolUsesDesiredInstanceConfiguration(stalledPool)).To(BeFalse())
 	err := ms.CleanupInstanceConfiguration(context.Background(), stalledPool)
 	g.Expect(err).To(BeNil())
+
+	stalledPool.InstanceDisplayNameFormatter = common.String("")
+	stalledPool.InstanceHostnameFormatter = common.String("")
+	g.Expect(ms.InstancePoolUsesDesiredInstanceConfiguration(stalledPool)).To(BeTrue())
 }
 
 func TestReconcileInstanceConfigurationCoalescesMultipleApprovedFieldChanges(t *testing.T) {
@@ -1943,15 +1967,52 @@ func orderingLaunchDetails(shape, bootstrapData string) *core.InstanceConfigurat
 	}
 }
 
-// expectedUpdateInstancePoolRequest computes the retry token using the current time, matching the
-// production call in UpdatePool; callers must invoke UpdatePool in the same minute (the tests below
-// do, synchronously).
+// expectedUpdateInstancePoolRequest seeds a persisted retry token for the desired operation.
 func expectedUpdateInstancePoolRequest(ms *MachinePoolScope, instancePool *core.InstancePool, details core.UpdateInstancePoolDetails) core.UpdateInstancePoolRequest {
+	fingerprint, err := InstancePoolUpdateFingerprint(ms.OCIMachinePool, instancePool, details)
+	if err != nil {
+		panic(err)
+	}
+	if ms.OCIMachinePool.Annotations == nil {
+		ms.OCIMachinePool.Annotations = map[string]string{}
+	}
+	token := ociutil.GetOPCRetryToken("test-update-instance-pool-%s", fingerprint)
+	ms.OCIMachinePool.Annotations[InstancePoolUpdateFingerprintAnnotation] = fingerprint
+	ms.OCIMachinePool.Annotations[InstancePoolUpdateRetryTokenAnnotation] = *token
 	return core.UpdateInstancePoolRequest{
 		InstancePoolId:            instancePool.Id,
 		UpdateInstancePoolDetails: details,
-		OpcRetryToken:             InstancePoolUpdateRetryToken(ms.OCIMachinePool, instancePool, details, time.Now()),
+		OpcRetryToken:             token,
 	}
+}
+
+func TestInstancePoolFormatterClearingWireSerialization(t *testing.T) {
+	g := NewWithT(t)
+	requestBody := func(details core.UpdateInstancePoolDetails) map[string]interface{} {
+		req, err := (core.UpdateInstancePoolRequest{
+			InstancePoolId:            common.String("pool-id"),
+			UpdateInstancePoolDetails: details,
+		}).HTTPRequest(http.MethodPut, "/20160918/instancePools/pool-id", nil, nil)
+		g.Expect(err).To(BeNil())
+		defer req.Body.Close()
+
+		body, err := io.ReadAll(req.Body)
+		g.Expect(err).To(BeNil())
+		payload := map[string]interface{}{}
+		g.Expect(json.Unmarshal(body, &payload)).To(Succeed())
+		return payload
+	}
+
+	omitted := requestBody(core.UpdateInstancePoolDetails{})
+	g.Expect(omitted).ToNot(HaveKey("instanceDisplayNameFormatter"))
+	g.Expect(omitted).ToNot(HaveKey("instanceHostnameFormatter"))
+
+	cleared := requestBody(core.UpdateInstancePoolDetails{
+		InstanceDisplayNameFormatter: common.String(""),
+		InstanceHostnameFormatter:    common.String(""),
+	})
+	g.Expect(cleared).To(HaveKeyWithValue("instanceDisplayNameFormatter", ""))
+	g.Expect(cleared).To(HaveKeyWithValue("instanceHostnameFormatter", ""))
 }
 
 func TestGetLaunchInstanceDetailsCopiesMetadataAndPropagatesSupportedFields(t *testing.T) {
@@ -3311,8 +3372,10 @@ func TestInstancePoolUpdate(t *testing.T) {
 					InstanceDisplayNameFormatter: common.String("old-display-${launchCount}"),
 					InstanceHostnameFormatter:    common.String("old-host-${launchCount}"),
 				}, core.UpdateInstancePoolDetails{
-					Size:                    common.Int(3),
-					InstanceConfigurationId: common.String("config_id"),
+					Size:                         common.Int(3),
+					InstanceConfigurationId:      common.String("config_id"),
+					InstanceDisplayNameFormatter: common.String(""),
+					InstanceHostnameFormatter:    common.String(""),
 					FreeformTags: map[string]string{
 						ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
 						ociutil.ClusterResourceIdentifier: "resource_uid",
@@ -3407,6 +3470,10 @@ func TestInstancePoolUpdateSkipsDefaultPlacementDrift(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "default",
+			Annotations: map[string]string{
+				InstancePoolUpdateFingerprintAnnotation: "completed-fingerprint",
+				InstancePoolUpdateRetryTokenAnnotation:  "completed-token",
+			},
 		},
 		Spec: infrav2exp.OCIMachinePoolSpec{
 			InstanceConfiguration: infrav2exp.InstanceConfiguration{
@@ -3426,7 +3493,7 @@ func TestInstancePoolUpdateSkipsDefaultPlacementDrift(t *testing.T) {
 				Replicas: &replicas,
 			},
 		},
-		Client: fake.NewClientBuilder().WithObjects(infraMachinePool).Build(),
+		Client: fake.NewClientBuilder().WithStatusSubresource(infraMachinePool).WithObjects(infraMachinePool).Build(),
 	})
 	g.Expect(err).To(BeNil())
 
@@ -3438,6 +3505,8 @@ func TestInstancePoolUpdateSkipsDefaultPlacementDrift(t *testing.T) {
 	updateIssued, err := ms.UpdatePool(context.Background(), instancePool)
 	g.Expect(err).To(BeNil())
 	g.Expect(updateIssued).To(BeFalse())
+	g.Expect(ms.OCIMachinePool.Annotations).ToNot(HaveKey(InstancePoolUpdateFingerprintAnnotation))
+	g.Expect(ms.OCIMachinePool.Annotations).ToNot(HaveKey(InstancePoolUpdateRetryTokenAnnotation))
 }
 
 func TestInstancePoolUpdateClearsStalePrimaryVnicSubnetPlacement(t *testing.T) {
@@ -3532,15 +3601,12 @@ func TestInstancePoolUpdateClearsStalePrimaryVnicSubnetPlacement(t *testing.T) {
 	g.Expect(err).To(BeNil())
 }
 
-func TestInstancePoolUpdateRetryTokenDiffersAcrossRepeatedTransitions(t *testing.T) {
+func TestInstancePoolUpdateRetryTokenPersistsForOneLogicalOperation(t *testing.T) {
 	g := NewWithT(t)
 
 	machinePool := &infrav2exp.OCIMachinePool{
-		ObjectMeta: metav1.ObjectMeta{UID: "pool-uid", Name: "test", Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{UID: "pool-uid", Name: "test", Namespace: "default", ResourceVersion: "1"},
 	}
-	// A pool observed at size 0 being asked to scale to 1, with the same instance
-	// configuration and tags both times: this is the exact shape of a scale-down/scale-up
-	// cycle repeating (e.g. 1 -> 0 -> 1 -> 0 -> 1), which is a normal operation, not a retry.
 	observed := &core.InstancePool{
 		Id:                      common.String("pool-id"),
 		Size:                    common.Int(0),
@@ -3551,20 +3617,46 @@ func TestInstancePoolUpdateRetryTokenDiffersAcrossRepeatedTransitions(t *testing
 		InstanceConfigurationId: common.String("config-id"),
 	}
 
-	t0 := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
-	tLater := t0.Add(2 * time.Minute)
+	client := fake.NewClientBuilder().WithStatusSubresource(machinePool).WithObjects(machinePool).Build()
+	newScope := func(pool *infrav2exp.OCIMachinePool) *MachinePoolScope {
+		ms, err := NewMachinePoolScope(MachinePoolScopeParams{
+			OCIMachinePool:     pool,
+			OCIClusterAccessor: OCISelfManagedCluster{OCICluster: &infrastructurev1beta2.OCICluster{}},
+			MachinePool:        &clusterv1.MachinePool{},
+			Client:             client,
+		})
+		g.Expect(err).To(BeNil())
+		return ms
+	}
 
-	first := InstancePoolUpdateRetryToken(machinePool, observed, desired, t0)
-	second := InstancePoolUpdateRetryToken(machinePool, observed, desired, tLater)
-	g.Expect(*first).ToNot(Equal(*second),
-		"a repeated scale-down/up transition minutes apart must not reuse a stale retry token")
+	fingerprint, err := InstancePoolUpdateFingerprint(machinePool, observed, desired)
+	g.Expect(err).To(BeNil())
+	first, err := newScope(machinePool).pendingInstancePoolUpdateRetryToken(context.Background(), fingerprint)
+	g.Expect(err).To(BeNil())
 
-	// Two calls within the same bucket (e.g. a genuine client-side retry of the same
-	// attempt, seconds apart) should still dedupe to the same token.
-	tRetry := t0.Add(5 * time.Second)
-	retry := InstancePoolUpdateRetryToken(machinePool, observed, desired, tRetry)
-	g.Expect(*retry).To(Equal(*first),
-		"a same-attempt retry within the token bucket should still dedupe")
+	reloaded := &infrav2exp.OCIMachinePool{}
+	err = client.Get(context.Background(), types.NamespacedName{Name: "test", Namespace: "default"}, reloaded)
+	g.Expect(err).To(BeNil())
+	retry, err := newScope(reloaded).pendingInstancePoolUpdateRetryToken(context.Background(), fingerprint)
+	g.Expect(err).To(BeNil())
+	g.Expect(*retry).To(Equal(*first), "a controller restart must reuse the pending operation token")
+
+	changedDesired := desired
+	changedDesired.Size = common.Int(2)
+	changedFingerprint, err := InstancePoolUpdateFingerprint(reloaded, observed, changedDesired)
+	g.Expect(err).To(BeNil())
+	changedOperation, err := newScope(reloaded).pendingInstancePoolUpdateRetryToken(context.Background(), changedFingerprint)
+	g.Expect(err).To(BeNil())
+	g.Expect(*changedOperation).ToNot(Equal(*first), "a changed desired operation must receive a new token")
+
+	err = newScope(reloaded).clearPendingInstancePoolUpdate(context.Background())
+	g.Expect(err).To(BeNil())
+	reloadedAfterConvergence := &infrav2exp.OCIMachinePool{}
+	err = client.Get(context.Background(), types.NamespacedName{Name: "test", Namespace: "default"}, reloadedAfterConvergence)
+	g.Expect(err).To(BeNil())
+	secondOperation, err := newScope(reloadedAfterConvergence).pendingInstancePoolUpdateRetryToken(context.Background(), changedFingerprint)
+	g.Expect(err).To(BeNil())
+	g.Expect(*secondOperation).ToNot(Equal(*changedOperation), "the same desired transition after convergence is a new operation")
 }
 
 func TestSyncReplicasFromInstancePool(t *testing.T) {

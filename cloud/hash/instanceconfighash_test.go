@@ -1245,6 +1245,7 @@ func TestComputeComparableHash_IgnoresShapeDefaultsNotPresentInDesired(t *testin
 		ShapeConfig: &core.InstanceConfigurationLaunchInstanceShapeConfigDetails{
 			Ocpus:       common.Float32(1),
 			MemoryInGBs: common.Float32(16),
+			Vcpus:       common.Int(2),
 		},
 	}
 
@@ -1369,14 +1370,9 @@ func TestComputeComparableHash_DetectsSetToUnsetOptionalLaunchFields(t *testing.
 		// so we cannot distinguish "user removed the field" from "OCI returned its default."
 		// We treat both as untracked defaults to prevent continuous reconciliation on shapes
 		// that return REBOOT by default. Removal of this field is therefore not detectable.
-		{
-			name: "shape vcpus",
-			actual: &core.InstanceConfigurationLaunchInstanceDetails{
-				ShapeConfig: &core.InstanceConfigurationLaunchInstanceShapeConfigDetails{
-					Vcpus: common.Int(4),
-				},
-			},
-		},
+		// Note: VCPUs are intentionally excluded here. OCI can return a calculated
+		// VCPU value when the field was omitted, so desired-hash annotations detect
+		// explicit removal without treating service defaults as perpetual drift.
 	}
 
 	for _, tt := range tests {

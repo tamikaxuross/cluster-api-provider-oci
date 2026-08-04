@@ -403,19 +403,23 @@ func (r *OCIMachinePoolReconciler) reconcileNormal(ctx context.Context, logger l
 			return ctrl.Result{}, err
 		}
 		machinePoolScope.SetReplicaCount(int32(len(providerIDList)))
-		machinePoolScope.SetReady()
-		// record the event only when pool goes from not ready to ready state
-		r.Recorder.Eventf(machinePoolScope.OCIMachinePool, corev1.EventTypeNormal, "InstancePoolReady",
-			"Instance pool is in ready state")
-		v1beta1conditions.MarkTrue(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition)
-
 		desiredReplicas := 0
 		if machinePoolScope.MachinePool.Spec.Replicas != nil {
 			desiredReplicas = int(*machinePoolScope.MachinePool.Spec.Replicas)
 		}
-		if updateIssued || len(providerIDList) != desiredReplicas {
-			// Pool hasn't settled at the desired count yet; poll fast instead of
-			// waiting out the steady-state interval below.
+		if len(providerIDList) != desiredReplicas {
+			machinePoolScope.OCIMachinePool.Status.Ready = false
+			v1beta1conditions.MarkFalse(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition, infrav2exp.InstancePoolNotReadyReason, clusterv1beta1.ConditionSeverityInfo,
+				"Expected %d running replicas, found %d", desiredReplicas, len(providerIDList))
+		} else {
+			machinePoolScope.SetReady()
+			// record the event only when pool goes from not ready to ready state
+			r.Recorder.Eventf(machinePoolScope.OCIMachinePool, corev1.EventTypeNormal, "InstancePoolReady",
+				"Instance pool is in ready state")
+			v1beta1conditions.MarkTrue(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition)
+		}
+		if updateIssued {
+			// A newly issued asynchronous update should be observed promptly.
 			return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 	default:
