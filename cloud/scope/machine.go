@@ -401,6 +401,9 @@ func (m *MachineScope) GetOrCreateMachine(ctx context.Context) (*core.Instance, 
 	launchDetails.InstanceOptions = m.getInstanceOptions()
 	launchDetails.AvailabilityConfig = m.getAvailabilityConfig()
 	launchDetails.PreemptibleInstanceConfig = m.getPreemptibleInstanceConfig()
+	if err := validatePlatformConfig(m.OCIMachine.Spec.PlatformConfig); err != nil {
+		return nil, err
+	}
 	launchDetails.PlatformConfig = m.getPlatformConfig()
 
 	// Appending block volumes created with launchVolumeAttachments to instance attachments
@@ -1289,6 +1292,20 @@ func (m *MachineScope) getPlatformConfig() core.PlatformConfig {
 			}
 		default:
 		}
+	}
+	return nil
+}
+
+func validatePlatformConfig(platformConfig *infrastructurev1beta2.PlatformConfig) error {
+	if platformConfig == nil || platformConfig.PlatformConfigType != infrastructurev1beta2.PlatformConfigTypeIntelSkylakeBm {
+		return nil
+	}
+	numaNodesPerSocket := platformConfig.IntelSkylakeBmPlatformConfig.NumaNodesPerSocket
+	if numaNodesPerSocket == "" {
+		return nil
+	}
+	if _, ok := core.GetMappingIntelSkylakeBmPlatformConfigNumaNodesPerSocketEnum(string(numaNodesPerSocket)); !ok {
+		return errors.Errorf("unsupported Intel Skylake NUMA nodes per socket %q", numaNodesPerSocket)
 	}
 	return nil
 }

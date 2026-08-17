@@ -18,6 +18,8 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -320,7 +322,7 @@ func TestReconciliationFunction(t *testing.T) {
 			name:                 "instance pool running with one non-running member",
 			errorExpected:        false,
 			conditionAssertion:   []conditionAssertion{{infrav2exp.LaunchTemplateReadyCondition, corev1.ConditionTrue, "", ""}, {infrav2exp.InstancePoolReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, infrav2exp.InstancePoolNotReadyReason}},
-			expectedRequeueAfter: 300 * time.Second,
+			expectedRequeueAfter: 10 * time.Second,
 			testSpecificSetup: func(t *test, machinePoolScope *scope.MachinePoolScope, computeManagementClient *mock_computemanagement.MockClient) {
 				ms.OCIMachinePool.Spec.InstanceConfiguration = infrav2exp.InstanceConfiguration{
 					Shape:                   common.String("test-shape"),
@@ -489,6 +491,7 @@ func TestReconciliationFunction(t *testing.T) {
 			conditionAssertion:   []conditionAssertion{{infrav2exp.LaunchTemplateReadyCondition, corev1.ConditionTrue, "", ""}, {infrav2exp.InstancePoolReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, infrav2exp.InstancePoolNotReadyReason}},
 			expectedRequeueAfter: 10 * time.Second,
 			testSpecificSetup: func(t *test, machinePoolScope *scope.MachinePoolScope, computeManagementClient *mock_computemanagement.MockClient) {
+				ms.OCIMachinePool.Status.Ready = true
 				ms.OCIMachinePool.Spec.InstanceConfiguration = infrav2exp.InstanceConfiguration{
 					Shape:                   common.String("new-shape"),
 					InstanceConfigurationId: common.String("old-id"),
@@ -505,6 +508,7 @@ func TestReconciliationFunction(t *testing.T) {
 
 				computeManagementClient.EXPECT().GetInstancePool(gomock.Any(), gomock.Any()).
 					Return(core.GetInstancePoolResponse{
+						Etag: common.String("pool-etag"),
 						InstancePool: core.InstancePool{
 							LifecycleState:          core.InstancePoolLifecycleStateRunning,
 							Id:                      common.String("pool-id"),
@@ -555,26 +559,18 @@ func TestReconciliationFunction(t *testing.T) {
 						ociutil.ClusterResourceIdentifier: "resource_uid",
 					},
 				}
-				observedPool := &core.InstancePool{
-					Id:                      common.String("pool-id"),
-					InstanceConfigurationId: common.String("old-id"),
-					Size:                    common.Int(3),
-				}
-				fingerprint, err := scope.InstancePoolUpdateFingerprint(ms.OCIMachinePool, observedPool, updateDetails)
-				if err != nil {
-					panic(err)
-				}
-				retryToken := ociutil.GetOPCRetryToken("test-update-instance-pool-%s", fingerprint)
-				if ms.OCIMachinePool.Annotations == nil {
-					ms.OCIMachinePool.Annotations = map[string]string{}
-				}
-				ms.OCIMachinePool.Annotations[scope.InstancePoolUpdateFingerprintAnnotation] = fingerprint
-				ms.OCIMachinePool.Annotations[scope.InstancePoolUpdateRetryTokenAnnotation] = *retryToken
-				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
-					InstancePoolId:            common.String("pool-id"),
-					UpdateInstancePoolDetails: updateDetails,
-					OpcRetryToken:             retryToken,
-				})).
+				computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Any()).
+					Do(func(_ context.Context, request core.UpdateInstancePoolRequest) {
+						if !reflect.DeepEqual(request.UpdateInstancePoolDetails, updateDetails) {
+							panic(fmt.Sprintf("unexpected update details: %#v", request.UpdateInstancePoolDetails))
+						}
+						if request.OpcRetryToken == nil || *request.OpcRetryToken == "" {
+							panic("expected persisted OCI retry token")
+						}
+						if !reflect.DeepEqual(request.IfMatch, common.String("pool-etag")) {
+							panic(fmt.Sprintf("unexpected IfMatch: %v", request.IfMatch))
+						}
+					}).
 					Return(core.UpdateInstancePoolResponse{
 						InstancePool: core.InstancePool{
 							LifecycleState:          core.InstancePoolLifecycleStateRunning,
@@ -589,6 +585,8 @@ func TestReconciliationFunction(t *testing.T) {
 			validate: func(g *WithT, t *test) {
 				g.Expect(len(t.createPoolMachines)).To(Equal(1))
 				g.Expect(ms.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId).To(Equal(common.String("new-id")))
+				g.Expect(ms.OCIMachinePool.Status.Ready).To(BeFalse())
+				g.Expect(ms.OCIMachinePool.Status.Replicas).To(Equal(int32(1)))
 			},
 		},
 		{

@@ -24,6 +24,7 @@ import (
 	"io"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -1088,6 +1089,9 @@ write_files:
 				g.Expect(err).To(BeNil())
 				oldLaunch.LaunchMode = core.InstanceConfigurationLaunchInstanceDetailsLaunchModeNative
 				oldLaunch.PreferredMaintenanceAction = core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionReboot
+				oldLaunch.LicensingConfigs = []core.LaunchInstanceLicensingConfig{
+					core.LaunchInstanceWindowsLicensingConfig{LicenseType: core.LaunchInstanceLicensingConfigLicenseTypeBringYourOwnLicense},
+				}
 				oldLaunch.PlatformConfig = core.AmdVmPlatformConfig{IsSymmetricMultiThreadingEnabled: common.Bool(false)}
 				oldLaunch.ShapeConfig = &core.InstanceConfigurationLaunchInstanceShapeConfigDetails{Vcpus: common.Int(4)}
 				oldConfigHash, err := hash.ComputeHash(oldLaunch)
@@ -1551,6 +1555,7 @@ func TestReconcileInstanceConfigurationDefersCleanupBeforePoolSwitch(t *testing.
 		Id:                      common.String("pool-id"),
 		InstanceConfigurationId: common.String("old-id"),
 		Size:                    common.Int(3),
+		LifecycleState:          core.InstancePoolLifecycleStateRunning,
 	}
 
 	computeMgmt.EXPECT().GetInstanceConfiguration(gomock.Any(), gomock.Eq(core.GetInstanceConfigurationRequest{
@@ -1587,6 +1592,7 @@ func TestFailedInstancePoolUpdatePreservesActiveInstanceConfiguration(t *testing
 		Id:                      common.String("pool-id"),
 		InstanceConfigurationId: common.String("old-id"),
 		Size:                    common.Int(3),
+		LifecycleState:          core.InstancePoolLifecycleStateRunning,
 	}
 
 	computeMgmt.EXPECT().GetInstanceConfiguration(gomock.Any(), gomock.Any()).
@@ -1844,9 +1850,9 @@ func TestBootstrapTriggeredRotationUpdatesPoolBeforeCleanupEligibility(t *testin
 	computeMgmt.EXPECT().ListInstanceConfigurations(gomock.Any(), gomock.Any()).Times(0)
 	computeMgmt.EXPECT().DeleteInstanceConfiguration(gomock.Any(), gomock.Any()).Times(0)
 
-	updateIssued, err := ms.UpdatePool(context.Background(), activePool)
+	updateOutcome, err := ms.UpdatePool(context.Background(), activePool)
 	g.Expect(err).To(BeNil())
-	g.Expect(updateIssued).To(BeTrue())
+	g.Expect(updateOutcome).To(Equal(InstancePoolUpdateSubmitted))
 	g.Expect(ms.InstancePoolUsesDesiredInstanceConfiguration(activePool)).To(BeFalse())
 	err = ms.CleanupInstanceConfiguration(context.Background(), activePool)
 	g.Expect(err).To(BeNil())
@@ -1855,7 +1861,13 @@ func TestBootstrapTriggeredRotationUpdatesPoolBeforeCleanupEligibility(t *testin
 		Id:                      common.String("pool-id"),
 		InstanceConfigurationId: common.String("new-id"),
 		Size:                    common.Int(3),
+		FreeformTags:            ms.GetFreeFormTags(),
+		LifecycleState:          core.InstancePoolLifecycleStateRunning,
 	}
+	updateOutcome, err = ms.UpdatePool(context.Background(), switchedPool)
+	g.Expect(err).To(BeNil())
+	g.Expect(updateOutcome).To(Equal(InstancePoolUpdateConverged))
+	g.Expect(ms.HasPendingInstancePoolUpdate()).To(BeFalse())
 	computeMgmt.EXPECT().ListInstanceConfigurations(gomock.Any(), gomock.Any()).
 		Return(core.ListInstanceConfigurationsResponse{
 			Items: []core.InstanceConfigurationSummary{
@@ -1967,23 +1979,93 @@ func orderingLaunchDetails(shape, bootstrapData string) *core.InstanceConfigurat
 	}
 }
 
-// expectedUpdateInstancePoolRequest seeds a persisted retry token for the desired operation.
 func expectedUpdateInstancePoolRequest(ms *MachinePoolScope, instancePool *core.InstancePool, details core.UpdateInstancePoolDetails) core.UpdateInstancePoolRequest {
-	fingerprint, err := InstancePoolUpdateFingerprint(ms.OCIMachinePool, instancePool, details)
+	if instancePool.LifecycleState == "" {
+		instancePool.LifecycleState = core.InstancePoolLifecycleStateRunning
+	}
+	attempt, err := newInstancePoolUpdateAttempt(details, ms.InstancePoolETag)
 	if err != nil {
 		panic(err)
 	}
-	if ms.OCIMachinePool.Annotations == nil {
-		ms.OCIMachinePool.Annotations = map[string]string{}
+	attempt.RetryToken = "test-update-instance-pool-" + attempt.Fingerprint
+	data, err := json.Marshal(attempt)
+	if err != nil {
+		panic(err)
 	}
-	token := ociutil.GetOPCRetryToken("test-update-instance-pool-%s", fingerprint)
-	ms.OCIMachinePool.Annotations[InstancePoolUpdateFingerprintAnnotation] = fingerprint
-	ms.OCIMachinePool.Annotations[InstancePoolUpdateRetryTokenAnnotation] = *token
-	return core.UpdateInstancePoolRequest{
+	expected := ""
+	if ms.OCIMachinePool.Annotations != nil {
+		expected = ms.OCIMachinePool.Annotations[InstancePoolUpdateAttemptAnnotation]
+	}
+	if err := ms.transitionInstancePoolUpdateAttempt(context.Background(), expected, string(data)); err != nil {
+		panic(err)
+	}
+	request := core.UpdateInstancePoolRequest{
 		InstancePoolId:            instancePool.Id,
-		UpdateInstancePoolDetails: details,
-		OpcRetryToken:             token,
+		UpdateInstancePoolDetails: attempt.Target.updateDetails(),
+		OpcRetryToken:             common.String(attempt.RetryToken),
 	}
+	if attempt.IfMatch != "" {
+		request.IfMatch = common.String(attempt.IfMatch)
+	}
+	return request
+}
+
+func setTestInstancePoolUpdateAttempt(t *testing.T, machinePool *infrav2exp.OCIMachinePool, attempt *instancePoolUpdateAttempt) {
+	t.Helper()
+	data, err := json.Marshal(attempt)
+	if err != nil {
+		t.Fatalf("marshal instance pool update attempt: %v", err)
+	}
+	if machinePool.Annotations == nil {
+		machinePool.Annotations = map[string]string{}
+	}
+	machinePool.Annotations[InstancePoolUpdateAttemptAnnotation] = string(data)
+}
+
+type testServiceError struct {
+	status int
+}
+
+func (e testServiceError) Error() string          { return fmt.Sprintf("OCI service error %d", e.status) }
+func (e testServiceError) GetHTTPStatusCode() int { return e.status }
+func (e testServiceError) GetMessage() string     { return e.Error() }
+func (e testServiceError) GetCode() string        { return "NoEtagMatch" }
+func (e testServiceError) GetOpcRequestID() string {
+	return "test-request-id"
+}
+
+func TestInstancePoolUpdateTargetFingerprintIsPlacementOrderIndependent(t *testing.T) {
+	g := NewWithT(t)
+	details := core.UpdateInstancePoolDetails{
+		PlacementConfigurations: []core.UpdateInstancePoolPlacementConfigurationDetails{
+			{AvailabilityDomain: common.String("ad-2"), FaultDomains: []string{"fd-2", "fd-1"}},
+			{AvailabilityDomain: common.String("ad-1"), FaultDomains: []string{"fd-1"}},
+		},
+	}
+	reordered := details
+	reordered.PlacementConfigurations = []core.UpdateInstancePoolPlacementConfigurationDetails{
+		{AvailabilityDomain: common.String("ad-1"), FaultDomains: []string{"fd-1"}},
+		{AvailabilityDomain: common.String("ad-2"), FaultDomains: []string{"fd-1", "fd-2"}},
+	}
+
+	first, err := newInstancePoolUpdateTarget(details).fingerprint()
+	g.Expect(err).To(BeNil())
+	second, err := newInstancePoolUpdateTarget(reordered).fingerprint()
+	g.Expect(err).To(BeNil())
+	g.Expect(second).To(Equal(first))
+}
+
+func TestInstancePoolUpdateAttemptRejectsUnsupportedSchemaVersion(t *testing.T) {
+	g := NewWithT(t)
+	attempt, err := newInstancePoolUpdateAttempt(core.UpdateInstancePoolDetails{Size: common.Int(2)}, nil)
+	g.Expect(err).To(BeNil())
+	attempt.Version++
+	machinePool := &infrav2exp.OCIMachinePool{}
+	setTestInstancePoolUpdateAttempt(t, machinePool, attempt)
+
+	_, err = (&MachinePoolScope{OCIMachinePool: machinePool}).getInstancePoolUpdateAttempt()
+	g.Expect(err).To(MatchError(ContainSubstring("unsupported instance pool update attempt schema version")))
+	g.Expect(err).To(MatchError(ContainSubstring("verify the OCI operation is terminal")))
 }
 
 func TestInstancePoolFormatterClearingWireSerialization(t *testing.T) {
@@ -2524,6 +2606,16 @@ func TestGetPlatformConfigPropagatesApprovedPlatformFields(t *testing.T) {
 	}
 }
 
+func TestValidatePlatformConfigRejectsUnknownSkylakeNumaNodes(t *testing.T) {
+	err := validatePlatformConfig(&infrastructurev1beta2.PlatformConfig{
+		PlatformConfigType: infrastructurev1beta2.PlatformConfigTypeIntelSkylakeBm,
+		IntelSkylakeBmPlatformConfig: infrastructurev1beta2.IntelSkylakeBmPlatformConfig{
+			NumaNodesPerSocket: infrastructurev1beta2.IntelSkylakeBmPlatformConfigNumaNodesPerSocketEnum("NPS3"),
+		},
+	})
+	NewWithT(t).Expect(err).To(MatchError(ContainSubstring("unsupported Intel Skylake NUMA nodes per socket")))
+}
+
 func TestGetLaunchInstanceDetailsExtendedMetadata(t *testing.T) {
 	g := NewWithT(t)
 	mockCtrl := gomock.NewController(t)
@@ -3008,7 +3100,7 @@ func TestBuildInstancePoolPlacement(t *testing.T) {
 				return
 			}
 			g.Expect(err).To(BeNil())
-			g.Expect(placements).To(ConsistOf(tc.expected))
+			g.Expect(placements).To(Equal(tc.expected))
 		})
 	}
 }
@@ -3098,7 +3190,7 @@ func TestInstancePoolUpdate(t *testing.T) {
 			},
 			Spec: infrav2exp.OCIMachinePoolSpec{},
 		}
-		client := fake.NewClientBuilder().WithObjects(secret, machinePool).Build()
+		client := fake.NewClientBuilder().WithStatusSubresource(machinePool).WithObjects(secret, machinePool).Build()
 		ms, err = NewMachinePoolScope(MachinePoolScopeParams{
 			ComputeManagementClient: computeManagementClient,
 			OCIMachinePool:          machinePool,
@@ -3450,6 +3542,9 @@ func TestInstancePoolUpdate(t *testing.T) {
 			defer teardown(t, g)
 			setup(t, g)
 			tc.testSpecificSetup(ms)
+			if tc.instancepool.LifecycleState == "" {
+				tc.instancepool.LifecycleState = core.InstancePoolLifecycleStateRunning
+			}
 			_, err := ms.UpdatePool(context.Background(), tc.instancepool)
 			if tc.errorExpected {
 				g.Expect(err).To(Not(BeNil()))
@@ -3470,10 +3565,6 @@ func TestInstancePoolUpdateSkipsDefaultPlacementDrift(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "default",
-			Annotations: map[string]string{
-				InstancePoolUpdateFingerprintAnnotation: "completed-fingerprint",
-				InstancePoolUpdateRetryTokenAnnotation:  "completed-token",
-			},
 		},
 		Spec: infrav2exp.OCIMachinePoolSpec{
 			InstanceConfiguration: infrav2exp.InstanceConfiguration{
@@ -3502,11 +3593,9 @@ func TestInstancePoolUpdateSkipsDefaultPlacementDrift(t *testing.T) {
 		InstanceConfigurationId: common.String("config_id"),
 	}
 
-	updateIssued, err := ms.UpdatePool(context.Background(), instancePool)
+	updateOutcome, err := ms.UpdatePool(context.Background(), instancePool)
 	g.Expect(err).To(BeNil())
-	g.Expect(updateIssued).To(BeFalse())
-	g.Expect(ms.OCIMachinePool.Annotations).ToNot(HaveKey(InstancePoolUpdateFingerprintAnnotation))
-	g.Expect(ms.OCIMachinePool.Annotations).ToNot(HaveKey(InstancePoolUpdateRetryTokenAnnotation))
+	g.Expect(updateOutcome).To(Equal(InstancePoolUpdateNoChange))
 }
 
 func TestInstancePoolUpdateClearsStalePrimaryVnicSubnetPlacement(t *testing.T) {
@@ -3558,7 +3647,7 @@ func TestInstancePoolUpdateClearsStalePrimaryVnicSubnetPlacement(t *testing.T) {
 				Replicas: &replicas,
 			},
 		},
-		Client: fake.NewClientBuilder().WithObjects(infraMachinePool).Build(),
+		Client: fake.NewClientBuilder().WithStatusSubresource(infraMachinePool).WithObjects(infraMachinePool).Build(),
 	})
 	g.Expect(err).To(BeNil())
 
@@ -3577,7 +3666,7 @@ func TestInstancePoolUpdateClearsStalePrimaryVnicSubnetPlacement(t *testing.T) {
 			},
 		},
 	}
-	computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(expectedUpdateInstancePoolRequest(ms, instancePool, core.UpdateInstancePoolDetails{
+	desiredUpdate := core.UpdateInstancePoolDetails{
 		Size:                    common.Int(3),
 		InstanceConfigurationId: common.String("config_id"),
 		FreeformTags: map[string]string{
@@ -3591,7 +3680,8 @@ func TestInstancePoolUpdateClearsStalePrimaryVnicSubnetPlacement(t *testing.T) {
 				FaultDomains:       []string{"fd-5"},
 			},
 		},
-	}))).Return(core.UpdateInstancePoolResponse{
+	}
+	computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(expectedUpdateInstancePoolRequest(ms, instancePool, desiredUpdate))).Return(core.UpdateInstancePoolResponse{
 		InstancePool: core.InstancePool{
 			Id: common.String("pool-id"),
 		},
@@ -3599,64 +3689,367 @@ func TestInstancePoolUpdateClearsStalePrimaryVnicSubnetPlacement(t *testing.T) {
 
 	_, err = ms.UpdatePool(context.Background(), instancePool)
 	g.Expect(err).To(BeNil())
+
+	instancePool.PlacementConfigurations = []core.InstancePoolPlacementConfiguration{
+		{
+			AvailabilityDomain: common.String("ad-1"),
+			PrimarySubnetId:    common.String("old-subnet-id"),
+			FaultDomains:       []string{"old-fd"},
+		},
+	}
+	computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(expectedUpdateInstancePoolRequest(ms, instancePool, desiredUpdate))).Return(core.UpdateInstancePoolResponse{}, nil)
+	_, err = ms.UpdatePool(context.Background(), instancePool)
+	g.Expect(err).To(BeNil())
 }
 
-func TestInstancePoolUpdateRetryTokenPersistsForOneLogicalOperation(t *testing.T) {
+func TestInstancePoolUpdateAttemptRetriesSameRequestAfterRestart(t *testing.T) {
 	g := NewWithT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
 
-	machinePool := &infrav2exp.OCIMachinePool{
-		ObjectMeta: metav1.ObjectMeta{UID: "pool-uid", Name: "test", Namespace: "default", ResourceVersion: "1"},
+	tags := map[string]string{
+		ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+		ociutil.ClusterResourceIdentifier: "resource_uid",
 	}
-	observed := &core.InstancePool{
+	details := core.UpdateInstancePoolDetails{
+		Size:                    common.Int(2),
+		InstanceConfigurationId: common.String("config-id"),
+		FreeformTags:            tags,
+	}
+	attempt, err := newInstancePoolUpdateAttempt(details, common.String("etag-before-update"))
+	g.Expect(err).To(BeNil())
+	attempt.RetryToken = "stable-retry-token"
+
+	infraMachinePool := &infrav2exp.OCIMachinePool{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}}
+	setTestInstancePoolUpdateAttempt(t, infraMachinePool, attempt)
+	client := fake.NewClientBuilder().WithStatusSubresource(infraMachinePool).WithObjects(infraMachinePool).Build()
+	computeManagementClient := mock_computemanagement.NewMockClient(mockCtrl)
+	replicas := int32(2)
+	ms, err := NewMachinePoolScope(MachinePoolScopeParams{
+		ComputeManagementClient: computeManagementClient,
+		OCIMachinePool:          infraMachinePool,
+		OCIClusterAccessor: OCISelfManagedCluster{OCICluster: &infrastructurev1beta2.OCICluster{
+			Spec: infrastructurev1beta2.OCIClusterSpec{OCIResourceIdentifier: "resource_uid"},
+		}},
+		Cluster:     &clusterv1.Cluster{},
+		MachinePool: &clusterv1.MachinePool{Spec: clusterv1.MachinePoolSpec{Replicas: &replicas}},
+		Client:      client,
+	})
+	g.Expect(err).To(BeNil())
+
+	instancePool := &core.InstancePool{
 		Id:                      common.String("pool-id"),
-		Size:                    common.Int(0),
+		Size:                    common.Int(3),
 		InstanceConfigurationId: common.String("config-id"),
+		FreeformTags:            tags,
+		LifecycleState:          core.InstancePoolLifecycleStateRunning,
 	}
-	desired := core.UpdateInstancePoolDetails{
-		Size:                    common.Int(1),
-		InstanceConfigurationId: common.String("config-id"),
-	}
+	computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Eq(core.UpdateInstancePoolRequest{
+		InstancePoolId:            common.String("pool-id"),
+		UpdateInstancePoolDetails: attempt.Target.updateDetails(),
+		OpcRetryToken:             common.String("stable-retry-token"),
+		IfMatch:                   common.String("etag-before-update"),
+	})).Return(core.UpdateInstancePoolResponse{Etag: common.String("etag-after-update")}, nil)
 
-	client := fake.NewClientBuilder().WithStatusSubresource(machinePool).WithObjects(machinePool).Build()
-	newScope := func(pool *infrav2exp.OCIMachinePool) *MachinePoolScope {
-		ms, err := NewMachinePoolScope(MachinePoolScopeParams{
-			OCIMachinePool:     pool,
-			OCIClusterAccessor: OCISelfManagedCluster{OCICluster: &infrastructurev1beta2.OCICluster{}},
-			MachinePool:        &clusterv1.MachinePool{},
-			Client:             client,
-		})
-		g.Expect(err).To(BeNil())
-		return ms
-	}
-
-	fingerprint, err := InstancePoolUpdateFingerprint(machinePool, observed, desired)
+	outcome, err := ms.UpdatePool(context.Background(), instancePool)
 	g.Expect(err).To(BeNil())
-	first, err := newScope(machinePool).pendingInstancePoolUpdateRetryToken(context.Background(), fingerprint)
-	g.Expect(err).To(BeNil())
+	g.Expect(outcome).To(Equal(InstancePoolUpdateSubmitted))
 
 	reloaded := &infrav2exp.OCIMachinePool{}
-	err = client.Get(context.Background(), types.NamespacedName{Name: "test", Namespace: "default"}, reloaded)
-	g.Expect(err).To(BeNil())
-	retry, err := newScope(reloaded).pendingInstancePoolUpdateRetryToken(context.Background(), fingerprint)
-	g.Expect(err).To(BeNil())
-	g.Expect(*retry).To(Equal(*first), "a controller restart must reuse the pending operation token")
+	g.Expect(client.Get(context.Background(), types.NamespacedName{Name: "test", Namespace: "default"}, reloaded)).To(Succeed())
+	persisted := &instancePoolUpdateAttempt{}
+	g.Expect(json.Unmarshal([]byte(reloaded.Annotations[InstancePoolUpdateAttemptAnnotation]), persisted)).To(Succeed())
+	g.Expect(persisted.Version).To(Equal(instancePoolUpdateAttemptSchemaVersion))
+	g.Expect(persisted.RetryToken).To(Equal("stable-retry-token"))
+	g.Expect(persisted.Phase).To(Equal(instancePoolUpdatePhaseSubmitted))
+}
 
-	changedDesired := desired
-	changedDesired.Size = common.Int(2)
-	changedFingerprint, err := InstancePoolUpdateFingerprint(reloaded, observed, changedDesired)
-	g.Expect(err).To(BeNil())
-	changedOperation, err := newScope(reloaded).pendingInstancePoolUpdateRetryToken(context.Background(), changedFingerprint)
-	g.Expect(err).To(BeNil())
-	g.Expect(*changedOperation).ToNot(Equal(*first), "a changed desired operation must receive a new token")
+func TestInstancePoolUpdateAttemptRecoversFromStaleETag(t *testing.T) {
+	g := NewWithT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
 
-	err = newScope(reloaded).clearPendingInstancePoolUpdate(context.Background())
+	tags := map[string]string{
+		ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+		ociutil.ClusterResourceIdentifier: "resource_uid",
+	}
+	infraMachinePool := &infrav2exp.OCIMachinePool{
+		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
+		Spec: infrav2exp.OCIMachinePoolSpec{
+			InstanceConfiguration: infrav2exp.InstanceConfiguration{InstanceConfigurationId: common.String("config-id")},
+		},
+	}
+	client := fake.NewClientBuilder().WithStatusSubresource(infraMachinePool).WithObjects(infraMachinePool).Build()
+	computeManagementClient := mock_computemanagement.NewMockClient(mockCtrl)
+	replicas := int32(2)
+	ms, err := NewMachinePoolScope(MachinePoolScopeParams{
+		ComputeManagementClient: computeManagementClient,
+		InstancePoolETag:        common.String("etag-1"),
+		OCIMachinePool:          infraMachinePool,
+		OCIClusterAccessor: OCISelfManagedCluster{OCICluster: &infrastructurev1beta2.OCICluster{
+			Spec: infrastructurev1beta2.OCIClusterSpec{OCIResourceIdentifier: "resource_uid"},
+		}},
+		Cluster:     &clusterv1.Cluster{},
+		MachinePool: &clusterv1.MachinePool{Spec: clusterv1.MachinePoolSpec{Replicas: &replicas}},
+		Client:      client,
+	})
 	g.Expect(err).To(BeNil())
-	reloadedAfterConvergence := &infrav2exp.OCIMachinePool{}
-	err = client.Get(context.Background(), types.NamespacedName{Name: "test", Namespace: "default"}, reloadedAfterConvergence)
+
+	instancePool := &core.InstancePool{
+		Id:                      common.String("pool-id"),
+		Size:                    common.Int(3),
+		InstanceConfigurationId: common.String("config-id"),
+		FreeformTags:            tags,
+		LifecycleState:          core.InstancePoolLifecycleStateRunning,
+	}
+	firstToken := ""
+	computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, request core.UpdateInstancePoolRequest) (core.UpdateInstancePoolResponse, error) {
+			g.Expect(request.IfMatch).To(Equal(common.String("etag-1")))
+			g.Expect(request.OpcRetryToken).ToNot(BeNil())
+			firstToken = *request.OpcRetryToken
+			return core.UpdateInstancePoolResponse{}, testServiceError{status: http.StatusPreconditionFailed}
+		},
+	)
+
+	outcome, err := ms.UpdatePool(context.Background(), instancePool)
 	g.Expect(err).To(BeNil())
-	secondOperation, err := newScope(reloadedAfterConvergence).pendingInstancePoolUpdateRetryToken(context.Background(), changedFingerprint)
+	g.Expect(outcome).To(Equal(InstancePoolUpdateRetryRequired))
+	g.Expect(ms.HasPendingInstancePoolUpdate()).To(BeFalse())
+	reloadedAfterRejection := &infrav2exp.OCIMachinePool{}
+	g.Expect(client.Get(context.Background(), types.NamespacedName{Name: "test", Namespace: "default"}, reloadedAfterRejection)).To(Succeed())
+	g.Expect(reloadedAfterRejection.Annotations).ToNot(HaveKey(InstancePoolUpdateAttemptAnnotation))
+
+	ms.InstancePoolETag = common.String("etag-2")
+	computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, request core.UpdateInstancePoolRequest) (core.UpdateInstancePoolResponse, error) {
+			g.Expect(request.IfMatch).To(Equal(common.String("etag-2")))
+			g.Expect(request.OpcRetryToken).ToNot(BeNil())
+			g.Expect(*request.OpcRetryToken).ToNot(Equal(firstToken))
+			return core.UpdateInstancePoolResponse{}, nil
+		},
+	)
+
+	outcome, err = ms.UpdatePool(context.Background(), instancePool)
 	g.Expect(err).To(BeNil())
-	g.Expect(*secondOperation).ToNot(Equal(*changedOperation), "the same desired transition after convergence is a new operation")
+	g.Expect(outcome).To(Equal(InstancePoolUpdateSubmitted))
+	g.Expect(ms.HasPendingInstancePoolUpdate()).To(BeTrue())
+}
+
+func TestInstancePoolUpdateAttemptClearDoesNotDeleteNewerAttempt(t *testing.T) {
+	g := NewWithT(t)
+
+	firstAttempt, err := newInstancePoolUpdateAttempt(core.UpdateInstancePoolDetails{Size: common.Int(2)}, nil)
+	g.Expect(err).To(BeNil())
+	firstAttempt.RetryToken = "first-token"
+	infraMachinePool := &infrav2exp.OCIMachinePool{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}}
+	setTestInstancePoolUpdateAttempt(t, infraMachinePool, firstAttempt)
+	client := fake.NewClientBuilder().WithStatusSubresource(infraMachinePool).WithObjects(infraMachinePool).Build()
+
+	newScope := func(machinePool *infrav2exp.OCIMachinePool) *MachinePoolScope {
+		scope, scopeErr := NewMachinePoolScope(MachinePoolScopeParams{
+			ComputeManagementClient: mock_computemanagement.NewMockClient(gomock.NewController(t)),
+			OCIMachinePool:          machinePool,
+			OCIClusterAccessor:      OCISelfManagedCluster{OCICluster: &infrastructurev1beta2.OCICluster{}},
+			Cluster:                 &clusterv1.Cluster{},
+			MachinePool:             &clusterv1.MachinePool{},
+			Client:                  client,
+		})
+		g.Expect(scopeErr).To(BeNil())
+		return scope
+	}
+
+	winner := newScope(infraMachinePool.DeepCopy())
+	loser := newScope(infraMachinePool.DeepCopy())
+	g.Expect(winner.clearInstancePoolUpdateAttempt(context.Background())).To(Succeed())
+
+	newerAttempt, err := newInstancePoolUpdateAttempt(core.UpdateInstancePoolDetails{Size: common.Int(3)}, nil)
+	g.Expect(err).To(BeNil())
+	newerAttempt.RetryToken = "newer-token"
+	g.Expect(winner.setInstancePoolUpdateAttempt(context.Background(), newerAttempt)).To(Succeed())
+	g.Expect(loser.clearInstancePoolUpdateAttempt(context.Background())).To(MatchError(ContainSubstring("changed concurrently")))
+
+	reloaded := &infrav2exp.OCIMachinePool{}
+	g.Expect(client.Get(context.Background(), types.NamespacedName{Name: "test", Namespace: "default"}, reloaded)).To(Succeed())
+	persisted := &instancePoolUpdateAttempt{}
+	g.Expect(json.Unmarshal([]byte(reloaded.Annotations[InstancePoolUpdateAttemptAnnotation]), persisted)).To(Succeed())
+	g.Expect(persisted.RetryToken).To(Equal("newer-token"))
+}
+
+func TestInstancePoolUpdateAttemptSerializesChangedDesiredState(t *testing.T) {
+	g := NewWithT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	tags := map[string]string{
+		ociutil.CreatedBy:                 ociutil.OCIClusterAPIProvider,
+		ociutil.ClusterResourceIdentifier: "resource_uid",
+	}
+	oldDetails := core.UpdateInstancePoolDetails{
+		Size:                    common.Int(2),
+		InstanceConfigurationId: common.String("config-id"),
+		FreeformTags:            tags,
+	}
+	attempt, err := newInstancePoolUpdateAttempt(oldDetails, common.String("etag-before-old-update"))
+	g.Expect(err).To(BeNil())
+	attempt.RetryToken = "old-retry-token"
+	attempt.Phase = instancePoolUpdatePhaseSubmitted
+
+	infraMachinePool := &infrav2exp.OCIMachinePool{
+		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
+		Spec: infrav2exp.OCIMachinePoolSpec{
+			InstanceConfiguration: infrav2exp.InstanceConfiguration{InstanceConfigurationId: common.String("config-id")},
+		},
+	}
+	setTestInstancePoolUpdateAttempt(t, infraMachinePool, attempt)
+	client := fake.NewClientBuilder().WithStatusSubresource(infraMachinePool).WithObjects(infraMachinePool).Build()
+	computeManagementClient := mock_computemanagement.NewMockClient(mockCtrl)
+	replicas := int32(3)
+	ms, err := NewMachinePoolScope(MachinePoolScopeParams{
+		ComputeManagementClient: computeManagementClient,
+		OCIMachinePool:          infraMachinePool,
+		OCIClusterAccessor: OCISelfManagedCluster{OCICluster: &infrastructurev1beta2.OCICluster{
+			Spec: infrastructurev1beta2.OCIClusterSpec{OCIResourceIdentifier: "resource_uid"},
+		}},
+		Cluster:     &clusterv1.Cluster{},
+		MachinePool: &clusterv1.MachinePool{Spec: clusterv1.MachinePoolSpec{Replicas: &replicas}},
+		Client:      client,
+	})
+	g.Expect(err).To(BeNil())
+
+	staleReadback := &core.InstancePool{
+		Id:                      common.String("pool-id"),
+		Size:                    common.Int(3),
+		InstanceConfigurationId: common.String("config-id"),
+		FreeformTags:            tags,
+		LifecycleState:          core.InstancePoolLifecycleStateRunning,
+	}
+	outcome, err := ms.UpdatePool(context.Background(), staleReadback)
+	g.Expect(err).To(BeNil())
+	g.Expect(outcome).To(Equal(InstancePoolUpdateWaiting))
+	g.Expect(ms.HasPendingInstancePoolUpdate()).To(BeTrue())
+	g.Expect(ms.CleanupInstanceConfiguration(context.Background(), staleReadback)).To(Succeed())
+
+	oldTargetReadback := staleReadback
+	oldTargetReadback.Size = common.Int(2)
+	ms.InstancePoolETag = common.String("etag-after-old-update")
+	computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, request core.UpdateInstancePoolRequest) (core.UpdateInstancePoolResponse, error) {
+			g.Expect(request.UpdateInstancePoolDetails.Size).To(Equal(common.Int(3)))
+			g.Expect(request.OpcRetryToken).ToNot(BeNil())
+			g.Expect(*request.OpcRetryToken).ToNot(Equal("old-retry-token"))
+			g.Expect(request.IfMatch).To(Equal(common.String("etag-after-old-update")))
+			return core.UpdateInstancePoolResponse{}, nil
+		},
+	)
+
+	outcome, err = ms.UpdatePool(context.Background(), oldTargetReadback)
+	g.Expect(err).To(BeNil())
+	g.Expect(outcome).To(Equal(InstancePoolUpdateSubmitted))
+	g.Expect(ms.HasPendingInstancePoolUpdate()).To(BeTrue())
+}
+
+func TestInstancePoolUpdateAttemptTimesOutWithoutRotatingToken(t *testing.T) {
+	g := NewWithT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	details := core.UpdateInstancePoolDetails{
+		Size:                    common.Int(2),
+		InstanceConfigurationId: common.String("config-id"),
+		FreeformTags:            map[string]string{},
+	}
+	attempt, err := newInstancePoolUpdateAttempt(details, nil)
+	g.Expect(err).To(BeNil())
+	attempt.RetryToken = "expired-but-not-rotated"
+	attempt.Phase = instancePoolUpdatePhaseSubmitted
+	attempt.StartedAt = time.Now().Add(-instancePoolUpdateAttemptTimeout - time.Minute)
+	infraMachinePool := &infrav2exp.OCIMachinePool{
+		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
+		Spec: infrav2exp.OCIMachinePoolSpec{
+			InstanceConfiguration: infrav2exp.InstanceConfiguration{InstanceConfigurationId: common.String("config-id")},
+		},
+	}
+	setTestInstancePoolUpdateAttempt(t, infraMachinePool, attempt)
+	client := fake.NewClientBuilder().WithStatusSubresource(infraMachinePool).WithObjects(infraMachinePool).Build()
+	replicas := int32(3)
+	ms, err := NewMachinePoolScope(MachinePoolScopeParams{
+		ComputeManagementClient: mock_computemanagement.NewMockClient(mockCtrl),
+		OCIMachinePool:          infraMachinePool,
+		OCIClusterAccessor:      OCISelfManagedCluster{OCICluster: &infrastructurev1beta2.OCICluster{}},
+		Cluster:                 &clusterv1.Cluster{},
+		MachinePool:             &clusterv1.MachinePool{Spec: clusterv1.MachinePoolSpec{Replicas: &replicas}},
+		Client:                  client,
+	})
+	g.Expect(err).To(BeNil())
+
+	outcome, err := ms.UpdatePool(context.Background(), &core.InstancePool{
+		Id:                      common.String("pool-id"),
+		Size:                    common.Int(3),
+		InstanceConfigurationId: common.String("config-id"),
+		FreeformTags:            map[string]string{},
+		LifecycleState:          core.InstancePoolLifecycleStateScaling,
+	})
+	g.Expect(outcome).To(Equal(InstancePoolUpdateWaiting))
+	g.Expect(err).To(MatchError(ContainSubstring("has not converged")))
+	persisted, err := ms.getInstancePoolUpdateAttempt()
+	g.Expect(err).To(BeNil())
+	g.Expect(persisted.RetryToken).To(Equal("expired-but-not-rotated"))
+}
+
+func TestInstancePoolUpdateAttemptTimeoutStartsWhenSubmitted(t *testing.T) {
+	g := NewWithT(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	details := core.UpdateInstancePoolDetails{
+		Size:                    common.Int(2),
+		InstanceConfigurationId: common.String("config-id"),
+		FreeformTags:            map[string]string{},
+	}
+	attempt, err := newInstancePoolUpdateAttempt(details, nil)
+	g.Expect(err).To(BeNil())
+	attempt.StartedAt = time.Now().Add(-instancePoolUpdateAttemptTimeout - time.Minute)
+	infraMachinePool := &infrav2exp.OCIMachinePool{
+		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
+		Spec: infrav2exp.OCIMachinePoolSpec{
+			InstanceConfiguration: infrav2exp.InstanceConfiguration{InstanceConfigurationId: common.String("config-id")},
+		},
+	}
+	setTestInstancePoolUpdateAttempt(t, infraMachinePool, attempt)
+	client := fake.NewClientBuilder().WithStatusSubresource(infraMachinePool).WithObjects(infraMachinePool).Build()
+	computeManagementClient := mock_computemanagement.NewMockClient(mockCtrl)
+	computeManagementClient.EXPECT().UpdateInstancePool(gomock.Any(), gomock.Any()).Return(core.UpdateInstancePoolResponse{}, nil)
+	replicas := int32(3)
+	ms, err := NewMachinePoolScope(MachinePoolScopeParams{
+		ComputeManagementClient: computeManagementClient,
+		OCIMachinePool:          infraMachinePool,
+		OCIClusterAccessor:      OCISelfManagedCluster{OCICluster: &infrastructurev1beta2.OCICluster{}},
+		Cluster:                 &clusterv1.Cluster{},
+		MachinePool:             &clusterv1.MachinePool{Spec: clusterv1.MachinePoolSpec{Replicas: &replicas}},
+		Client:                  client,
+	})
+	g.Expect(err).To(BeNil())
+
+	beforeSubmission := time.Now().UTC()
+	outcome, err := ms.UpdatePool(context.Background(), &core.InstancePool{
+		Id:                      common.String("pool-id"),
+		Size:                    common.Int(3),
+		InstanceConfigurationId: common.String("config-id"),
+		FreeformTags:            map[string]string{},
+		LifecycleState:          core.InstancePoolLifecycleStateRunning,
+	})
+	g.Expect(err).To(BeNil())
+	g.Expect(outcome).To(Equal(InstancePoolUpdateSubmitted))
+	persisted, err := ms.getInstancePoolUpdateAttempt()
+	g.Expect(err).To(BeNil())
+	g.Expect(persisted.StartedAt).To(BeTemporally(">=", beforeSubmission))
+}
+
+func TestStringMapsEqualDistinguishesMissingEmptyValues(t *testing.T) {
+	g := NewWithT(t)
+	g.Expect(stringMapsEqual(map[string]string{"left": ""}, map[string]string{"right": ""})).To(BeFalse())
+	g.Expect(stringMapsEqual(map[string]string{"same": ""}, map[string]string{"same": ""})).To(BeTrue())
 }
 
 func TestSyncReplicasFromInstancePool(t *testing.T) {

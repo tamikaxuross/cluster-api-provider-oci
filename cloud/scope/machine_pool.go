@@ -23,8 +23,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -54,11 +57,32 @@ import (
 )
 
 const (
-	OCIMachinePoolKind                      = "OCIMachinePool"
-	InstanceConfigurationHashAnnotation     = "oci.oraclecloud.com/instance-configuration-hash"
-	BootstrapDataHashAnnotation             = "oci.oraclecloud.com/bootstrap-data-hash"
-	InstancePoolUpdateFingerprintAnnotation = "oci.oraclecloud.com/instance-pool-update-fingerprint"
-	InstancePoolUpdateRetryTokenAnnotation  = "oci.oraclecloud.com/instance-pool-update-retry-token"
+	OCIMachinePoolKind                  = "OCIMachinePool"
+	InstanceConfigurationHashAnnotation = "oci.oraclecloud.com/instance-configuration-hash"
+	BootstrapDataHashAnnotation         = "oci.oraclecloud.com/bootstrap-data-hash"
+	InstancePoolUpdateAttemptAnnotation = "oci.oraclecloud.com/instance-pool-update-attempt"
+
+	instancePoolUpdateAttemptSchemaVersion = 1
+	instancePoolUpdateAttemptTimeout       = time.Hour
+)
+
+type instancePoolUpdatePhase string
+
+const (
+	instancePoolUpdatePhasePrepared  instancePoolUpdatePhase = "Prepared"
+	instancePoolUpdatePhaseSubmitted instancePoolUpdatePhase = "Submitted"
+)
+
+// InstancePoolUpdateOutcome describes the transition made while reconciling
+// one durable asynchronous OCI instance-pool update.
+type InstancePoolUpdateOutcome string
+
+const (
+	InstancePoolUpdateNoChange      InstancePoolUpdateOutcome = "NoChange"
+	InstancePoolUpdateSubmitted     InstancePoolUpdateOutcome = "Submitted"
+	InstancePoolUpdateWaiting       InstancePoolUpdateOutcome = "Waiting"
+	InstancePoolUpdateConverged     InstancePoolUpdateOutcome = "Converged"
+	InstancePoolUpdateRetryRequired InstancePoolUpdateOutcome = "RetryRequired"
 )
 
 // MachinePoolScopeParams defines the params need to create a new MachineScope
@@ -68,6 +92,7 @@ type MachinePoolScopeParams struct {
 	MachinePool             *clusterv1.MachinePool
 	Client                  client.Client
 	ComputeManagementClient computemanagement.Client
+	InstancePoolETag        *string
 	OCIClusterAccessor      OCIClusterAccessor
 	OCIMachinePool          *expinfra1.OCIMachinePool
 	Recorder                record.EventRecorder
@@ -80,9 +105,44 @@ type MachinePoolScope struct {
 	Cluster                 *clusterv1.Cluster
 	MachinePool             *clusterv1.MachinePool
 	ComputeManagementClient computemanagement.Client
+	InstancePoolETag        *string
 	OCIClusterAccesor       OCIClusterAccessor
 	OCIMachinePool          *expinfra1.OCIMachinePool
 	Recorder                record.EventRecorder
+}
+
+// instancePoolUpdateAttempt is the durable identity of one logical OCI update.
+// The complete canonical target is persisted so a changed desired state cannot
+// replace an operation whose completion has not yet been observed.
+type instancePoolUpdateAttempt struct {
+	Version     int                      `json:"version"`
+	Target      instancePoolUpdateTarget `json:"target"`
+	Fingerprint string                   `json:"fingerprint"`
+	RetryToken  string                   `json:"retryToken"`
+	Phase       instancePoolUpdatePhase  `json:"phase"`
+	StartedAt   time.Time                `json:"startedAt"`
+	IfMatch     string                   `json:"ifMatch,omitempty"`
+}
+
+type instancePoolUpdateTarget struct {
+	Size                         *int                                `json:"size,omitempty"`
+	InstanceConfigurationID      *string                             `json:"instanceConfigurationId,omitempty"`
+	FreeformTags                 map[string]string                   `json:"freeformTags"`
+	PlacementConfigurations      []instancePoolUpdatePlacementTarget `json:"placementConfigurations,omitempty"`
+	InstanceDisplayNameFormatter *string                             `json:"instanceDisplayNameFormatter,omitempty"`
+	InstanceHostnameFormatter    *string                             `json:"instanceHostnameFormatter,omitempty"`
+}
+
+type instancePoolUpdatePlacementTarget struct {
+	AvailabilityDomain *string                                    `json:"availabilityDomain,omitempty"`
+	FaultDomains       []string                                   `json:"faultDomains,omitempty"`
+	PrimarySubnetID    *string                                    `json:"primarySubnetId,omitempty"`
+	PrimaryVNICSubnet  *instancePoolUpdatePrimaryVNICSubnetTarget `json:"primaryVnicSubnet,omitempty"`
+}
+
+type instancePoolUpdatePrimaryVNICSubnetTarget struct {
+	SubnetID       *string `json:"subnetId,omitempty"`
+	IsAssignIPv6IP *bool   `json:"isAssignIpv6Ip,omitempty"`
 }
 
 // NewMachinePoolScope creates a MachinePoolScope given the MachinePoolScopeParams
@@ -107,6 +167,7 @@ func NewMachinePoolScope(params MachinePoolScopeParams) (*MachinePoolScope, erro
 		Logger:                  params.Logger,
 		Client:                  params.Client,
 		ComputeManagementClient: params.ComputeManagementClient,
+		InstancePoolETag:        params.InstancePoolETag,
 		Cluster:                 params.Cluster,
 		OCIClusterAccesor:       params.OCIClusterAccessor,
 		patchHelper:             helper,
@@ -144,40 +205,308 @@ func (m *MachinePoolScope) setBootstrapDataHashAnnotation(h string) {
 	m.OCIMachinePool.Annotations[BootstrapDataHashAnnotation] = h
 }
 
-func (m *MachinePoolScope) pendingInstancePoolUpdateRetryToken(ctx context.Context, fingerprint string) (*string, error) {
-	if m.OCIMachinePool.Annotations != nil &&
-		m.OCIMachinePool.Annotations[InstancePoolUpdateFingerprintAnnotation] == fingerprint &&
-		m.OCIMachinePool.Annotations[InstancePoolUpdateRetryTokenAnnotation] != "" {
-		return common.String(m.OCIMachinePool.Annotations[InstancePoolUpdateRetryTokenAnnotation]), nil
+func newInstancePoolUpdateAttempt(details core.UpdateInstancePoolDetails, ifMatch *string) (*instancePoolUpdateAttempt, error) {
+	target := newInstancePoolUpdateTarget(details)
+	fingerprint, err := target.fingerprint()
+	if err != nil {
+		return nil, err
 	}
-
-	token := ociutil.GetOPCRetryToken("update-instance-pool-%s", string(uuid.NewUUID()))
-	if m.OCIMachinePool.Annotations == nil {
-		m.OCIMachinePool.Annotations = map[string]string{}
-	}
-	m.OCIMachinePool.Annotations[InstancePoolUpdateFingerprintAnnotation] = fingerprint
-	m.OCIMachinePool.Annotations[InstancePoolUpdateRetryTokenAnnotation] = *token
-	if err := m.PatchObject(ctx); err != nil {
-		return nil, errors.Wrap(err, "persist instance pool update retry token")
-	}
-	return token, nil
+	return &instancePoolUpdateAttempt{
+		Version:     instancePoolUpdateAttemptSchemaVersion,
+		Target:      target,
+		Fingerprint: fingerprint,
+		RetryToken:  ptr.ToString(ociutil.GetOPCRetryToken("update-instance-pool-%s", string(uuid.NewUUID()))),
+		Phase:       instancePoolUpdatePhasePrepared,
+		StartedAt:   time.Now().UTC(),
+		IfMatch:     ptr.ToString(ifMatch),
+	}, nil
 }
 
-func (m *MachinePoolScope) clearPendingInstancePoolUpdate(ctx context.Context) error {
-	if m.OCIMachinePool.Annotations == nil {
-		return nil
+func newInstancePoolUpdateTarget(details core.UpdateInstancePoolDetails) instancePoolUpdateTarget {
+	target := instancePoolUpdateTarget{
+		Size:                         details.Size,
+		InstanceConfigurationID:      details.InstanceConfigurationId,
+		FreeformTags:                 cloneStringMap(details.FreeformTags),
+		InstanceDisplayNameFormatter: details.InstanceDisplayNameFormatter,
+		InstanceHostnameFormatter:    details.InstanceHostnameFormatter,
 	}
-	_, hasFingerprint := m.OCIMachinePool.Annotations[InstancePoolUpdateFingerprintAnnotation]
-	_, hasToken := m.OCIMachinePool.Annotations[InstancePoolUpdateRetryTokenAnnotation]
-	if !hasFingerprint && !hasToken {
-		return nil
+	if details.PlacementConfigurations != nil {
+		target.PlacementConfigurations = make([]instancePoolUpdatePlacementTarget, 0, len(details.PlacementConfigurations))
+		for _, placement := range details.PlacementConfigurations {
+			targetPlacement := instancePoolUpdatePlacementTarget{
+				AvailabilityDomain: placement.AvailabilityDomain,
+				FaultDomains:       sortedStrings(placement.FaultDomains),
+				PrimarySubnetID:    placement.PrimarySubnetId,
+			}
+			if placement.PrimaryVnicSubnets != nil {
+				targetPlacement.PrimaryVNICSubnet = &instancePoolUpdatePrimaryVNICSubnetTarget{
+					SubnetID:       placement.PrimaryVnicSubnets.SubnetId,
+					IsAssignIPv6IP: placement.PrimaryVnicSubnets.IsAssignIpv6Ip,
+				}
+			}
+			target.PlacementConfigurations = append(target.PlacementConfigurations, targetPlacement)
+		}
+		sort.SliceStable(target.PlacementConfigurations, func(i, j int) bool {
+			return ptr.ToString(target.PlacementConfigurations[i].AvailabilityDomain) < ptr.ToString(target.PlacementConfigurations[j].AvailabilityDomain)
+		})
 	}
-	delete(m.OCIMachinePool.Annotations, InstancePoolUpdateFingerprintAnnotation)
-	delete(m.OCIMachinePool.Annotations, InstancePoolUpdateRetryTokenAnnotation)
-	if err := m.PatchObject(ctx); err != nil {
-		return errors.Wrap(err, "clear completed instance pool update retry token")
+	return target
+}
+
+func (t instancePoolUpdateTarget) updateDetails() core.UpdateInstancePoolDetails {
+	details := core.UpdateInstancePoolDetails{
+		Size:                         t.Size,
+		InstanceConfigurationId:      t.InstanceConfigurationID,
+		FreeformTags:                 cloneStringMap(t.FreeformTags),
+		InstanceDisplayNameFormatter: t.InstanceDisplayNameFormatter,
+		InstanceHostnameFormatter:    t.InstanceHostnameFormatter,
+	}
+	if t.PlacementConfigurations != nil {
+		details.PlacementConfigurations = make([]core.UpdateInstancePoolPlacementConfigurationDetails, 0, len(t.PlacementConfigurations))
+		for _, placement := range t.PlacementConfigurations {
+			updatePlacement := core.UpdateInstancePoolPlacementConfigurationDetails{
+				AvailabilityDomain: placement.AvailabilityDomain,
+				FaultDomains:       append([]string(nil), placement.FaultDomains...),
+				PrimarySubnetId:    placement.PrimarySubnetID,
+			}
+			if placement.PrimaryVNICSubnet != nil {
+				updatePlacement.PrimaryVnicSubnets = &core.InstancePoolPlacementPrimarySubnet{
+					SubnetId:       placement.PrimaryVNICSubnet.SubnetID,
+					IsAssignIpv6Ip: placement.PrimaryVNICSubnet.IsAssignIPv6IP,
+				}
+			}
+			details.PlacementConfigurations = append(details.PlacementConfigurations, updatePlacement)
+		}
+	}
+	return details
+}
+
+func (t instancePoolUpdateTarget) fingerprint() (string, error) {
+	data, err := json.Marshal(t)
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:]), nil
+}
+
+func (t instancePoolUpdateTarget) matches(instancePool *core.InstancePool) bool {
+	if instancePool == nil {
+		return false
+	}
+	if t.Size != nil && !intPointersEqual(t.Size, instancePool.Size) {
+		return false
+	}
+	if t.InstanceConfigurationID != nil && !ptr.StringEqual(t.InstanceConfigurationID, instancePool.InstanceConfigurationId) {
+		return false
+	}
+	if !stringMapsEqual(t.FreeformTags, instancePool.FreeformTags) {
+		return false
+	}
+	if t.PlacementConfigurations != nil && instancePoolPlacementNeedsUpdate(instancePool.PlacementConfigurations, t.updateDetails().PlacementConfigurations) {
+		return false
+	}
+	if t.InstanceDisplayNameFormatter != nil && !instancePoolFormattersEqual(t.InstanceDisplayNameFormatter, instancePool.InstanceDisplayNameFormatter) {
+		return false
+	}
+	if t.InstanceHostnameFormatter != nil && !instancePoolFormattersEqual(t.InstanceHostnameFormatter, instancePool.InstanceHostnameFormatter) {
+		return false
+	}
+	return true
+}
+
+func (m *MachinePoolScope) getInstancePoolUpdateAttempt() (*instancePoolUpdateAttempt, error) {
+	if m.OCIMachinePool.Annotations == nil || m.OCIMachinePool.Annotations[InstancePoolUpdateAttemptAnnotation] == "" {
+		return nil, nil
+	}
+	attempt := &instancePoolUpdateAttempt{}
+	if err := json.Unmarshal([]byte(m.OCIMachinePool.Annotations[InstancePoolUpdateAttemptAnnotation]), attempt); err != nil {
+		return nil, errors.Wrap(err, "decode instance pool update attempt")
+	}
+	if attempt.Version != instancePoolUpdateAttemptSchemaVersion {
+		return nil, errors.Errorf("unsupported instance pool update attempt schema version %d; verify the OCI operation is terminal before removing annotation %q", attempt.Version, InstancePoolUpdateAttemptAnnotation)
+	}
+	if attempt.RetryToken == "" || attempt.StartedAt.IsZero() {
+		return nil, errors.New("invalid instance pool update attempt")
+	}
+	if attempt.Phase != instancePoolUpdatePhasePrepared && attempt.Phase != instancePoolUpdatePhaseSubmitted {
+		return nil, errors.Errorf("invalid instance pool update phase %q", attempt.Phase)
+	}
+	fingerprint, err := attempt.Target.fingerprint()
+	if err != nil {
+		return nil, errors.Wrap(err, "fingerprint instance pool update attempt")
+	}
+	if fingerprint != attempt.Fingerprint {
+		return nil, errors.New("instance pool update attempt fingerprint does not match its target")
+	}
+	return attempt, nil
+}
+
+func (m *MachinePoolScope) setInstancePoolUpdateAttempt(ctx context.Context, attempt *instancePoolUpdateAttempt) error {
+	data, err := json.Marshal(attempt)
+	if err != nil {
+		return errors.Wrap(err, "encode instance pool update attempt")
+	}
+	expected := ""
+	if m.OCIMachinePool.Annotations != nil {
+		expected = m.OCIMachinePool.Annotations[InstancePoolUpdateAttemptAnnotation]
+	}
+	if err := m.transitionInstancePoolUpdateAttempt(ctx, expected, string(data)); err != nil {
+		return errors.Wrap(err, "persist instance pool update attempt")
 	}
 	return nil
+}
+
+func (m *MachinePoolScope) clearInstancePoolUpdateAttempt(ctx context.Context) error {
+	if !m.HasPendingInstancePoolUpdate() {
+		return nil
+	}
+	expected := m.OCIMachinePool.Annotations[InstancePoolUpdateAttemptAnnotation]
+	if err := m.transitionInstancePoolUpdateAttempt(ctx, expected, ""); err != nil {
+		return errors.Wrap(err, "clear completed instance pool update attempt")
+	}
+	return nil
+}
+
+// transitionInstancePoolUpdateAttempt changes the durable attempt only when it
+// still has the value observed by this reconciliation. The resource-version
+// precondition prevents overlapping reconcilers from replacing or clearing a
+// newer attempt.
+func (m *MachinePoolScope) transitionInstancePoolUpdateAttempt(ctx context.Context, expected, desired string) error {
+	// Persist changes already staged on the scope before rebasing its patch
+	// helper around the independently guarded annotation transition.
+	if err := m.PatchObject(ctx); err != nil {
+		return errors.Wrap(err, "persist OCIMachinePool before update-attempt transition")
+	}
+
+	latest := &infrav2exp.OCIMachinePool{}
+	if err := m.Client.Get(ctx, client.ObjectKeyFromObject(m.OCIMachinePool), latest); err != nil {
+		return errors.Wrap(err, "get latest OCIMachinePool update attempt")
+	}
+	actual := ""
+	if latest.Annotations != nil {
+		actual = latest.Annotations[InstancePoolUpdateAttemptAnnotation]
+	}
+	if actual != expected {
+		return errors.New("instance pool update attempt changed concurrently")
+	}
+
+	before := latest.DeepCopy()
+	if desired == "" {
+		delete(latest.Annotations, InstancePoolUpdateAttemptAnnotation)
+	} else {
+		if latest.Annotations == nil {
+			latest.Annotations = map[string]string{}
+		}
+		latest.Annotations[InstancePoolUpdateAttemptAnnotation] = desired
+	}
+	patch := client.MergeFromWithOptions(before, client.MergeFromWithOptimisticLock{})
+	if err := m.Client.Patch(ctx, latest, patch); err != nil {
+		return errors.Wrap(err, "patch OCIMachinePool update attempt")
+	}
+
+	// Keep the scope object aligned with the successful transition. Carrying
+	// forward the resource version also prevents the scope's final patch from
+	// overwriting an attempt written by a later reconciliation.
+	m.OCIMachinePool.SetResourceVersion(latest.GetResourceVersion())
+	if desired == "" {
+		delete(m.OCIMachinePool.Annotations, InstancePoolUpdateAttemptAnnotation)
+	} else {
+		if m.OCIMachinePool.Annotations == nil {
+			m.OCIMachinePool.Annotations = map[string]string{}
+		}
+		m.OCIMachinePool.Annotations[InstancePoolUpdateAttemptAnnotation] = desired
+	}
+	helper, err := v1beta1patch.NewHelper(m.OCIMachinePool, m.Client)
+	if err != nil {
+		return errors.Wrap(err, "rebase OCIMachinePool patch helper after update-attempt transition")
+	}
+	m.patchHelper = helper
+	return nil
+}
+
+func (m *MachinePoolScope) submitInstancePoolUpdateAttempt(ctx context.Context, instancePool *core.InstancePool, attempt *instancePoolUpdateAttempt) (InstancePoolUpdateOutcome, error) {
+	request := core.UpdateInstancePoolRequest{
+		InstancePoolId:            instancePool.Id,
+		UpdateInstancePoolDetails: attempt.Target.updateDetails(),
+		OpcRetryToken:             common.String(attempt.RetryToken),
+	}
+	if attempt.IfMatch != "" {
+		request.IfMatch = common.String(attempt.IfMatch)
+	}
+
+	_, err := m.ComputeManagementClient.UpdateInstancePool(ctx, request)
+	if err != nil {
+		if serviceErr, ok := common.IsServiceError(err); ok {
+			switch status := serviceErr.GetHTTPStatusCode(); {
+			case status == http.StatusPreconditionFailed:
+				// OCI rejected the stale If-Match value, so this request was not
+				// accepted. Discard its token and rebuild from fresh readback.
+				if clearErr := m.clearInstancePoolUpdateAttempt(ctx); clearErr != nil {
+					return InstancePoolUpdateNoChange, clearErr
+				}
+				m.Info("Instance pool update rejected because its ETag was stale; retrying from fresh readback")
+				return InstancePoolUpdateRetryRequired, nil
+			case status >= http.StatusBadRequest && status < http.StatusInternalServerError &&
+				status != http.StatusRequestTimeout && status != http.StatusConflict && status != http.StatusTooManyRequests:
+				if clearErr := m.clearInstancePoolUpdateAttempt(ctx); clearErr != nil {
+					return InstancePoolUpdateNoChange, clearErr
+				}
+			}
+		}
+		return InstancePoolUpdateNoChange, errors.Wrap(err, "unable to update instance pool")
+	}
+
+	attempt.Phase = instancePoolUpdatePhaseSubmitted
+	attempt.StartedAt = time.Now().UTC()
+	if err := m.setInstancePoolUpdateAttempt(ctx, attempt); err != nil {
+		return InstancePoolUpdateNoChange, err
+	}
+	m.Info("Successfully submitted instance pool update", "fingerprint", attempt.Fingerprint)
+	return InstancePoolUpdateSubmitted, nil
+}
+
+// HasPendingInstancePoolUpdate reports whether an OCI update has been persisted
+// but has not yet been proven complete by fresh readback.
+func (m *MachinePoolScope) HasPendingInstancePoolUpdate() bool {
+	return m.OCIMachinePool.Annotations != nil && m.OCIMachinePool.Annotations[InstancePoolUpdateAttemptAnnotation] != ""
+}
+
+func cloneStringMap(in map[string]string) map[string]string {
+	if in == nil {
+		return nil
+	}
+	out := make(map[string]string, len(in))
+	for key, value := range in {
+		out[key] = value
+	}
+	return out
+}
+
+func stringMapsEqual(left, right map[string]string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for key, value := range left {
+		rightValue, ok := right[key]
+		if !ok || rightValue != value {
+			return false
+		}
+	}
+	return true
+}
+
+func intPointersEqual(left, right *int) bool {
+	return left == nil && right == nil || left != nil && right != nil && *left == *right
+}
+
+func sortedStrings(values []string) []string {
+	if values == nil {
+		return nil
+	}
+	result := append([]string(nil), values...)
+	sort.Strings(result)
+	return result
 }
 
 // PatchObject persists the cluster configuration and status.
@@ -446,6 +775,9 @@ func (s *MachinePoolScope) BuildInstancePoolPlacement() ([]core.CreateInstancePo
 			placements = append(placements, placement)
 		}
 	}
+	sort.SliceStable(placements, func(i, j int) bool {
+		return ptr.ToString(placements[i].AvailabilityDomain) < ptr.ToString(placements[j].AvailabilityDomain)
+	})
 
 	return placements, nil
 }
@@ -808,6 +1140,9 @@ func (m *MachinePoolScope) getLaunchInstanceDetails(instanceConfigurationSpec in
 	launchDetails.InstanceOptions = m.getInstanceOptions()
 	launchDetails.AvailabilityConfig = m.getAvailabilityConfig()
 	launchDetails.PreemptibleInstanceConfig = m.getPreemptibleInstanceConfig()
+	if err := validatePlatformConfig(instanceConfigurationSpec.PlatformConfig); err != nil {
+		return nil, err
+	}
 	launchDetails.PlatformConfig = m.getPlatformConfig()
 
 	shapeConfig, err := m.buildInstanceConfigurationShapeConfig()
@@ -858,6 +1193,7 @@ func (m *MachinePoolScope) FindInstancePool(ctx context.Context) (*core.Instance
 		if err != nil {
 			return nil, err
 		}
+		m.InstancePoolETag = response.Etag
 		return &response.InstancePool, nil
 	}
 
@@ -896,6 +1232,7 @@ func (m *MachinePoolScope) FindInstancePool(ctx context.Context) (*core.Instance
 	if !m.IsResourceCreatedByClusterAPI(respGet.InstancePool.FreeformTags) {
 		return nil, errors.Wrapf(err, "failed to query OCIMachinePool not created by this cluster.")
 	}
+	m.InstancePoolETag = respGet.Etag
 
 	m.Info("Found existing instance pool", "id", instancePoolSummary.Id, "machinepool-name", m.OCIMachinePool.GetName())
 
@@ -944,20 +1281,50 @@ func (m *MachinePoolScope) CreateInstancePool(ctx context.Context) (*core.Instan
 	return &instancePool.InstancePool, nil
 }
 
-// UpdatePool attempts to update the instance pool and reports whether an
-// asynchronous OCI update was issued. Callers must use a fresh GetInstancePool
-// response on a later reconciliation before treating the update as complete.
-func (m *MachinePoolScope) UpdatePool(ctx context.Context, instancePool *core.InstancePool) (bool, error) {
-	var placementConfigurations []core.UpdateInstancePoolPlacementConfigurationDetails
-	placementNeedsUpdate := false
-	if len(m.OCIMachinePool.Spec.PlacementDetails) > 0 || instancePoolHasPrimaryVnicSubnets(instancePool.PlacementConfigurations) {
-		var err error
-		placementConfigurations, err = m.buildUpdateInstancePoolPlacement()
-		if err != nil {
-			return false, errors.Wrapf(err, "unable to build instance pool placements")
-		}
-		placementNeedsUpdate = instancePoolPlacementNeedsUpdate(instancePool.PlacementConfigurations, placementConfigurations)
+// UpdatePool advances one durable asynchronous OCI instance-pool update. It
+// serializes changed desired states and requires fresh OCI readback before a
+// submitted operation is considered converged.
+func (m *MachinePoolScope) UpdatePool(ctx context.Context, instancePool *core.InstancePool) (InstancePoolUpdateOutcome, error) {
+	converged := false
+	attempt, err := m.getInstancePoolUpdateAttempt()
+	if err != nil {
+		return InstancePoolUpdateNoChange, err
 	}
+	if attempt != nil {
+		if instancePool.LifecycleState == core.InstancePoolLifecycleStateRunning && attempt.Target.matches(instancePool) {
+			if err := m.clearInstancePoolUpdateAttempt(ctx); err != nil {
+				return InstancePoolUpdateNoChange, err
+			}
+			converged = true
+		} else {
+			if attempt.Phase == instancePoolUpdatePhaseSubmitted &&
+				time.Since(attempt.StartedAt) >= instancePoolUpdateAttemptTimeout {
+				return InstancePoolUpdateWaiting, errors.Errorf("instance pool update %s has not converged after %s while OCI lifecycle state is %q", attempt.Fingerprint, instancePoolUpdateAttemptTimeout, instancePool.LifecycleState)
+			}
+			if attempt.Phase == instancePoolUpdatePhasePrepared {
+				if instancePool.LifecycleState != core.InstancePoolLifecycleStateRunning {
+					return InstancePoolUpdateWaiting, nil
+				}
+				return m.submitInstancePoolUpdateAttempt(ctx, instancePool, attempt)
+			}
+			return InstancePoolUpdateWaiting, nil
+		}
+	}
+	if instancePool.LifecycleState != core.InstancePoolLifecycleStateRunning {
+		if converged {
+			return InstancePoolUpdateConverged, nil
+		}
+		return InstancePoolUpdateNoChange, nil
+	}
+
+	placementConfigurations, err := m.buildUpdateInstancePoolPlacement()
+	if err != nil {
+		return InstancePoolUpdateNoChange, errors.Wrapf(err, "unable to build instance pool placements")
+	}
+	comparePlacements := len(m.OCIMachinePool.Spec.PlacementDetails) > 0 ||
+		instancePoolHasPrimaryVnicSubnets(instancePool.PlacementConfigurations) ||
+		(len(instancePool.PlacementConfigurations) > 0 && len(placementConfigurations) > 0)
+	placementNeedsUpdate := comparePlacements && instancePoolPlacementNeedsUpdate(instancePool.PlacementConfigurations, placementConfigurations)
 	if instancePoolNeedsUpdates(m, instancePool, placementNeedsUpdate) {
 		m.Info("Updating instance pool")
 		replicas := 0
@@ -984,54 +1351,19 @@ func (m *MachinePoolScope) UpdatePool(ctx context.Context, instancePool *core.In
 			instancePool.InstanceHostnameFormatter,
 		)
 
-		fingerprint, err := InstancePoolUpdateFingerprint(m.OCIMachinePool, instancePool, updateDetails)
+		attempt, err := newInstancePoolUpdateAttempt(updateDetails, m.InstancePoolETag)
 		if err != nil {
-			return false, errors.Wrap(err, "compute instance pool update fingerprint")
+			return InstancePoolUpdateNoChange, errors.Wrap(err, "build instance pool update attempt")
 		}
-		retryToken, err := m.pendingInstancePoolUpdateRetryToken(ctx, fingerprint)
-		if err != nil {
-			return false, err
+		if err := m.setInstancePoolUpdateAttempt(ctx, attempt); err != nil {
+			return InstancePoolUpdateNoChange, err
 		}
-
-		req := core.UpdateInstancePoolRequest{InstancePoolId: instancePool.Id,
-			UpdateInstancePoolDetails: updateDetails,
-			OpcRetryToken:             retryToken,
-		}
-		_, err = m.ComputeManagementClient.UpdateInstancePool(ctx, req)
-		if err != nil {
-			return false, errors.Wrap(err, "unable to update instance pool")
-		}
-		m.Info("Successfully updated instance pool")
-		return true, nil
+		return m.submitInstancePoolUpdateAttempt(ctx, instancePool, attempt)
 	}
-	if err := m.clearPendingInstancePoolUpdate(ctx); err != nil {
-		return false, err
+	if converged {
+		return InstancePoolUpdateConverged, nil
 	}
-	return false, nil
-}
-
-// InstancePoolUpdateFingerprint identifies the desired update while it is pending. The associated
-// retry token is persisted on the OCIMachinePool and reused until fresh OCI readback converges.
-func InstancePoolUpdateFingerprint(machinePool *infrav2exp.OCIMachinePool, instancePool *core.InstancePool, updateDetails core.UpdateInstancePoolDetails) (string, error) {
-	payload := struct {
-		UID            string                         `json:"uid,omitempty"`
-		Namespace      string                         `json:"namespace,omitempty"`
-		Name           string                         `json:"name,omitempty"`
-		InstancePoolID string                         `json:"instancePoolId,omitempty"`
-		UpdateDetails  core.UpdateInstancePoolDetails `json:"updateDetails"`
-	}{
-		UID:            string(machinePool.UID),
-		Namespace:      machinePool.Namespace,
-		Name:           machinePool.Name,
-		InstancePoolID: ptr.ToString(instancePool.Id),
-		UpdateDetails:  updateDetails,
-	}
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return "", err
-	}
-	sum := sha256.Sum256(data)
-	return hex.EncodeToString(sum[:]), nil
+	return InstancePoolUpdateNoChange, nil
 }
 
 func instancePoolHasPrimaryVnicSubnets(placements []core.InstancePoolPlacementConfiguration) bool {
@@ -1403,6 +1735,10 @@ func (m *MachinePoolScope) GetInstanceConfiguration(ctx context.Context) (*core.
 func (m *MachinePoolScope) CleanupInstanceConfiguration(ctx context.Context, instancePool *core.InstancePool) error {
 	m.Info("Cleaning up unused instance configurations")
 
+	if instancePool != nil && m.HasPendingInstancePoolUpdate() {
+		m.Info("Deferring instance configuration cleanup while an instance pool update is pending")
+		return nil
+	}
 	if !m.InstancePoolUsesDesiredInstanceConfiguration(instancePool) {
 		m.Info("Deferring instance configuration cleanup until instance pool switch is observed",
 			"desiredInstanceConfigurationId", ptr.ToString(m.GetInstanceConfigurationId()),

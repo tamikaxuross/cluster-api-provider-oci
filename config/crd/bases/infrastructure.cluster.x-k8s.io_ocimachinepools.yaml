@@ -344,6 +344,9 @@ spec:
                           enum:
                           - WINDOWS
                           type: string
+                      required:
+                      - licenseType
+                      - type
                       type: object
                     maxItems: 1
                     type: array
@@ -639,9 +642,15 @@ spec:
                             type: boolean
                           numaNodesPerSocket:
                             description: The number of NUMA nodes per socket (NPS).
+                            enum:
+                            - NPS1
+                            - NPS2
                             type: string
                           percentageOfCoresEnabled:
                             description: The percentage of cores enabled.
+                            maximum: 100
+                            minimum: 25
+                            multipleOf: 25
                             type: integer
                         type: object
                       intelVmPlatformConfig:
@@ -1204,6 +1213,9 @@ spec:
                           enum:
                           - WINDOWS
                           type: string
+                      required:
+                      - licenseType
+                      - type
                       type: object
                     maxItems: 1
                     type: array
@@ -1499,9 +1511,15 @@ spec:
                             type: boolean
                           numaNodesPerSocket:
                             description: The number of NUMA nodes per socket (NPS).
+                            enum:
+                            - NPS1
+                            - NPS2
                             type: string
                           percentageOfCoresEnabled:
                             description: The percentage of cores enabled.
+                            maximum: 100
+                            minimum: 25
+                            multipleOf: 25
                             type: integer
                         type: object
                       intelVmPlatformConfig:

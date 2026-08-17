@@ -228,8 +228,10 @@ const (
 )
 
 type LaunchInstanceLicensingConfig struct {
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=WINDOWS
 	Type LaunchInstanceLicensingConfigTypeEnum `json:"type,omitempty"`
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=OCI_PROVIDED;BRING_YOUR_OWN_LICENSE
 	LicenseType LaunchInstanceLicensingConfigLicenseTypeEnum `json:"licenseType,omitempty"`
 }

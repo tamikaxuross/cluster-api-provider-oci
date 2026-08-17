@@ -218,13 +218,7 @@ func normalizeFreeformTags(tags map[string]string) map[string]string {
 	}
 	output := make(map[string]string, len(tags))
 	for k, v := range tags {
-		if k == "oci-default" {
-			continue
-		}
 		output[k] = v
-	}
-	if len(output) == 0 {
-		return nil
 	}
 	return output
 }
@@ -366,19 +360,11 @@ func projectCreateVnicDetails(in, mask *core.InstanceConfigurationCreateVnicDeta
 }
 
 func projectLicensingConfigs(in, mask []core.LaunchInstanceLicensingConfig) []comparableLicensingConfig {
-	if len(in) == 0 {
+	if len(mask) == 0 {
 		return nil
 	}
-	if len(mask) == 0 {
-		configs := make([]comparableLicensingConfig, 0, len(in))
-		for _, config := range in {
-			configType, licenseType := licensingConfigValues(config)
-			configs = append(configs, comparableLicensingConfig{
-				Type:        configType,
-				LicenseType: licenseType,
-			})
-		}
-		return configs
+	if len(in) == 0 {
+		return nil
 	}
 	// CRD validation limits this to one WINDOWS config today; truncate any
 	// unexpected service extras to the desired mask.

@@ -400,9 +400,13 @@ type IntelSkylakeBmPlatformConfig struct {
 	IsInputOutputMemoryManagementUnitEnabled *bool `json:"isInputOutputMemoryManagementUnitEnabled,omitempty"`
 
 	// The percentage of cores enabled.
+	// +kubebuilder:validation:Minimum=25
+	// +kubebuilder:validation:Maximum=100
+	// +kubebuilder:validation:MultipleOf=25
 	PercentageOfCoresEnabled *int `json:"percentageOfCoresEnabled,omitempty"`
 
 	// The number of NUMA nodes per socket (NPS).
+	// +kubebuilder:validation:Enum=NPS1;NPS2
 	NumaNodesPerSocket IntelSkylakeBmPlatformConfigNumaNodesPerSocketEnum `json:"numaNodesPerSocket,omitempty"`
 }
 

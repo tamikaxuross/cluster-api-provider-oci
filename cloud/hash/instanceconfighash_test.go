@@ -871,10 +871,10 @@ func TestComputeHash_FreeformTagChangeProducesDifferentHash(t *testing.T) {
 	}
 
 	ld1 := *baseLd
-	ld1.FreeformTags = map[string]string{"tag1": "value1"}
+	ld1.FreeformTags = map[string]string{"oci-default": "value1"}
 
 	ld2 := *baseLd
-	ld2.FreeformTags = map[string]string{"tag2": "value2"}
+	ld2.FreeformTags = map[string]string{"oci-default": "value2"}
 
 	hash1, err := ComputeHash(&ld1)
 	g.Expect(err).To(BeNil())
@@ -1305,7 +1305,6 @@ func TestComputeComparableHash_IgnoresDefaultOnlyReadbackChurn(t *testing.T) {
 	actual := &core.InstanceConfigurationLaunchInstanceDetails{
 		CompartmentId: common.String("ocid1.compartment.oc1..test"),
 		DisplayName:   common.String("server-filled-name"),
-		FreeformTags:  map[string]string{"oci-default": "ignored"},
 		DefinedTags:   map[string]map[string]interface{}{"Oracle-Tags": {"CreatedBy": "oci"}},
 		Shape:         common.String("VM.Standard.E4.Flex"),
 		ShapeConfig: &core.InstanceConfigurationLaunchInstanceShapeConfigDetails{
@@ -1323,6 +1322,9 @@ func TestComputeComparableHash_IgnoresDefaultOnlyReadbackChurn(t *testing.T) {
 			"user_data": "different-bootstrap-is-tracked-separately",
 		},
 		PreferredMaintenanceAction: core.InstanceConfigurationLaunchInstanceDetailsPreferredMaintenanceActionLiveMigrate,
+		LicensingConfigs: []core.LaunchInstanceLicensingConfig{
+			core.LaunchInstanceWindowsLicensingConfig{LicenseType: core.LaunchInstanceLicensingConfigLicenseTypeOciProvided},
+		},
 	}
 
 	desiredHash, err := ComputeHash(desired)
@@ -1355,16 +1357,6 @@ func TestComputeComparableHash_DetectsSetToUnsetOptionalLaunchFields(t *testing.
 		// OCI can return any launch mode value (including CUSTOM) as a service default,
 		// so we cannot safely distinguish "user removed the field" from "OCI returned its default."
 		// Removal of this field is therefore not detectable, consistent with preferred maintenance action.
-		{
-			name: "licensing configs",
-			actual: &core.InstanceConfigurationLaunchInstanceDetails{
-				LicensingConfigs: []core.LaunchInstanceLicensingConfig{
-					core.LaunchInstanceWindowsLicensingConfig{
-						LicenseType: core.LaunchInstanceLicensingConfigLicenseTypeBringYourOwnLicense,
-					},
-				},
-			},
-		},
 		// Note: preferred maintenance action is intentionally excluded here.
 		// Both LIVE_MIGRATE and REBOOT are valid OCI service defaults depending on shape,
 		// so we cannot distinguish "user removed the field" from "OCI returned its default."
