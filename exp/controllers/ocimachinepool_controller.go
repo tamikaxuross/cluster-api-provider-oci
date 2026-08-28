@@ -395,35 +395,40 @@ func (r *OCIMachinePoolReconciler) reconcileNormal(ctx context.Context, logger l
 			return reconcile.Result{}, err
 		}
 
+		desiredReplicas := 0
+		if machinePoolScope.MachinePool.Spec.Replicas != nil {
+			desiredReplicas = int(*machinePoolScope.MachinePool.Spec.Replicas)
+		}
 		if updateOutcome == scope.InstancePoolUpdateSubmitted ||
 			updateOutcome == scope.InstancePoolUpdateWaiting ||
 			updateOutcome == scope.InstancePoolUpdateRetryRequired {
-			// OCI instance pool updates are asynchronous. Keep the pool non-ready and
+			// OCI instance pool updates are asynchronous. Keep cleanup deferred and
 			// serialize later desired states until fresh readback proves completion.
-			machinePoolScope.OCIMachinePool.Status.Ready = false
-			v1beta1conditions.MarkFalse(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition, infrav2exp.InstancePoolNotReadyReason, clusterv1beta1.ConditionSeverityInfo, "")
+			if len(providerIDList) != desiredReplicas {
+				machinePoolScope.OCIMachinePool.Status.Ready = false
+				v1beta1conditions.MarkFalse(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition, infrav2exp.InstancePoolNotReadyReason, clusterv1beta1.ConditionSeverityInfo,
+					"Expected %d running replicas, found %d", desiredReplicas, len(providerIDList))
+				return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+			}
+			machinePoolScope.SetReady()
+			v1beta1conditions.MarkTrue(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition)
 			return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 		err = machinePoolScope.CleanupInstanceConfiguration(ctx, instancePool)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		desiredReplicas := 0
-		if machinePoolScope.MachinePool.Spec.Replicas != nil {
-			desiredReplicas = int(*machinePoolScope.MachinePool.Spec.Replicas)
-		}
 		if len(providerIDList) != desiredReplicas {
 			machinePoolScope.OCIMachinePool.Status.Ready = false
 			v1beta1conditions.MarkFalse(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition, infrav2exp.InstancePoolNotReadyReason, clusterv1beta1.ConditionSeverityInfo,
 				"Expected %d running replicas, found %d", desiredReplicas, len(providerIDList))
 			return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
-		} else {
-			machinePoolScope.SetReady()
-			// record the event only when pool goes from not ready to ready state
-			r.Recorder.Eventf(machinePoolScope.OCIMachinePool, corev1.EventTypeNormal, "InstancePoolReady",
-				"Instance pool is in ready state")
-			v1beta1conditions.MarkTrue(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition)
 		}
+		machinePoolScope.SetReady()
+		// record the event only when pool goes from not ready to ready state
+		r.Recorder.Eventf(machinePoolScope.OCIMachinePool, corev1.EventTypeNormal, "InstancePoolReady",
+			"Instance pool is in ready state")
+		v1beta1conditions.MarkTrue(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition)
 	default:
 		v1beta1conditions.MarkFalse(machinePoolScope.OCIMachinePool, infrav2exp.InstancePoolReadyCondition, infrav2exp.InstancePoolProvisionFailedReason, clusterv1beta1.ConditionSeverityError, "")
 		machinePoolScope.SetFailureReason(cloudutil.CreateError)

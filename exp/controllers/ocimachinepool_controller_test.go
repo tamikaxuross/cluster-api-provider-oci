@@ -486,9 +486,9 @@ func TestReconciliationFunction(t *testing.T) {
 			},
 		},
 		{
-			name:                 "instance pool update response echoing desired values still defers cleanup and requeues",
+			name:                 "ready instance pool configuration update still defers cleanup and requeues",
 			errorExpected:        false,
-			conditionAssertion:   []conditionAssertion{{infrav2exp.LaunchTemplateReadyCondition, corev1.ConditionTrue, "", ""}, {infrav2exp.InstancePoolReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, infrav2exp.InstancePoolNotReadyReason}},
+			conditionAssertion:   []conditionAssertion{{infrav2exp.LaunchTemplateReadyCondition, corev1.ConditionTrue, "", ""}, {infrav2exp.InstancePoolReadyCondition, corev1.ConditionTrue, "", ""}},
 			expectedRequeueAfter: 10 * time.Second,
 			testSpecificSetup: func(t *test, machinePoolScope *scope.MachinePoolScope, computeManagementClient *mock_computemanagement.MockClient) {
 				ms.OCIMachinePool.Status.Ready = true
@@ -545,11 +545,11 @@ func TestReconciliationFunction(t *testing.T) {
 					}, nil)
 				computeManagementClient.EXPECT().ListInstancePoolInstances(gomock.Any(), gomock.Any()).
 					Return(core.ListInstancePoolInstancesResponse{
-						Items: []core.InstanceSummary{{
-							Id:          common.String("id-1"),
-							State:       common.String("Running"),
-							DisplayName: common.String("name-1"),
-						}},
+						Items: []core.InstanceSummary{
+							{Id: common.String("id-1"), State: common.String("Running"), DisplayName: common.String("name-1")},
+							{Id: common.String("id-2"), State: common.String("Running"), DisplayName: common.String("name-2")},
+							{Id: common.String("id-3"), State: common.String("Running"), DisplayName: common.String("name-3")},
+						},
 					}, nil)
 				updateDetails := core.UpdateInstancePoolDetails{
 					Size:                    common.Int(3),
@@ -583,10 +583,10 @@ func TestReconciliationFunction(t *testing.T) {
 				computeManagementClient.EXPECT().DeleteInstanceConfiguration(gomock.Any(), gomock.Any()).Times(0)
 			},
 			validate: func(g *WithT, t *test) {
-				g.Expect(len(t.createPoolMachines)).To(Equal(1))
+				g.Expect(len(t.createPoolMachines)).To(Equal(3))
 				g.Expect(ms.OCIMachinePool.Spec.InstanceConfiguration.InstanceConfigurationId).To(Equal(common.String("new-id")))
-				g.Expect(ms.OCIMachinePool.Status.Ready).To(BeFalse())
-				g.Expect(ms.OCIMachinePool.Status.Replicas).To(Equal(int32(1)))
+				g.Expect(ms.OCIMachinePool.Status.Ready).To(BeTrue())
+				g.Expect(ms.OCIMachinePool.Status.Replicas).To(Equal(int32(3)))
 			},
 		},
 		{
